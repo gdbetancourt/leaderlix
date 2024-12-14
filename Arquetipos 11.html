@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>6 Arquetipos Naturales - Curso de Rockstars</title>
+    <!-- Carga de Chart.js desde CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Carga de SortableJS desde CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            background-color: #fff;
+            width: 90%;
+            max-width: 800px;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            overflow-y: auto;
+            max-height: 90vh;
+        }
+        h1, h2 {
+            text-align: center;
+            color: #333;
+        }
+        .question-container {
+            margin-bottom: 20px;
+        }
+        .question {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+            color: #555;
+            text-align: center;
+        }
+        .subtitle {
+            font-size: 1em;
+            margin-bottom: 20px;
+            color: #777;
+            text-align: center;
+        }
+        .options {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            max-width: 600px;
+            margin: 0 auto 20px auto;
+        }
+        .option-item {
+            padding: 15px;
+            background-color: #ff3300;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            cursor: grab;
+            font-size: 1em;
+            margin-bottom: 10px;
+            text-align: center;
+            user-select: none;
+        }
+        .option-item:active {
+            cursor: grabbing;
+        }
+        .next-btn {
+            padding: 10px 20px;
+            background-color: #1c1e2c;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            display: block;
+            margin: 0 auto;
+            transition: background-color 0.3s;
+        }
+        .next-btn:hover {
+            background-color: #2c2e3c;
+        }
+        .results {
+            display: none;
+            text-align: center;
+        }
+        .chart-container {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .debug-scores {
+            display: none !important;
+        }
+        .archetype-text {
+            text-align: left;
+            margin-top: 20px;
+            font-size: 1em;
+            line-height: 1.5em;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>6 Arquetipos Naturales</h1>
+        <div class="subtitle">
+            <p>Arrastra las respuestas en medida de que te identifiques con ellas. Hasta arriba coloca con la que más te identifiques y hasta abajo con la que menos te identificas. Después haz click en el botón Siguiente.</p>
+        </div>
+
+        <!-- Preguntas -->
+        <div id="quiz">
+            <div id="question-container" class="question-container"></div>
+        </div>
+
+        <!-- Resultados -->
+        <div id="results" class="results">
+            <h2 id="dominantArchetypeTitle"></h2>
+            <div class="chart-container">
+                <canvas id="resultChart"></canvas>
+            </div>
+            <div id="archetypeDetails" class="archetype-text"></div>
+        </div>
+
+        <!-- Panel de puntuaciones (oculto) -->
+        <div id="debugScores" class="debug-scores">
+            <h3>Puntuaciones Acumuladas:</h3>
+            <ul>
+                <li>Carismático: <span id="scoreCarismatico">0</span></li>
+                <li>Estratega: <span id="scoreEstratega">0</span></li>
+                <li>Predicador: <span id="scorePredicador">0</span></li>
+                <li>Científico: <span id="scoreCientifico">0</span></li>
+                <li>Futurista: <span id="scoreFuturista">0</span></li>
+                <li>Narrador: <span id="scoreNarrador">0</span></li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        let archetypes = {
+            "Carismático": 0,
+            "Estratega": 0,
+            "Predicador": 0,
+            "Científico": 0,
+            "Futurista": 0,
+            "Narrador": 0
+        };
+
+        let currentQuestion = 0;
+        const questionContainer = document.getElementById('question-container');
+        const resultsContainer = document.getElementById('results');
+        const dominantArchetypeTitle = document.getElementById('dominantArchetypeTitle');
+        const archetypeDetails = document.getElementById('archetypeDetails');
+
+        const archetypeTexts = {
+            "Carismático": {
+                fortalezas: "Se te puede facilitar hacer amigos por tu gran capacidad de comunicar conectando con los demás. Se te puede percibir como una persona interesada en los demás y en la que se puede confiar.",
+                debilidades: "Por el mismo motivo algunas personas pueden clasificarte como \"people pleaser\", o como alguien que se amolda a los demás y que no tiene una dirección clara.",
+                oportunidades: "Una de tus más grandes ventajas es la capacidad de crear confianza y certidumbre en los demás, por eso se te puede facilitar asumir cargos o responsabilidades de liderazgo.",
+                amenazas: "Tu enfoque en lo social puede llegar a distanciarte de otras cosas que también son importantes. Tienes que asegurarte de no caer en hablar demasiado rápido y ser reflexivo cuando sea necesario."
+            },
+            "Estratega": {
+                fortalezas: "Tu mente estructurada te pone en un lugar privilegiado para liderar a nivel operativo. Esto puede resultar en que tu estilo de orden sea más \"hands on\" que otros arquetipos.",
+                debilidades: "Algunos estrategas pueden ser introvertidos, lo cuál les puede dar una desventaja a nivel comunicación. Por este motivo otras personas podrían clasificarte como \"mandón\" o \"enojón\".",
+                oportunidades: "En organizaciones con estructuras cada vez más ágiles, una persona con una visión de orden siempre es de gran utilidad. No sería raro que si desarrollas tu arquetipo te dieran más oportunidades gerenciales.",
+                amenazas: "Tienes que tener cuidado de no desconectarte del mundo social. La vida no son solamente reglas, procesos y planes. El factor humano también es muy importante."
+            },
+            "Predicador": {
+                fortalezas: "Las personas con este arquetipo tienden a ser muy reflexivas, a menudo de las más inteligentes del grupo.",
+                debilidades: "El predicador suele ser resistente al cambio. Esto puede verte como un \"Guardián del Estatus Quo\" en una sociedad que privilegia el cambio.",
+                oportunidades: "Tu mesura y prudencia pueden ayudar a tomar mejores decisiones mientras otros arquetipos actúan con más velocidad.",
+                amenazas: "No todo el cambio es malo. Debes evitar caer en la negación del progreso."
+            },
+            "Científico": {
+                fortalezas: "Personas en este arquetipo suelen pensar las cosas muy bien antes de hablar, lo cual te posiciona en un lugar de autoridad frente a los demás.",
+                debilidades: "Enfocarte en los datos y la evidencia puede llevarte lejos como analista especialista, pero cuidado al comunicar para no parecer distante o lejano.",
+                oportunidades: "En un mundo donde el procesamiento de datos es cada día más importante, tu visión sistémica te da una gran ventaja analítica.",
+                amenazas: "Si aspiras a mantener una posición de liderazgo, debes desarrollar habilidades humanas y de comunicación."
+            },
+            "Futurista": {
+                fortalezas: "Eres el optimista del grupo. Cuando te presentan un problema, se te ocurren soluciones con naturalidad.",
+                debilidades: "Tu predisposición positiva al cambio puede hacerte perder persistencia en esfuerzos actuales, o aburrirte con la rutina.",
+                oportunidades: "Vivimos en un mundo hecho para futuristas, donde el cambio es valorado y deseable.",
+                amenazas: "Estar siempre abierto al cambio puede llevarte a cambiar por cambiar, perdiendo de vista que no todo necesita cambiar."
+            },
+            "Narrador": {
+                fortalezas: "Contar historias, comunicarte y mantener la atención de los demás es un don natural en este arquetipo.",
+                debilidades: "Los líderes narradores pueden olvidar que la comunicación es un medio, no el fin. Debes mantener distancia crítica y no perderte en las relaciones personales.",
+                oportunidades: "Un Narrador bien desarrollado puede ser el complemento perfecto en equipos con predominancia de personas introvertidas y analíticas.",
+                amenazas: "Contar historias no resolverá todos tus problemas. Debes aprender también habilidades de resolución de problemas."
+            }
+        };
+
+        // Preguntas actualizadas (todas las del mensaje)
+        const questions = [
+            // Género 1: Liderazgo e Influencia (6 preguntas)
+            {
+                question: "Imagina que tienes que motivar a un grupo o equipo. ¿Cuál sería tu primer impulso?",
+                subtitle: "Si no lideras a nadie actualmente, ¿cómo actuarías si tuvieras esa responsabilidad?",
+                options: [
+                    { text: "Sentir una oleada de entusiasmo y pasión que te impulsa a inspirar a los demás.", archetype: "Carismático" },
+                    { text: "Evaluar meticulosamente los plazos y recursos disponibles para crear un plan eficiente.", archetype: "Estratega" },
+                    { text: "Reflexionar sobre experiencias pasadas exitosas para encontrar principios que hayan funcionado y tratar de motivarlos explicándoles estos principios y por qué funcionaron en su momento.", archetype: "Predicador" },
+                    { text: "Analizar datos y métricas de desempeño para identificar pasos específicos que cada uno de los miembros del equipo tiene que dar.", archetype: "Científico" },
+                    { text: "Pensaría en nuevas ideas. Cosas interesantes relacionadas al problema que tenemos que no se han hecho antes y que podrían motivar a los demás.", archetype: "Futurista" },
+                    { text: "Preocuparme primero por el estado emocional de los demás. Y después preguntarme sobre la mejor forma de crear cohesión y unión en el equipo.", archetype: "Narrador" }
+                ]
+            },
+            {
+                question: "¿Cómo comunicarías la necesidad de tomar una decisión impopular pero necesaria?",
+                subtitle: "Si no tienes experiencia en liderazgo, ¿cómo enfrentarías esta situación?",
+                options: [
+                    { text: "Trataría de darle la vuelta. La presentaría de modo que los demás la vean de forma positiva.", archetype: "Carismático" },
+                    { text: "Evaluar cuidadosamente todas las opciones disponibles utilizando datos y evidencias para asegurarme de que efectivamente es la decisión correcta. Una vez que tenga claridad explicaría el por qué es necesario tomar esa decisión.", archetype: "Científico" },
+                    { text: "Si es lo correcto es lo correcto y listo, no hay necesidad de darle la vuelta. La comunicaría como tal, sin preocuparme por lo que pensarán de mi o por cómo se sentirían.", archetype: "Predicador" },
+                    { text: "Analizando la situación y creando un plan de acción. Al momento de comunicar me iría directamente a comunicar este plan y a asignar responsabilidades.", archetype: "Estratega" },
+                    { text: "Les hablaría de lo bueno de tomar esta decisión, y de cómo las consecuencias van a ser positivas para todas las partes en el largo plazo.", archetype: "Futurista" },
+                    { text: "De inmediato pensaría en las consecuencias de esta decisión para los demás a un nivel personal y trataría de ser muy empático al comunicarla.", archetype: "Narrador" }
+                ]
+            },
+            {
+                question: "¿Cómo comunicarías un proyecto en el que el objetivo sea promover la creatividad en tu equipo?",
+                subtitle: "Si no lideras un equipo ahora, ¿cómo incentivarías la creatividad si tuvieras esa responsabilidad?",
+                options: [
+                    { text: "Para que haya creatividad es clave que los participantes se sientan motivados, así que me enfocaría en darles razones para motivarse.", archetype: "Carismático" },
+                    { text: "A través de un plan de acción específico con métricas medibles y resultados esperados. Todos deben hacer su mejor esfuerzo por colaborar, les resulte interesante el tema o no.", archetype: "Estratega" },
+                    { text: "La creatividad es positiva siempre en medida que se tomen en consideración las decisiones pasadas y las posibles consecuencias de cambiar de plan. En general no creo que la innovación deba ser la primer solución de un problema.", archetype: "Predicador" },
+                    { text: "Proporcionándoles información previa y datos concretos del problema, para que sus nuevas ideas estén bien fundamentadas en la situación actual, y que el brainstorming no sea una pérdida de tiempo.", archetype: "Científico" },
+                    { text: "Pensaría que la creatividad es natural y divertida para todos, así que trataría de crear un espacio de libertad para que todos naturalmente puedan proponer nuevas ideas.", archetype: "Futurista" },
+                    { text: "A través de la presentación de casos de estudio u otro tipo de historias. De este modo la sesión estaría aterrizada en problemas reales de la gente.", archetype: "Narrador" }
+                ]
+            },
+            {
+                question: "Imagina que hay un conflicto interno en tu equipo. ¿Cuál sería tu primera reacción?",
+                subtitle: "Si no lideras a nadie, ¿qué harías para mantener la armonía en un equipo?",
+                options: [
+                    { text: "Creo que en general el conflicto no es bueno y hay que prever siempre que sea posible. Sobre todo lo más importante es que todos terminen satisfechos y de buenas.", archetype: "Carismático" },
+                    { text: "Analizar con cuidado el origen del conflicto para definir la magnitud de la situación así como posibles consecuencias. Con base en eso definir la forma de solucionarlo.", archetype: "Científico" },
+                    { text: "Inmediatamente identificaría quién tiene la razón y quién no, y comunicaría mi visión sin miedo a las consecuencias porque es lo correcto y la mejor forma de solucionar un conflicto es a través de la razón y la justicia.", archetype: "Predicador" },
+                    { text: "Me visualizo como un facilitador que tiene la posibilidad de resolver ese conflicto a través de la creación de un plan específico orientado en resultados.", archetype: "Estratega" },
+                    { text: "Redireccionaría la atención de los demás a una nueva alternativa o pasaría a otra cosa con agilidad. Si nos concentramos en los conflictos estaremos descuidando lo importante que es avanzar y progresar.", archetype: "Futurista" },
+                    { text: "Abordarlo desde una perspectiva humana. Escuchando todas las historias y dedicándole el tiempo necesario a hablar y a sanar.", archetype: "Narrador" }
+                ]
+            },
+            {
+                question: "¿Cómo delegarías una nueva tarea a un equipo que ya está enfocado en hacer otra cosa?",
+                subtitle: "Si no tienes un equipo, ¿cómo distribuirías responsabilidades si tuvieras esa función?",
+                options: [
+                    { text: "Todo se puede al mismo tiempo si le echamos suficientes ganas. Lo importante es mantener una actitud positiva y mantener la energía alta.", archetype: "Carismático" },
+                    { text: "Tratando de integrar sus actividades actuales con las nuevas actividades en un nuevo plan de trabajo.", archetype: "Estratega" },
+                    { text: "Explicando las razones lógicas por las que es importante re-priorizar y cambiar de rumbo.", archetype: "Científico" },
+                    { text: "Me entusiasman los cambios, y confío en que mi equipo valorará una nueva oportunidad de acercarnos a nuestros objetivos.", archetype: "Futurista" },
+                    { text: "No me gusta interrumpir a mi equipo con nuevas tareas emergentes. Si es posible no los distraigo y espero a que terminen lo que están haciendo antes de delegarles algo nuevo.", archetype: "Predicador" },
+                    { text: "Le dedicaría el tiempo a hablar con cada uno de ellos y explicarles el motivo por el cuál es momento de re-priorizar.", archetype: "Narrador" }
+                ]
+            },
+            {
+                question: "¿Cómo reaccionarías para garantizar que todos se sientan valorados y escuchados?",
+                subtitle: "Si no lideras a nadie, ¿cómo asegurarías que todos se sientan apreciados y escuchados?",
+                options: [
+                    { text: "Naturalmente se me da el reconocer a los demás porque noto con facilidad cuando alguien está trabajando con energía y buena actitud, así que siempre que encuentro una posibilidad los reconozco.", archetype: "Carismático" },
+                    { text: "Lo más satisfactorio de hacer un trabajo en equipo es ver el resultado del trabajo al final del proyecto, así que mi visión es mantenerlos enfocados para que al final todos podamos gozar de la recompensa.", archetype: "Estratega" },
+                    { text: "A través del establecimiento de “leaderboards” u otras métricas de éxito de modo que todos tengan claro lo que significa tener buenos resultados y que se les reconozca cuando los alcanzan.", archetype: "Científico" },
+                    { text: "Los reconocería rápidamente y los recompensaría dándoles más responsabilidades. Creo que como equipo nos motiva siempre seguir adelante y siempre estar trabajando por un nuevo reto.", archetype: "Futurista" },
+                    { text: "Además de reconocer el éxito del equipo, reconozco los rasgos de carácter de cada quién. No solo es importante ganar, sino el “cómo” ganamos.", archetype: "Predicador" },
+                    { text: "Buscando espacios en donde pueda reconocerlos frente a todos los demás contando la historia completa de cómo esa persona hizo tal cosa y tuvo tal resultado.", archetype: "Narrador" }
+                ]
+            },
+
+            // Género 2: Creatividad e Innovación (6 preguntas)
+            {
+                question: "¿Cómo reaccionarías al enfrentar un problema que no parece tener soluciones tradicionales?",
+                subtitle: "¿Qué pasos seguirías para encontrar una solución innovadora cuando las opciones habituales fallan?",
+                options: [
+                    { text: "Con optimismo y gratitud por tener la oportunidad de probarme y a mi equipo.", archetype: "Carismático" },
+                    { text: "Diseñar un enfoque estratégico que explore todas las posibles alternativas de manera organizada.", archetype: "Estratega" },
+                    { text: "A través de la integración de un plan paso a paso que de forma sistémica me permita ir un paso adelante o un paso hacia atrás en medida de si el problema se resuelve o no.", archetype: "Predicador" },
+                    { text: "El primer paso es tener los datos en la mano. Antes de tomar decisiones necesito entender a la perfección el reto que tenemos y si es posible qué han hecho otras personas cuando han enfrentado retos similares.", archetype: "Científico" },
+                    { text: "Esto es lo normal para mí. Todos los días enfrento problemas que no tienen soluciones tradicionales, y mi enfoque siempre es el mismo: buscar nuevas formas de hacer las cosas y experimentar sin miedo.", archetype: "Futurista" },
+                    { text: "Haciendo preguntas y haciendo investigación, principalmente cualitativa. Sobre todo estoy interesado en la forma en como otras personas han reaccionado individualmente a retos similares.", archetype: "Narrador" }
+                ]
+            },
+            {
+                question: "¿Cómo reaccionarías si una idea innovadora tuya no es aceptada por tu equipo?",
+                subtitle: "¿Cómo manejarías la situación para impulsar tu idea o adaptarla según las necesidades del equipo?",
+                options: [
+                    { text: "Trataría de persuadirlos y contagiarlos.", archetype: "Carismático" },
+                    { text: "A otra cosa. No vale la pena detenernos en lo que no se va a hacer. Mi enfoque es más práctico.", archetype: "Estratega" },
+                    { text: "Actuaría por mi cuenta para mostrar resultados y luego decir “Te lo dije” cuando vean que mi idea funcionaba.", archetype: "Predicador" },
+                    { text: "Si mi idea está fundamentada en datos, les compartiría esos datos para que ellos puedan sacar sus propias conclusiones.", archetype: "Científico" },
+                    { text: "Rápidamente iteraría y cambiaría el enfoque de mi idea, buscando 2, 3 o más versiones de la misma hasta que los demás estén alineados conmigo.", archetype: "Futurista" },
+                    { text: "Mejoraría la relación empática con ellos, ya que las personas no aceptan las buenas ideas solo porque son buenas, sino porque confían en quien las propone.", archetype: "Narrador" }
+                ]
+            },
+            {
+                question: "¿Cómo reaccionarías para integrar diferentes perspectivas en tu equipo de trabajo?",
+                options: [
+                    { text: "Comunicando con energía que todos los puntos de vista deben ser considerados.", archetype: "Carismático" },
+                    { text: "Organizar sesiones estructuradas de planificación para integrar diversas estrategias de manera coherente.", archetype: "Estratega" },
+                    { text: "Primero necesito decidir si estoy de acuerdo con esas perspectivas. Si sí, las apoyo; si no, las ignoro.", archetype: "Predicador" },
+                    { text: "Trataría de analizar esas perspectivas, buscar puntos en común y generar una nueva mirada integradora.", archetype: "Científico" },
+                    { text: "Si es nuevo, es bueno. Si alguien lo propone, seguramente tiene una razón, así que valoro las nuevas miradas.", archetype: "Futurista" },
+                    { text: "Creando un espacio de empatía y escucha para que todos reconozcan la importancia de las demás perspectivas.", archetype: "Narrador" }
+                ]
+            },
+            {
+                question: "¿Cómo evaluarías el potencial de una nueva idea antes de implementarla?",
+                subtitle: "¿Qué criterios considerarías para determinar si una idea merece ser desarrollada?",
+                options: [
+                    { text: "Si es algo que inspira a los demás, hay que hacerlo.", archetype: "Carismático" },
+                    { text: "Establecer un plan estratégico considerando posibles fallos y resultados.", archetype: "Estratega" },
+                    { text: "Mantener coherencia con lo que ya tenemos. No quiero ignorar aprendizajes previos.", archetype: "Predicador" },
+                    { text: "Recolectar y analizar datos relevantes para respaldar la efectividad de la idea.", archetype: "Científico" },
+                    { text: "Actuar y observar resultados, no se sabe hasta probar.", archetype: "Futurista" },
+                    { text: "Preguntar a los demás y escuchar historias pasadas con ideas similares.", archetype: "Narrador" }
+                ]
+            },
+            {
+                question: "¿Cómo reaccionas en momentos de bloqueo?",
+                options: [
+                    { text: "Hablar con la gente para liberar ideas.", archetype: "Carismático" },
+                    { text: "Analizar el problema desde diferentes ángulos estratégicos.", archetype: "Estratega" },
+                    { text: "Volver a lo básico: ¿por qué y para qué hago esto?", archetype: "Predicador" },
+                    { text: "Usar herramientas analíticas para entender el problema a fondo.", archetype: "Científico" },
+                    { text: "Normalmente no tengo bloqueos.", archetype: "Futurista" },
+                    { text: "Despejar la mente con ocio, ver TV, redes o cine para resetearme.", archetype: "Narrador" }
+                ]
+            },
+            {
+                question: "¿Cómo equilibras la creatividad con la necesidad de cumplir objetivos específicos?",
+                subtitle: "¿De qué manera asegurarías que las ideas creativas se alineen con las metas establecidas?",
+                options: [
+                    { text: "No soy de detalles, dejo que otros aterricen mis ideas en objetivos.", archetype: "Carismático" },
+                    { text: "Primero plan, luego ideas. Las ideas surgen de mis planes.", archetype: "Estratega" },
+                    { text: "Antes de innovar, hay que hacer bien lo que ya tenemos.", archetype: "Predicador" },
+                    { text: "Evaluar el impacto con datos y métricas.", archetype: "Científico" },
+                    { text: "Las nuevas ideas dictan los objetivos, no al revés.", archetype: "Futurista" },
+                    { text: "Depende del equipo, si están listos, innovamos; si no, esperamos.", archetype: "Narrador" }
+                ]
+            },
+
+            // Género 3: Comunicación y Relaciones Personales (6 preguntas)
+            {
+                question: "¿Cómo reaccionarías al tener una discusión con un amigo cercano?",
+                subtitle: "Si tuvieras un desacuerdo importante, ¿cómo lo manejarías?",
+                options: [
+                    { text: "Mantener una actitud positiva y no profundizar demasiado en el desacuerdo, lo importante es que estemos contentos.", archetype: "Carismático" },
+                    { text: "Analizar qué pasó y cómo pasó para evitar que se repita.", archetype: "Estratega" },
+                    { text: "Identificar quién tiene la razón. Si la tiene mi amigo, me disculpo; si la tengo yo, espero que él se disculpe.", archetype: "Predicador" },
+                    { text: "Analizar los aspectos factuales para hacer la discusión productiva.", archetype: "Científico" },
+                    { text: "Ver si fui el causante y, si sí, enmendar proactivamente.", archetype: "Futurista" },
+                    { text: "Necesito un espacio de diálogo empático para escuchar y ser escuchado.", archetype: "Narrador" }
+                ]
+            },
+            {
+                question: "¿Cómo te comunicas cuando necesitas expresar tus emociones a un ser querido?",
+                subtitle: "Si necesitas hablar sobre tus sentimientos, ¿cómo lo harías?",
+                options: [
+                    { text: "Entiendo las emociones de la otra persona y comunico las mías en función de eso.", archetype: "Carismático" },
+                    { text: "¿Por qué tendría que compartir mis emociones con alguien más?", archetype: "Estratega" },
+                    { text: "No comunico mis emociones a menos que sea para corregir algo, si es así, con franqueza.", archetype: "Predicador" },
+                    { text: "Expreso mis emociones y explico por qué me siento así.", archetype: "Científico" },
+                    { text: "Lo hago rápidamente y sigo adelante, sano rápido.", archetype: "Futurista" },
+                    { text: "Tomo el tiempo necesario para una conversación que nos fortalezca.", archetype: "Narrador" }
+                ]
+            },
+            {
+                question: "¿Cómo manejas una situación en la que sientes que no estás siendo escuchado en una relación?",
+                subtitle: "Si sientes que tu voz no es valorada, ¿cómo abordas la situación?",
+                options: [
+                    { text: "Asumir que debo comunicar mejor para hacerme escuchar.", archetype: "Carismático" },
+                    { text: "Con un enfoque metódico, paso a paso, hasta clarificar la desconexión.", archetype: "Estratega" },
+                    { text: "Hacer notar que no me escuchan, esperando que corrijan.", archetype: "Predicador" },
+                    { text: "Analizar la situación lógicamente.", archetype: "Científico" },
+                    { text: "Cambiar a un tema donde sí me escuchen.", archetype: "Futurista" },
+                    { text: "Compartir más sobre mi visión y por qué siento lo que siento.", archetype: "Narrador" }
+                ]
+            },
+            {
+                question: "¿Cómo reaccionarías al recibir una crítica constructiva de alguien cercano?",
+                subtitle: "Si alguien te ofrece una crítica para mejorar, ¿cómo la recibirías?",
+                options: [
+                    { text: "Con apertura y agradecimiento.", archetype: "Carismático" },
+                    { text: "Hacer más preguntas hasta entender bien su punto.", archetype: "Estratega" },
+                    { text: "Si está en lo correcto, corrijo; si no, lo ignoro.", archetype: "Predicador" },
+                    { text: "Relacionar la crítica con información factual para validarla.", archetype: "Científico" },
+                    { text: "Agradezco e incorporo.", archetype: "Futurista" },
+                    { text: "Escucho, siento el impacto y también comparto mi perspectiva.", archetype: "Narrador" }
+                ]
+            },
+            {
+                question: "¿Cómo fomentas relaciones saludables en tu vida personal?",
+                subtitle: "¿Qué estrategias usas para construir y mantener relaciones positivas?",
+                options: [
+                    { text: "Enfocándome en los demás. Dar es lo más importante.", archetype: "Carismático" },
+                    { text: "Con orden y rutinas.", archetype: "Estratega" },
+                    { text: "Basándolas en creencias y valores compartidos.", archetype: "Predicador" },
+                    { text: "Siendo muy observador de los detalles.", archetype: "Científico" },
+                    { text: "Proponiendo siempre nuevas actividades juntos.", archetype: "Futurista" },
+                    { text: "Compartiendo mi historia y escuchando con empatía.", archetype: "Narrador" }
+                ]
+            },
+            {
+                question: "¿Cómo manejas las diferencias de opinión en tus relaciones personales?",
+                subtitle: "Si tienes desacuerdos con alguien cercano, ¿cómo los resolverías?",
+                options: [
+                    { text: "No es tan importante pensar igual mientras estemos a gusto.", archetype: "Carismático" },
+                    { text: "Busco soluciones prácticas y rápidas al desacuerdo.", archetype: "Estratega" },
+                    { text: "Importa saber quién está en lo correcto.", archetype: "Predicador" },
+                    { text: "Con un enfoque analítico.", archetype: "Científico" },
+                    { text: "Proponer soluciones que fortalezcan la relación.", archetype: "Futurista" },
+                    { text: "Escuchar con empatía y mantener la relación fuerte.", archetype: "Narrador" }
+                ]
+            },
+
+            // Género 4: Circunstancias al Hablar en Público (6 preguntas)
+            {
+                question: "¿Cómo te preparas antes de hablar en público para asegurarte de que tu presentación sea efectiva?",
+                subtitle: "Si tuvieras que dar una charla importante, ¿qué pasos seguirías?",
+                options: [
+                    { text: "Lo más importante es que mi audiencia quede satisfecha y contenta.", archetype: "Carismático" },
+                    { text: "Que sea práctica y aplicable.", archetype: "Estratega" },
+                    { text: "Lo más importante es hablar con la verdad.", archetype: "Predicador" },
+                    { text: "Lo más importante es la evidencia de lo que digo.", archetype: "Científico" },
+                    { text: "Lo más importante es proponer una nueva mirada.", archetype: "Futurista" },
+                    { text: "Lo que más se me facilita es contar historias.", archetype: "Narrador" }
+                ]
+            },
+            {
+                question: "¿Cómo manejas el nerviosismo antes de una presentación en público?",
+                subtitle: "Si te sientes nervioso antes, ¿cómo lo gestionas?",
+                options: [
+                    { text: "Me pongo nervioso al pensar lo que dirán de mí al terminar.", archetype: "Carismático" },
+                    { text: "Confío en mi estructura y en lo que voy a decir.", archetype: "Estratega" },
+                    { text: "Reconozco que lo más importante es hacer llegar el mensaje.", archetype: "Predicador" },
+                    { text: "Si está bien documentada no debería haber nervios, salvo el reto a mis fuentes.", archetype: "Científico" },
+                    { text: "Trato de hacerlo con optimismo y visión propositiva.", archetype: "Futurista" },
+                    { text: "Soy de los que se confiesan en el escenario, esperando empatía.", archetype: "Narrador" }
+                ]
+            },
+            {
+                question: "¿Cómo captas y mantienes la atención de tu audiencia durante una presentación?",
+                subtitle: "Si tu audiencia parece distraída, ¿qué harías?",
+                options: [
+                    { text: "Hablándoles de lo que sé que les interesa.", archetype: "Carismático" },
+                    { text: "Dándoles herramientas aplicables.", archetype: "Estratega" },
+                    { text: "Dándoles reflexiones profundas.", archetype: "Predicador" },
+                    { text: "Dándoles evidencia.", archetype: "Científico" },
+                    { text: "Aportando nuevas ideas.", archetype: "Futurista" },
+                    { text: "Contando una historia.", archetype: "Narrador" }
+                ]
+            },
+            {
+                question: "¿Cómo estructurarías tu discurso para asegurarte de que tu mensaje sea claro y memorable?",
+                subtitle: "Si tuvieras que diseñar un discurso impactante, ¿cómo lo harías?",
+                options: [
+                    { text: "Comenzar con una introducción inspiradora y emocional.", archetype: "Carismático" },
+                    { text: "Crear un esquema detallado con puntos clave y transiciones estratégicas.", archetype: "Estratega" },
+                    { text: "Reflexionar sobre los valores fundamentales que deseas transmitir.", archetype: "Predicador" },
+                    { text: "Incluir datos precisos y evidencia sólida.", archetype: "Científico" },
+                    { text: "Integrar elementos innovadores y creativos.", archetype: "Futurista" },
+                    { text: "Incorporar historias personales o ejemplos relevantes.", archetype: "Narrador" }
+                ]
+            },
+            {
+                question: "¿Cómo respondes a las preguntas difíciles o inesperadas durante una presentación?",
+                subtitle: "Si te hacen una pregunta que no esperabas, ¿cómo respondes?",
+                options: [
+                    { text: "Mantener una actitud positiva y usar tu carisma.", archetype: "Carismático" },
+                    { text: "Analizar la pregunta y responder estratégicamente.", archetype: "Estratega" },
+                    { text: "Mantener integridad y coherencia, aunque tome tiempo.", archetype: "Predicador" },
+                    { text: "Utilizar datos y evidencia para una respuesta lógica.", archetype: "Científico" },
+                    { text: "Abordar la pregunta con una perspectiva innovadora.", archetype: "Futurista" },
+                    { text: "Responder con una historia o experiencia personal.", archetype: "Narrador" }
+                ]
+            },
+            {
+                question: "¿Cómo evalúas el éxito de tu presentación después de haberla realizado?",
+                subtitle: "Después de una presentación, ¿cómo determinas si fue exitosa?",
+                options: [
+                    { text: "Observar la reacción positiva de la audiencia.", archetype: "Carismático" },
+                    { text: "Revisar tus objetivos y planificar mejoras estratégicas.", archetype: "Estratega" },
+                    { text: "Reflexionar sobre cómo la presentación se alineó con los valores importantes.", archetype: "Predicador" },
+                    { text: "Analizar datos de retroalimentación para mejoras basadas en evidencia.", archetype: "Científico" },
+                    { text: "Considerar nuevas formas de mejorar en el futuro.", archetype: "Futurista" },
+                    { text: "Compartir experiencias y recibir comentarios a través de historias.", archetype: "Narrador" }
+                ]
+            }
+        ];
+
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function loadQuestion(index) {
+            if (index < questions.length) {
+                const q = questions[index];
+                const shuffledOptions = shuffle([...q.options]);
+                const optionsHTML = shuffledOptions.map(option => `
+                    <li class="option-item" data-archetype="${option.archetype}">
+                        ${option.text}
+                    </li>
+                `).join('');
+
+                const nextButton = `<button class="next-btn" onclick="processNext()">Siguiente</button>`;
+
+                questionContainer.innerHTML = `
+                    <div class="question">
+                        <p><strong>${q.question}</strong></p>
+                        ${q.subtitle ? `<p class="subtitle">${q.subtitle}</p>` : ''}
+                        <ul class="options" id="sortable-list">
+                            ${optionsHTML}
+                        </ul>
+                        ${nextButton}
+                    </div>
+                `;
+
+                new Sortable(document.getElementById('sortable-list'), {
+                    animation: 150,
+                    ghostClass: 'sortable-ghost'
+                });
+
+            } else {
+                showResults();
+            }
+        }
+
+        function processNext() {
+            const sortableList = document.getElementById('sortable-list');
+            if (!sortableList) return;
+
+            const items = sortableList.getElementsByClassName('option-item');
+            const scores = [32, 16, 8, 4, 2, 1];
+
+            if (items.length !== scores.length) return;
+
+            for (let i = 0; i < items.length; i++) {
+                const archetype = items[i].getAttribute('data-archetype');
+                if (archetypes.hasOwnProperty(archetype)) {
+                    archetypes[archetype] += scores[i];
+                }
+            }
+
+            currentQuestion++;
+            loadQuestion(currentQuestion);
+        }
+
+        function showResults() {
+            questionContainer.style.display = 'none';
+            resultsContainer.style.display = 'block';
+
+            // Orden: Carismático (0°), Científico (60°), Predicador (120°), Estratega (180°), Narrador (240°), Futurista (300°)
+            const order = ["Carismático", "Científico", "Predicador", "Estratega", "Narrador", "Futurista"];
+
+            let totalPoints = 0;
+            for (let a in archetypes) {
+                totalPoints += archetypes[a];
+            }
+
+            const chartLabels = order.map(archetype => {
+                let percent = (archetypes[archetype]/totalPoints)*100;
+                let roundedPercent = Math.round(percent);
+                return `${archetype} ${roundedPercent}%`;
+            });
+
+            // Identificar el arquetipo dominante
+            let maxArchetype = "Carismático";
+            let maxScore = archetypes["Carismático"];
+            for(let archetype in archetypes){
+                if(archetypes[archetype] > maxScore){
+                    maxScore = archetypes[archetype];
+                    maxArchetype = archetype;
+                }
+            }
+
+            dominantArchetypeTitle.innerHTML = `¡Tu Arquetipo Natural Dominante es ${maxArchetype}!`;
+
+            const ctx = document.getElementById('resultChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: chartLabels,
+                    datasets: [{
+                        label: 'Porcentaje por Arquetipo',
+                        data: [
+                            archetypes["Carismático"],
+                            archetypes["Científico"],
+                            archetypes["Predicador"],
+                            archetypes["Estratega"],
+                            archetypes["Narrador"],
+                            archetypes["Futurista"]
+                        ],
+                        backgroundColor: 'rgba(0, 0, 0, 0)',
+                        borderColor: '#ff3300',
+                        borderWidth: 4,
+                        pointRadius: 0,
+                        pointHoverRadius: 0
+                    }]
+                },
+                options: {
+                    scales: {
+                        r: {
+                            beginAtZero: true,
+                            startAngle: 0,
+                            grid: {
+                                color: 'white',
+                            },
+                            ticks: {
+                                display: false
+                            },
+                            pointLabels: {
+                                font: {
+                                    size: 18
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+
+            const chosenArchetype = archetypeTexts[maxArchetype];
+            archetypeDetails.innerHTML = `
+                <p><strong>Fortalezas:</strong> ${chosenArchetype.fortalezas}</p>
+                <p><strong>Debilidades:</strong> ${chosenArchetype.debilidades}</p>
+                <p><strong>Oportunidades:</strong> ${chosenArchetype.oportunidades}</p>
+                <p><strong>Amenazas:</strong> ${chosenArchetype.amenazas}</p>
+            `;
+        }
+
+        loadQuestion(currentQuestion);
+    </script>
+
+</body>
+</html>
