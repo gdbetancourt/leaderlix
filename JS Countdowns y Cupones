@@ -1,0 +1,179 @@
+document.addEventListener('DOMContentLoaded', function() {
+    const jsonUrl = 'https://raw.githubusercontent.com/gdbetancourt/leaderlix/63186af73ee0093b559a02f1b9348b3c55f4acf6/Cupones.json'; // URL Raw del JSON
+
+    // Función para parsear fecha en formato "dd/mm/yyyy hh:mm:ss" a objeto Date
+    function parseFecha(fechaStr) {
+        const [datePart, timePart] = fechaStr.split(' ');
+        if (!datePart || !timePart) return null;
+
+        const [dd, mm, yyyy] = datePart.split('/');
+        if (!dd || !mm || !yyyy) return null;
+
+        const [hh, min, ss] = timePart.split(':');
+        if (!hh || !min || !ss) return null;
+
+        // Crear cadena en formato ISO para compatibilidad
+        return new Date(`${yyyy}-${mm}-${dd}T${hh}:${min}:${ss}`);
+    }
+
+    // Función para obtener y parsear el JSON
+    fetch(jsonUrl)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('JSON Data:', data); // Log para depuración
+            // Verificar si el JSON es un array
+            if (!Array.isArray(data)) {
+                throw new Error('El JSON no es un array');
+            }
+
+            // Filtrar y mapear los cupones válidos
+            const coupons = data
+                .filter(cupon => cupon["Fecha de Inicio"] && cupon["Fecha de Finalización"] && cupon["Código de Descuento"])
+                .map(cupon => ({
+                    codigo: cupon["Código de Descuento"],
+                    inicio: parseFecha(cupon["Fecha de Inicio"]),
+                    fin: parseFecha(cupon["Fecha de Finalización"]),
+                    empezamos_en: cupon["Empezamos en"]
+                }));
+
+            console.log('Cupones Parseados:', coupons); // Log para depuración
+
+            const now = new Date();
+
+            // Filtrar cupones activos
+            const cuponesActivos = coupons.filter(cupon => now >= cupon.inicio && now <= cupon.fin);
+
+            console.log('Cupones Activos:', cuponesActivos); // Log para depuración
+
+            if (cuponesActivos.length === 0) {
+                // No hay cupones activos
+                const promoCoupon = document.getElementById('promo-coupon');
+                if (promoCoupon) {
+                    promoCoupon.innerText = 'Sin Cupón Disponible';
+                    promoCoupon.disabled = true;
+                    promoCoupon.style.cursor = 'not-allowed';
+                    promoCoupon.setAttribute('data-tooltip', 'No hay código de cupón disponible para hoy.');
+                }
+
+                // Deshabilitar cupones en el body
+                const bodyCoupons = document.querySelectorAll('.discount-code .code');
+                bodyCoupons.forEach(couponBtn => {
+                    couponBtn.innerText = 'Sin Cupón Disponible';
+                    couponBtn.disabled = true;
+                    couponBtn.style.cursor = 'not-allowed';
+                    couponBtn.setAttribute('data-tooltip', 'No hay código de cupón disponible para hoy.');
+                });
+
+                // Mostrar mensaje en countdowns
+                const countdownElements = document.querySelectorAll('.countdown');
+                countdownElements.forEach(countdownEl => {
+                    countdownEl.innerText = 'Sin countdown disponible';
+                });
+            } else {
+                // Asignar el primer cupón activo al banner
+                const promoCoupon = document.getElementById('promo-coupon');
+                if (promoCoupon) {
+                    promoCoupon.innerText = cuponesActivos[0].codigo;
+                    promoCoupon.addEventListener('click', function() {
+                        copyToClipboard(cuponesActivos[0].codigo);
+                    });
+                }
+
+                // Asignar cupones activos al body (si hay más de uno)
+                const bodyCoupons = document.querySelectorAll('.discount-code .code');
+                bodyCoupons.forEach((couponBtn, index) => {
+                    if (index + 1 < cuponesActivos.length) { // Suponiendo que el primer cupón es para el banner
+                        couponBtn.innerText = cuponesActivos[index + 1].codigo;
+                        couponBtn.disabled = false;
+                        couponBtn.style.cursor = 'pointer';
+                        couponBtn.setAttribute('data-tooltip', 'Haz click para copiar el cupón y úsalo en la página de checkout.');
+                        couponBtn.addEventListener('click', function() {
+                            copyToClipboard(cuponesActivos[index + 1].codigo);
+                        });
+                    } else {
+                        // No hay más cupones para asignar
+                        couponBtn.innerText = 'Sin Cupón Disponible';
+                        couponBtn.disabled = true;
+                        couponBtn.style.cursor = 'not-allowed';
+                        couponBtn.setAttribute('data-tooltip', 'No hay código de cupón disponible para hoy.');
+                    }
+                });
+
+                // Inicializar countdown para el banner
+                initializeCountdown('promo-countdown', cuponesActivos[0].fin);
+
+                // Inicializar countdowns regulares si hay más cupones activos
+                if (cuponesActivos.length > 1) {
+                    initializeCountdown('countdown-regular-1', cuponesActivos[1].fin);
+                }
+                if (cuponesActivos.length > 2) {
+                    initializeCountdown('countdown-regular-2', cuponesActivos[2].fin);
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error al cargar el JSON:', error);
+            // Manejo de errores: deshabilitar botones de cupón y mostrar mensajes de error
+            const promoCoupon = document.getElementById('promo-coupon');
+            if (promoCoupon) {
+                promoCoupon.innerText = 'Error al Cargar Cupón';
+                promoCoupon.disabled = true;
+                promoCoupon.style.cursor = 'not-allowed';
+                promoCoupon.setAttribute('data-tooltip', 'Error al cargar el cupón.');
+            }
+
+            const bodyCoupons = document.querySelectorAll('.discount-code .code');
+            bodyCoupons.forEach(couponBtn => {
+                couponBtn.innerText = 'Error al Cargar Cupón';
+                couponBtn.disabled = true;
+                couponBtn.style.cursor = 'not-allowed';
+                couponBtn.setAttribute('data-tooltip', 'Error al cargar el cupón.');
+            });
+
+            // Mostrar mensaje de error en countdowns
+            const countdownElements = document.querySelectorAll('.countdown');
+            countdownElements.forEach(countdownEl => {
+                countdownEl.innerText = 'Error al cargar countdown';
+            });
+        });
+
+    // Función para copiar texto al portapapeles
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Código copiado al portapapeles');
+        }).catch(err => {
+            console.error('Error al copiar:', err);
+        });
+    }
+
+    // Función para inicializar countdowns
+    function initializeCountdown(elementId, endDate) {
+        const countdownEl = document.getElementById(elementId);
+        if (!countdownEl) return;
+
+        const targetTime = endDate.getTime();
+
+        const interval = setInterval(function() {
+            const now = new Date().getTime();
+            const distance = targetTime - now;
+
+            if (distance < 0) {
+                clearInterval(interval);
+                countdownEl.innerText = "EXPIRED";
+                return;
+            }
+
+            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+            countdownEl.innerText = `${days} días, ${hours} hrs, ${minutes} mins, ${seconds} segs`;
+        }, 1000);
+    }
+});
