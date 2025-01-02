@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Generador de Títulos - La Promesa Perfecta</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background-color: #f4f4f9;
+      color: #333;
+    }
+    h1, h2 {
+      font-family: 'Gochi Hand', cursive;
+      color: #ff3300;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .button {
+      background-color: #ff3300;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      cursor: pointer;
+      border-radius: 5px;
+      margin-top: 10px;
+    }
+    .button:hover {
+      background-color: #cc2900;
+    }
+    label {
+      display: block;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      font-size: 14px;
+    }
+    .category-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin: 20px 0;
+    }
+    .category-button {
+      background-color: #1c1e2c;
+      color: #fff;
+      padding: 20px;
+      text-align: center;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+    .category-button.selected {
+      background-color: #ff3300;
+    }
+    .hidden {
+      display: none;
+    }
+    .category-icon {
+      font-size: 24px;
+      margin-bottom: 10px;
+    }
+  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Gochi+Hand&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="container">
+    <h1>Generador de Títulos</h1>
+    <p>Responde las preguntas para personalizar los títulos de tu presentación.</p>
+
+    <!-- Paso 1: Preguntas -->
+    <div id="step1">
+      <h2>Paso 1: Responde las preguntas</h2>
+
+      <label for="topic">¿Cuál es el tema principal de tu presentación?</label>
+      <input type="text" id="topic" placeholder="Ejemplo: Inteligencia Artificial">
+
+      <label for="challenge">¿Qué problema o desafío aborda tu presentación?</label>
+      <input type="text" id="challenge" placeholder="Ejemplo: Falta de adopción tecnológica">
+
+      <label for="audience">¿Quién es la audiencia de tu presentación?</label>
+      <input type="text" id="audience" placeholder="Ejemplo: Líderes empresariales">
+
+      <label for="solution">¿Qué solución, tendencia o herramienta planeas presentar?</label>
+      <input type="text" id="solution" placeholder="Ejemplo: Herramientas de automatización">
+
+      <label for="goal">¿Qué deseas lograr con tu presentación?</label>
+      <input type="text" id="goal" placeholder="Ejemplo: Inspirar adopción de tecnología">
+
+      <label for="impact">¿Cuál es el impacto o beneficio principal de tu propuesta?</label>
+      <input type="text" id="impact" placeholder="Ejemplo: Ahorro de tiempo y aumento de eficiencia">
+
+      <label for="timeframe">¿Qué marco temporal deseas explorar en tu presentación?</label>
+      <input type="text" id="timeframe" placeholder="Ejemplo: Futuro cercano (2025)">
+
+      <label for="comparisons">¿Qué elementos o enfoques deseas comparar?</label>
+      <input type="text" id="comparisons" placeholder="Ejemplo: Automatización manual vs. automatización con IA">
+
+      <label for="results">¿Qué resultados esperas que la audiencia logre al aplicar lo que compartes?</label>
+      <input type="text" id="results" placeholder="Ejemplo: Reducir errores operativos y aumentar productividad">
+
+      <label for="tone">¿Qué tono deseas para tu presentación?</label>
+      <input type="text" id="tone" placeholder="Ejemplo: Inspirador y práctico">
+
+      <button class="button" onclick="goToStep2()">Continuar</button>
+    </div>
+
+    <!-- Paso 2: Selección de Categorías -->
+    <div id="step2" class="hidden">
+      <h2>Paso 2: Selecciona las categorías de títulos</h2>
+      <div class="category-grid">
+        <div class="category-button" onclick="selectCategory('Preguntas')">
+          <div class="category-icon">❓</div>
+          Preguntas
+        </div>
+        <div class="category-button" onclick="selectCategory('Afirmaciones')">
+          <div class="category-icon">📢</div>
+          Afirmaciones
+        </div>
+        <div class="category-button" onclick="selectCategory('Exploraciones')">
+          <div class="category-icon">🔍</div>
+          Exploraciones
+        </div>
+        <div class="category-button" onclick="selectCategory('Cómo hacer')">
+          <div class="category-icon">🛠️</div>
+          Cómo hacer
+        </div>
+        <div class="category-button" onclick="selectCategory('Testimonio personal')">
+          <div class="category-icon">❤️</div>
+          Testimonio personal
+        </div>
+        <div class="category-button" onclick="selectCategory('Imperativos')">
+          <div class="category-icon">👊</div>
+          Imperativos
+        </div>
+        <div class="category-button" onclick="selectCategory('Listas')">
+          <div class="category-icon">🔢</div>
+          Listas
+        </div>
+        <div class="category-button" onclick="selectCategory('Provocativos')">
+          <div class="category-icon">💥</div>
+          Provocativos
+        </div>
+      </div>
+
+      <button class="button" onclick="generateTitles()">Generar Títulos</button>
+    </div>
+
+    <!-- Paso 3: Resultados -->
+    <div id="step3" class="hidden">
+      <h2>Paso 3: Títulos Personalizados</h2>
+      <ul id="generatedTitles"></ul>
+    </div>
+  </div>
+
+  <script>
+    let selectedCategories = [];
+
+    function goToStep2() {
+      // Validar que todas las preguntas se hayan respondido
+      const inputs = document.querySelectorAll('#step1 input');
+      for (let input of inputs) {
+        if (!input.value.trim()) {
+          alert('Por favor, responde todas las preguntas.');
+          return;
+        }
+      }
+
+      document.getElementById('step1').classList.add('hidden');
+      document.getElementById('step2').classList.remove('hidden');
+    }
+
+    function selectCategory(category) {
+      const categoryButton = event.target.closest('.category-button');
+      if (selectedCategories.includes(category)) {
+        selectedCategories = selectedCategories.filter(c => c !== category);
+        categoryButton.classList.remove('selected');
+      } else {
+        selectedCategories.push(category);
+        categoryButton.classList.add('selected');
+      }
+    }
+
+    function generateTitles() {
+      if (selectedCategories.length === 0) {
+        alert('Por favor, selecciona al menos una categoría.');
+        return;
+      }
+
+      // Obtener datos del usuario
+      const topic = document.getElementById('topic').value;
+      const challenge = document.getElementById('challenge').value;
+      const audience = document.getElementById('audience').value;
+      const solution = document.getElementById('solution').value;
+      const goal = document.getElementById('goal').value;
+      const impact = document.getElementById('impact').value;
+      const timeframe = document.getElementById('timeframe').value;
+      const comparisons = document.getElementById('comparisons').value;
+      const results = document.getElementById('results').value;
+
+      // Generar títulos
+      const titles = [];
+
+      selectedCategories.forEach(category => {
+        switch (category) {
+          case 'Preguntas':
+            titles.push(`¿Cómo ${solution} puede resolver ${challenge}?`);
+            titles.push(`¿Qué impacto tiene ${topic} en ${audience}?`);
+            titles.push(`¿Por qué ${impact} es crucial para ${goal}?`);
+            titles.push(`¿Cuándo ${solution} será esencial en ${timeframe}?`);
+            titles.push(`¿Qué elegir: ${comparisons}?`);
+            titles.push(`¿Cómo afecta ${topic} a ${results}?`);
+            titles.push(`¿Por qué ${challenge} sigue siendo un problema?`);
+            titles.push(`¿Qué rol tiene ${solution} en ${audience}?`);
+            titles.push(`¿Qué tan relevante es ${goal} para ${timeframe}?`);
+            titles.push(`¿Cómo maximizar ${impact} con ${solution}?`);
+            break;
+          case 'Afirmaciones':
+            titles.push(`${solution} es la clave para ${impact}.`);
+            titles.push(`${topic} está transformando ${audience}.`);
+            titles.push(`La mejor manera de abordar ${challenge} es con ${solution}.`);
+            titles.push(`${results} son posibles con ${solution}.`);
+            titles.push(`El futuro de ${audience} depende de ${topic}.`);
+            titles.push(`${goal} se alcanza con ${solution}.`);
+            titles.push(`Nada supera a ${solution} para ${impact}.`);
+            titles.push(`El poder de ${topic} está en ${results}.`);
+            titles.push(`${solution} redefine ${goal} en ${timeframe}.`);
+            titles.push(`La respuesta a ${challenge} es ${solution}.`);
+            break;
+          case 'Exploraciones':
+            titles.push(`El impacto de ${topic} en ${audience}.`);
+            titles.push(`Cómo ${solution} está redefiniendo ${goal}.`);
+            titles.push(`Por qué ${challenge} sigue siendo un obstáculo para ${audience}.`);
+            titles.push(`Explorando ${comparisons} para ${results}.`);
+            titles.push(`El rol de ${impact} en el contexto de ${timeframe}.`);
+            titles.push(`Entendiendo ${topic} y su impacto en ${goal}.`);
+            titles.push(`Cómo ${solution} cambia ${challenge} en ${audience}.`);
+            titles.push(`Descubriendo ${results} con ${solution}.`);
+            titles.push(`Analizando ${comparisons} en ${timeframe}.`);
+            titles.push(`¿Qué implica ${impact} para ${goal}?`);
+            break;
+          case 'Cómo hacer':
+            titles.push(`Cómo implementar ${solution} en ${audience}.`);
+            titles.push(`Cómo resolver ${challenge} con ${solution}.`);
+            titles.push(`Cómo ${goal} puede lograrse usando ${topic}.`);
+            titles.push(`Cómo comparar ${comparisons} para decidir mejor.`);
+            titles.push(`Cómo garantizar ${results} en ${timeframe}.`);
+            titles.push(`Cómo optimizar ${impact} en ${audience}.`);
+            titles.push(`Cómo usar ${solution} para superar ${challenge}.`);
+            titles.push(`Cómo crear ${results} con ${solution}.`);
+            titles.push(`Cómo transformar ${goal} con ${topic}.`);
+            titles.push(`Cómo hacer que ${impact} sea una realidad.`);
+            break;
+          case 'Testimonio personal':
+            titles.push(`Cómo adoptamos ${solution} para superar ${challenge}.`);
+            titles.push(`Lo que aprendimos implementando ${topic} en ${audience}.`);
+            titles.push(`Nuestro viaje hacia ${impact} con ${solution}.`);
+            titles.push(`El impacto de ${timeframe} en nuestro enfoque de ${goal}.`);
+            titles.push(`Cómo decidimos entre ${comparisons} y tuvimos éxito.`);
+            titles.push(`La historia detrás de ${results} con ${solution}.`);
+            titles.push(`Qué nos enseñó ${challenge} sobre ${audience}.`);
+            titles.push(`Cómo logramos ${goal} con ${impact}.`);
+            titles.push(`El aprendizaje de aplicar ${solution} en ${timeframe}.`);
+            titles.push(`Mi experiencia superando ${challenge} en ${audience}.`);
+            break;
+          case 'Imperativos':
+            titles.push(`Haz que ${solution} sea tu ventaja competitiva.`);
+            titles.push(`Elimina ${challenge} con ${solution}.`);
+            titles.push(`Transforma ${audience} con ${topic}.`);
+            titles.push(`Adopta ${solution} para lograr ${results}.`);
+            titles.push(`Lidera con ${goal} en mente.`);
+            titles.push(`Optimiza ${impact} con ${solution}.`);
+            titles.push(`Rompe las barreras de ${challenge}.`);
+            titles.push(`Haz que ${topic} funcione para ti.`);
+            titles.push(`Maximiza ${results} en ${timeframe}.`);
+            titles.push(`Innova con ${solution} en ${audience}.`);
+            break;
+          case 'Listas':
+            titles.push(`5 formas de implementar ${solution} en ${audience}.`);
+            titles.push(`10 claves para superar ${challenge} en ${goal}.`);
+            titles.push(`3 pasos esenciales para maximizar ${impact}.`);
+            titles.push(`7 estrategias para adoptar ${solution} en ${timeframe}.`);
+            titles.push(`4 errores comunes al abordar ${challenge}.`);
+            titles.push(`6 beneficios de ${solution} para ${results}.`);
+            titles.push(`8 razones para priorizar ${goal} ahora.`);
+            titles.push(`9 ideas innovadoras sobre ${topic}.`);
+            titles.push(`2 enfoques para comparar ${comparisons}.`);
+            titles.push(`12 maneras de garantizar ${results} en ${audience}.`);
+            break;
+          case 'Provocativos':
+            titles.push(`¿Es ${solution} la solución definitiva para ${goal}?`);
+            titles.push(`La impactante verdad sobre ${challenge} en ${audience}.`);
+            titles.push(`¿Estamos listos para ${impact}?`);
+            titles.push(`¿Qué pasa si ignoramos ${solution}?`);
+            titles.push(`La pregunta que nadie hace sobre ${topic}.`);
+            titles.push(`¿Está ${audience} preparado para ${results}?`);
+            titles.push(`El lado oscuro de ${challenge}.`);
+            titles.push(`¿Es ${goal} más importante que ${impact}?`);
+            titles.push(`¿Qué estamos perdiendo al evitar ${solution}?`);
+            titles.push(`El futuro de ${timeframe} podría depender de ${topic}.`);
+            break;
+        }
+      });
+
+      // Mostrar títulos
+      const resultList = document.getElementById('generatedTitles');
+      resultList.innerHTML = ""; // Limpiar resultados anteriores
+
+      titles.forEach(title => {
+        const listItem = document.createElement('li');
+        listItem.textContent = title;
+        resultList.appendChild(listItem);
+      });
+
+      document.getElementById('step2').classList.add('hidden');
+      document.getElementById('step3').classList.remove('hidden');
+    }
+  </script>
+</body>
+</html>
