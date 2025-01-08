@@ -1,0 +1,1320 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Plugin de Evaluación de Presentaciones</title>
+    <!-- Chart.js para las gráficas -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+            /* Estilos Generales */
+            body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .timer {
+            font-size: 50px;
+            text-align: right;
+            margin-bottom: 20px;
+        }
+        .buttons {
+            text-align: left;
+            margin-bottom: 20px;
+        }
+        .buttons input[type="text"] {
+            padding: 10px;
+            font-size: 16px;
+            width: 200px;
+            margin-right: 10px;
+        }
+        .buttons button {
+            padding: 10px 20px;
+            margin-right: 5px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            cursor: pointer;
+            text-transform: none;
+            border-radius: 5px;
+        }
+        .buttons button:hover {
+            background-color: #45a049;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+        .category-buttons{
+            background-color: white;
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            padding: 20px 30px;
+            border-radius: 10px;
+        }
+        .category-buttons, .quadrant-buttons-grid {
+            width: 100%;
+            max-width: 600px;
+        }
+        .category-button, .quadrant-button {
+            width: 100%;
+            padding: 15px;
+            margin-bottom: 10px;
+            background-color: #ff4401;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+            text-align: left;
+            border-radius: 5px;
+            text-transform: none;
+        }
+        #conclusionSection{
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #recommendationsSection{
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .chart-box{
+            display: flex;
+            justify-content: center;
+        }
+        .category-button:hover, .quadrant-button:hover {
+            background-color: #ff4401;
+        }
+        .quadrant-buttons-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .quadrant-button {
+            height: 80px;
+            font-size: 14px;
+        }
+        /* Sumarios en Dos Columnas */
+        .summaries {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 1200px;
+            margin-top: 40px;
+        }
+        .summary-column {
+            width: 48%;
+        }
+        .summary-column h3 {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .summary-item {
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        /* Gráficas */
+        .charts-row {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 40px;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+        .chart-box {
+            width: 500px;
+            height: 400px;
+        }
+        .startStopButton{
+            color: #1ce02c;
+        }
+        #startStopButton{
+            background-color: #1c1e2c ;
+        }
+        #pauseResumeButton{
+            background-color: #1c1e2c ;
+        }
+        /* Análisis Final */
+        #analysisContainer {
+            margin-top: 40px;
+            font-family: Arial, sans-serif;
+            display: none; /* Oculto hasta que se muestre al final */
+            max-width: 1200px;
+        }
+        #analysisContainer h2 {
+            text-align: left;
+            margin-bottom: 20px;
+        }
+        #congratsMessage {
+            margin-bottom: 20px;
+        }
+        #conclusionSection, #recommendationsSection {
+            margin-top: 20px;
+            font-size: 16px;
+            line-height: 1.6;
+        }
+        .recommendation-divider {
+            border-top: 1px solid #ddd;
+            margin: 10px 0;
+        }
+</style>
+</head>
+<body>
+
+    <!-- Cronómetro -->
+  
+
+    <!-- Contenedor Principal -->
+    <div class="container">
+        
+        <!-- Botones de Categorías (Contenido) -->
+        <div class="category-buttons">
+            <div class="timer" id="timer">00:00:00</div>
+
+            <!-- Botones de Inicio, Detener y Pausa -->
+            <div class="buttons">
+                <input type="text" id="personName" placeholder="Nombre" oninput="validateName()">
+                <button id="startStopButton" onclick="startStopTimer()" disabled>Comenzar</button>
+                <button id="pauseResumeButton" onclick="pauseResumeTimer()" disabled>Pausa</button>
+            </div>
+            <button class="category-button" onclick="setCategory('Atención')">Habla de los problemas del auditorio</button>
+            <button class="category-button" onclick="setCategory('Apertura')">Cuenta historias</button>
+            <button class="category-button" onclick="setCategory('Asombro')">Enseña nuevos conceptos</button>
+            <button class="category-button" onclick="setCategory('Credibilidad')">Comparte evidencia</button>
+            <button class="category-button" onclick="setCategory('Aplicabilidad')">Aporta insight sobre cómo actuar</button>
+            <button class="category-button" onclick="setCategory('Inspiración')">Usa emociones que crean pertenencia</button>
+            <div class="quadrant-buttons-grid">
+                <button class="quadrant-button" onclick="setQuadrant('Silencio Radial')">
+                    Silencio Radial<br>(Baja Señal, Baja Conexión)
+                </button>
+                <button class="quadrant-button" onclick="setQuadrant('Interferencia')">
+                    Interferencia<br>(Baja Señal, Alta Conexión)
+                </button>
+                <button class="quadrant-button" onclick="setQuadrant('Comunicación No Decodificada')">
+                    Comunicación No Decodificada<br>(Alta Señal, Baja Conexión)
+                </button>
+                <button class="quadrant-button" onclick="setQuadrant('Alta Resolución')">
+                    Alta Resolución<br>(Alta Señal, Alta Conexión)
+                </button>
+            </div>
+            <div id="analysisContainer">
+                <!-- Mensaje de Felicitación -->
+                <h2 id="congratsMessage"></h2>
+        
+                <!-- Dos Secciones: Conclusión y Recomendaciones -->
+                <div id="conclusionSection"></div>
+                <div id="recommendationsSection"></div>
+        
+                <!-- Dos Gráficas Lado a Lado -->
+                <div class="charts-row">
+                    <!-- Gráfica Radial (Contenido) -->
+                    <div class="chart-box">
+                        <canvas id="radarChart" width="400" height="400"></canvas>
+                    </div>
+                    <!-- Gráfica Rectangular de Cuadrantes (Sentimiento) -->
+                    <div class="chart-box">
+                        <canvas id="quadrantChart" width="400" height="400"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="summaries">
+                <!-- Sumario de Contenido -->
+                <div class="summary-column">
+                    <h3>Sumario de Contenido</h3>
+                    <div class="summary-item">Atención: <span id="Atención-time">00:00:00</span> (<span id="Atención-percentage">0%</span>)</div>
+                    <div class="summary-item">Apertura: <span id="Apertura-time">00:00:00</span> (<span id="Apertura-percentage">0%</span>)</div>
+                    <div class="summary-item">Asombro: <span id="Asombro-time">00:00:00</span> (<span id="Asombro-percentage">0%</span>)</div>
+                    <div class="summary-item">Credibilidad: <span id="Credibilidad-time">00:00:00</span> (<span id="Credibilidad-percentage">0%</span>)</div>
+                    <div class="summary-item">Aplicabilidad: <span id="Aplicabilidad-time">00:00:00</span> (<span id="Aplicabilidad-percentage">0%</span>)</div>
+                    <div class="summary-item">Inspiración: <span id="Inspiración-time">00:00:00</span> (<span id="Inspiración-percentage">0%</span>)</div>
+                </div>
+        
+                <!-- Sumario de Sentimiento -->
+                <div class="summary-column">
+                    <h3>Sumario de Sentimiento</h3>
+                    <div class="summary-item">Silencio Radial: <span id="Silencio Radial-time">00:00:00</span> (<span id="Silencio Radial-percentage">0%</span>)</div>
+                    <div class="summary-item">Interferencia: <span id="Interferencia-time">00:00:00</span> (<span id="Interferencia-percentage">0%</span>)</div>
+                    <div class="summary-item">Comunicación No Decodificada: <span id="Comunicación No Decodificada-time">00:00:00</span> (<span id="Comunicación No Decodificada-percentage">0%</span>)</div>
+                    <div class="summary-item">Alta Resolución: <span id="Alta Resolución-time">00:00:00</span> (<span id="Alta Resolución-percentage">0%</span>)</div>
+                </div>
+            </div>
+        
+            <!-- Contenedor de Análisis Final -->
+            <div id="analysisContainer">
+                <!-- Mensaje de Felicitación -->
+                <h2 id="congratsMessage"></h2>
+        
+                <!-- Dos Secciones: Conclusión y Recomendaciones -->
+                <div id="conclusionSection"></div>
+                <div id="recommendationsSection"></div>
+        
+                <!-- Dos Gráficas Lado a Lado -->
+                <div class="charts-row">
+                    <!-- Gráfica Radial (Contenido) -->
+                    <div class="chart-box">
+                        <canvas id="radarChart" width="400" height="400"></canvas>
+                    </div>
+                    <!-- Gráfica Rectangular de Cuadrantes (Sentimiento) -->
+                    <div class="chart-box">
+                        <canvas id="quadrantChart" width="400" height="400"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    
+        </div>
+
+        <!-- Botones de Cuadrantes (Sentimiento) -->
+      
+    <!-- Sumarios de Contenido y Sentimiento al Final -->
+  
+
+    <script>
+
+let timerRunning = false;
+let paused = false;
+let startTime = 0;
+let pausedTime = 0;
+let totalElapsedTime = 0;
+
+// Tiempos de última pulsación (categoría/cuadrante) para asignación retroactiva
+let lastCategoryPressTime = 0;
+let lastQuadrantPressTime = 0;
+
+// Diccionarios de tiempo (ms)
+let categories = {
+    'Atención': 0,
+    'Apertura': 0,
+    'Asombro': 0,
+    'Credibilidad': 0,
+    'Aplicabilidad': 0,
+    'Inspiración': 0
+};
+let quadrants = {
+    'Silencio Radial': 0,
+    'Interferencia': 0,
+    'Comunicación No Decodificada': 0,
+    'Alta Resolución': 0
+};
+
+let timerInterval, statsInterval;
+let personName = '';
+
+/* -------------------------------
+   Botones de Inicio / Detener
+------------------------------- */
+function startStopTimer() {
+    if (!timerRunning) {
+        // Iniciar
+        resetValues();
+        personName = document.getElementById("personName").value.trim();
+        startTime = performance.now();
+        lastCategoryPressTime = startTime;
+        lastQuadrantPressTime = startTime;
+
+        timerInterval = setInterval(updateTimerDisplay, 1000);
+        statsInterval = setInterval(updateStats, 1000);
+
+        timerRunning = true;
+        document.getElementById("startStopButton").textContent = "Detener";
+        document.getElementById("pauseResumeButton").disabled = false;
+        document.getElementById("personName").disabled = true;
+    } else {
+        // Detener
+        clearInterval(timerInterval);
+        clearInterval(statsInterval);
+
+        // Actualizar el cronómetro y stats una última vez
+        updateTimerDisplay();
+        updateStats();
+
+        timerRunning = false;
+        document.getElementById("startStopButton").textContent = "Comenzar";
+        document.getElementById("pauseResumeButton").disabled = true;
+        document.getElementById("personName").disabled = false;
+
+        // Mostrar las gráficas y el análisis final
+        showFinalAnalysis();
+    }
+}
+
+/* --------------------------------
+   Pausar / Reanudar Temporizador
+--------------------------------- */
+function pauseResumeTimer() {
+    if (!paused) {
+        // Pausar
+        clearInterval(timerInterval);
+        clearInterval(statsInterval);
+        pausedTime = performance.now();
+        paused = true;
+        document.getElementById("pauseResumeButton").textContent = "Reanudar";
+    } else {
+        // Reanudar
+        let now = performance.now();
+        let pausedDuration = now - pausedTime;
+        // Ajustar startTime y las referencias de última pulsación
+        startTime += pausedDuration;
+        lastCategoryPressTime += pausedDuration;
+        lastQuadrantPressTime += pausedDuration;
+
+        timerInterval = setInterval(updateTimerDisplay, 1000);
+        statsInterval = setInterval(updateStats, 1000);
+
+        paused = false;
+        document.getElementById("pauseResumeButton").textContent = "Pausa";
+    }
+}
+
+/* -------------------------------
+   Botones de Categoría (Contenido)
+------------------------------- */
+function setCategory(categoryName) {
+    if (!timerRunning || paused) return;
+
+    let now = performance.now();
+    let elapsed = now - lastCategoryPressTime;
+    categories[categoryName] += elapsed;
+    lastCategoryPressTime = now;
+
+    updateStats();
+}
+
+/* ------------------------------
+   Botones de Cuadrante (Sentimiento)
+------------------------------ */
+function setQuadrant(quadrantName) {
+    if (!timerRunning || paused) return;
+
+    let now = performance.now();
+    let elapsed = now - lastQuadrantPressTime;
+    quadrants[quadrantName] += elapsed;
+    lastQuadrantPressTime = now;
+
+    updateStats();
+}
+
+/* -------------------------
+   Mostrar Cronómetro
+-------------------------- */
+function updateTimerDisplay() {
+    if (!startTime) {
+        document.getElementById("timer").textContent = "00:00:00";
+        return;
+    }
+    let now = performance.now();
+    let elapsed = now - startTime;
+    if (!paused) {
+        totalElapsedTime = elapsed;
+    }
+    document.getElementById("timer").textContent = formatTime(elapsed);
+}
+
+/* -------------------------
+   Actualizar Estadísticas
+-------------------------- */
+function updateStats() {
+    // Categorías
+    for (let c in categories) {
+        let timeMs = categories[c];
+        let pct = 0;
+        if (totalElapsedTime > 0) {
+            pct = (timeMs / totalElapsedTime) * 100;
+        }
+        document.getElementById(c + "-time").textContent = formatTime(timeMs);
+        document.getElementById(c + "-percentage").textContent = pct.toFixed(2) + "%";
+    }
+    // Cuadrantes
+    for (let q in quadrants) {
+        let timeMs = quadrants[q];
+        let pct = 0;
+        if (totalElapsedTime > 0) {
+            pct = (timeMs / totalElapsedTime) * 100;
+        }
+        document.getElementById(q + "-time").textContent = formatTime(timeMs);
+        document.getElementById(q + "-percentage").textContent = pct.toFixed(2) + "%";
+    }
+}
+
+/* -------------------------
+   Reset de Valores
+-------------------------- */
+function resetValues() {
+    paused = false;
+    totalElapsedTime = 0;
+    personName = document.getElementById("personName").value.trim();
+
+    startTime = 0;
+    pausedTime = 0;
+
+    // Limpieza de categorías
+    for (let c in categories) {
+        categories[c] = 0;
+        document.getElementById(c + "-time").textContent = "00:00:00";
+        document.getElementById(c + "-percentage").textContent = "0%";
+    }
+    // Limpieza de cuadrantes
+    for (let q in quadrants) {
+        quadrants[q] = 0;
+        document.getElementById(q + "-time").textContent = "00:00:00";
+        document.getElementById(q + "-percentage").textContent = "0%";
+    }
+
+    document.getElementById("timer").textContent = "00:00:00";
+}
+
+/* -------------------------
+   Validar Nombre
+-------------------------- */
+function validateName() {
+    let name = document.getElementById("personName").value.trim();
+    document.getElementById("startStopButton").disabled = (name === "");
+}
+
+/* -------------------------
+   Formato de Tiempo
+-------------------------- */
+function formatTime(milliseconds) {
+    let totalSeconds = Math.floor(milliseconds / 1000);
+    let hours = Math.floor(totalSeconds / 3600);
+    let minutes = Math.floor((totalSeconds % 3600) / 60);
+    let seconds = totalSeconds % 60;
+    return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+}
+function pad(n) {
+    return (n < 10) ? ("0" + n) : n;
+}
+
+/* ===========================
+   SECCIÓN DE ANÁLISIS FINAL
+============================ */
+function showFinalAnalysis() {
+    try {
+        // 1) Mostramos el contenedor que tiene las dos gráficas + el análisis
+        document.getElementById("analysisContainer").style.display = "block";
+
+        // 2) Mensaje de Felicitación
+        let congratsMsg = `¡Felicidades, ${personName}, por completar tu presentación!`;
+        document.getElementById("congratsMessage").textContent = congratsMsg;
+
+        // 3) Dibujar las gráficas
+        drawRadarChart();
+        drawQuadrantChart();
+
+        // 4) Determinar arquetipo y cuadrante
+        let chosenArchetype = determineArchetype();
+        let chosenQuadrant = determineQuadrant();
+        let presentationType = `La presentación del ${chosenArchetype} en ${chosenQuadrant}`;
+
+        // 5) Mostrar la conclusión
+        let conclusionText = getConclusion(chosenArchetype, chosenQuadrant);
+        document.getElementById("conclusionSection").innerHTML = `<h3>Esta es la Presentación del ${chosenArchetype}</h3><p id="conclusionText" style="width:90%;text-align: justify;">${conclusionText}</p>`;
+document.getElementById("conclusionText").innerHTML = document.getElementById("conclusionText").innerHTML.replace(/\./g, '.<br>');
+        // 6) Mostrar Recomendaciones
+        let recommendationText = getRecommendation(chosenArchetype, chosenQuadrant);
+        document.getElementById("recommendationsSection").innerHTML = `<h3>Así puedes mejorar tu presentación</h3><p id="recomendations" style="width:90%;text-align: justify;overflow-wrap: break-word; ">${recommendationText}</p>`;
+        document.getElementById("recomendations").innerHTML = document.getElementById("recomendations").innerHTML.replace(/\./g, '.<br>');
+
+    } catch (error) {
+        console.error("Error en showFinalAnalysis:", error);
+        alert("Ocurrió un error al mostrar el análisis final. Por favor, revisa la consola para más detalles.");
+    }
+}
+
+/* -------------------------
+   DIBUJAR GRÁFICA RADIAL
+-------------------------- */
+function drawRadarChart() {
+    const ctx = document.getElementById('radarChart').getContext('2d');
+    
+    // Orden para el radar
+    const categoriesOrder = [
+        "Atención",
+        "Apertura",
+        "Asombro",
+        "Credibilidad",
+        "Aplicabilidad",
+        "Inspiración"
+    ];
+
+    let dataValues = categoriesOrder.map(cat => {
+        if (totalElapsedTime <= 0) return 0;
+        return ((categories[cat] / totalElapsedTime) * 100).toFixed(2);
+    });
+
+    // Eliminar gráfica anterior si existe
+    if (window.radarChartInstance) {
+        window.radarChartInstance.destroy();
+    }
+
+    window.radarChartInstance = new Chart(ctx, {
+        type: 'radar',
+        data: {
+            labels: categoriesOrder,
+            datasets: [{
+                label: 'Contenido (%)',
+                data: dataValues,
+                backgroundColor: 'transparent',
+                 borderColor: 'rgba(255, 99, 71, 1)',
+                borderWidth: 3,
+                pointRadius: 0,
+                pointBackgroundColor: '#22caec'
+            }]
+        },
+        options: {
+            scales: {
+                r: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'transparent'
+                    },
+                    ticks: {
+                        display: false
+                    },
+                    pointLabels: {
+                        font: { size: 14 },
+                        color: '#333'
+                    },
+                    angleLines: {
+                color: '#ccc', // Mantener líneas radiales visibles
+                lineWidth: 1
+            }
+                }
+                
+            },
+            plugins: {
+                legend: { display: false }
+            }
+        }
+    });
+}
+
+/* -----------------------------
+   DIBUJAR GRÁFICA 2x2 CUADRANTES
+------------------------------ */
+function drawQuadrantChart() {
+    const canvas = document.getElementById('quadrantChart');
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width;
+    const h = canvas.height;
+
+    ctx.clearRect(0, 0, w, h);
+
+    if (totalElapsedTime <= 0) {
+        ctx.fillStyle = '#999';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.font = '18px Arial';
+        ctx.fillText('Sin datos para cuadrantes', w/2, h/2);
+        return;
+    }
+
+    // Definición de cuadrantes
+    const quadrantData = [
+        { key: 'Comunicación No Decodificada', label: 'Comunicación No Decodificada', xFactor: 0, yFactor: 0 },
+        { key: 'Alta Resolución', label: 'Alta Resolución', xFactor: 1, yFactor: 0 },
+        { key: 'Silencio Radial', label: 'Silencio Radial', xFactor: 0, yFactor: 1 },
+        { key: 'Interferencia', label: 'Interferencia', xFactor: 1, yFactor: 1 }
+    ];
+
+    const margin = 10;
+    const rectW = (w - 3*margin) / 2;
+    const rectH = (h - 3*margin) / 2;
+    const radius = 10; // esquinas redondeadas
+
+    quadrantData.forEach(q => {
+        let alpha = quadrants[q.key] / totalElapsedTime;
+        if (alpha < 0) alpha = 0;
+        if (alpha > 1) alpha = 1;
+
+        const x = margin + q.xFactor*(rectW + margin);
+        const y = margin + q.yFactor*(rectH + margin);
+
+        // Dibujar rectángulo redondeado
+        ctx.fillStyle = `rgba(255,99,132,${alpha})`;
+        roundRect(ctx, x, y, rectW, rectH, radius);
+
+        // Texto: porcentaje arriba, título abajo
+        ctx.fillStyle = '#000';
+        ctx.font = '40px Arial'; // Mayor tamaño para porcentaje
+        ctx.textAlign = 'center';
+        ctx.overflowWrap = "break-word";
+        ctx.whiteSpace = "normal";
+        ctx.textBaseline = 'top';
+        ctx.marginTop= "50px"
+        ctx.width = "100%"
+        let centerX = x + rectW / 2;
+        let centerY = y + rectH / 2.6 +0; // Ajuste hacia abajo (+10)
+        
+        let pct = (alpha * 100).toFixed(2) + "%";
+        ctx.fillText(pct, centerX, centerY);
+        ctx.font = '14px Arial'; // Tamaño menor para título
+        ctx.textBaseline = 'bottom';
+        ctx.fillText(q.label, x + rectW/2, y + rectH - 10);
+
+    });
+}
+
+/* Función auxiliar para rectángulos redondeados */
+function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+    ctx.fill();
+}
+
+/* ===========================
+   SECCIÓN DE CONCLUSIONES
+============================ */
+const conclusions = {
+  Carismático: {
+    "Silencio Radial": `Tienes un talento natural que muchas personas envidiarían: captas la atención de inmediato. Desde el momento en que hablas, las personas quieren escucharte porque proyectas esa energía y confianza que generan conexión. Eso es una habilidad increíblemente valiosa, y es algo que está claramente presente en ti. Tener esa capacidad de atraer a los demás es el primer gran paso para una comunicación efectiva.
+
+Ahora, en esta presentación ocurrió algo interesante. Aunque lograste captar la atención inicial, el mensaje no terminó de quedar claro. Es como si todos estuvieran contigo al inicio, pero luego el mensaje se quedó un poco perdido en el camino. Y no es que estés haciendo algo mal; es que ese carisma natural necesita ir acompañado de una estructura que guíe a tu audiencia de principio a fin.
+
+Lo que puedes trabajar es cómo organizar tus ideas antes de hablar. Hazte estas preguntas: ¿Qué quiero que mi audiencia recuerde al final? ¿Cómo puedo llevarlos paso a paso hacia ese objetivo? ¿Cómo puedo hacer que cada parte de mi presentación refuerce mi mensaje? Si logras darle dirección a lo que ya estás diciendo, vas a convertir tu habilidad natural de conectar en un impacto mucho más profundo.
+
+Recuerda, el carisma ya lo tienes. Ahora el reto es combinarlo con claridad y propósito en tus mensajes. Si juntas esas piezas, vas a lograr que tus presentaciones no solo atraigan, sino que también transformen la forma en la que las personas piensan y actúan. ¡Tú puedes, y estoy seguro de que vas a llegar lejos! 
+
+`,
+
+    Interferencia: `Tienes una habilidad única para conectar emocionalmente con las personas. Tu carisma natural hace que la audiencia se sienta atraída hacia ti, que confíe en lo que estás diciendo y que esté dispuesta a escuchar con atención. Eso no se enseña, es algo que ya tienes, y es un gran punto a tu favor.
+En esta presentación, lo que ocurrió es que las emociones, aunque estaban presentes, llegaron a desbordarse un poco, y eso hizo que el mensaje se sintiera menos claro de lo que podría haber sido. Es como si hubieras construido un puente emocional muy sólido, pero el contenido que debía cruzar ese puente no llegó a destino. A veces, cuando ponemos mucha energía en conectar con la audiencia, corremos el riesgo de perder un poco la estructura del mensaje, y eso fue lo que pasó aquí.
+La clave para mejorar es encontrar un balance entre la emoción y la claridad. Pregúntate antes de tu próxima presentación: ¿Qué quiero que sienta mi audiencia? Pero también, ¿qué quiero que entiendan y recuerden? Tu conexión emocional es tu fortaleza más grande, y si la complementas con una estructura clara y un mensaje bien definido, el impacto que puedes lograr será enorme.
+Recuerda, el carisma ya lo tienes, y eso es algo que muy pocas personas poseen de manera tan natural. Ahora se trata de añadirle un poco de enfoque a tus ideas para que no solo conectes con la emoción, sino también con la mente de quienes te escuchan. Estoy seguro de que con práctica, lograrás ese balance perfecto. ¡Tú puedes!
+`,
+
+    "Comunicación No Decodificada": `Tienes una habilidad natural para captar la atención y conectar con las personas. Esa capacidad para atraer miradas y generar interés es una de tus mayores fortalezas, y es algo que no se puede enseñar fácilmente. Sin embargo, en esta presentación, aunque el mensaje llegó a la audiencia, se quedó en un punto intermedio donde no terminó de ser entendido con claridad. Es como si tu audiencia estuviera interesada en lo que decías, pero necesitara más guía para procesar y aplicar lo que escucharon.
+Esto no significa que lo estés haciendo mal, sino que tu mensaje necesita un poco más de simplificación y estructura para que sea más accesible. A veces, cuando tenemos muchas ideas o información, podemos darlas por sentado y pensar que el público las entenderá igual que nosotros. Pero recuerda que ellos están recibiendo el mensaje por primera vez, y necesitan que se lo entregues de manera sencilla y directa.
+Lo que puedes trabajar es en adaptar tu lenguaje y tu contenido pensando en tu audiencia. Pregúntate: ¿Cómo puedo hacer que este mensaje sea más claro? ¿Qué ejemplos, metáforas o historias pueden ayudar a que mi punto sea más fácil de entender? Con esto, no solo conectarás emocionalmente, sino que también lograrás que tu mensaje quede completamente claro y memorable.
+Tienes todo lo necesario para ser un comunicador impactante. Solo necesitas ajustar un poco la forma en la que presentas tus ideas para que el mensaje llegue tan fuerte y claro como lo merece. Con práctica, lo lograrás.
+
+
+`,
+
+    "Alta Resolución": `La Conclusión General de la Presentación del Carismático en Alta Resolución.
+Tu presentación fue un gran ejemplo de cómo combinar conexión emocional y claridad en el mensaje. Tienes ese don natural para captar la atención de las personas, y en esta ocasión, lo complementaste con un contenido claro, bien estructurado y enfocado. Lograste que tu audiencia no solo te escuchara con interés, sino que también entendiera y se llevara algo valioso de tu mensaje.
+Lo que hiciste muy bien fue integrar tu carisma con un propósito claro. Cada palabra, cada gesto y cada idea tenía un sentido y una dirección. Esto no solo reforzó tu conexión con la audiencia, sino que también generó confianza en lo que estabas diciendo. Es el tipo de comunicación que inspira, informa y motiva a la acción.
+Este tipo de presentaciones son las que dejan huella. Lograste que tu público no solo sintiera, sino que también entendiera y reflexionara. Si mantienes este nivel de conexión y claridad, no solo te convertirás en un comunicador efectivo, sino también en alguien que puede influir de manera positiva en los demás.
+Sigue por este camino. Tienes las herramientas, las habilidades y el carisma para seguir impactando a las personas con tus ideas. Esto es comunicación en su mejor forma: auténtica, relevante y poderosa.
+
+
+`,
+  },
+
+  Estratega: {
+    "Silencio Radial": `Tienes una capacidad muy valiosa: piensas en profundidad y estructuradamente. Eso te da una ventaja para abordar problemas de manera lógica y bien organizada. Sin embargo, en esta presentación, aunque tus ideas eran sólidas, no lograron conectar con tu audiencia como podrían haberlo hecho. Es como si el mensaje se hubiera quedado atrapado en una barrera de desconexión emocional, donde lo que decías no llegaba con la fuerza necesaria.
+Esto no significa que las ideas fueran incorrectas, sino que faltó traducirlas en una forma que el público pudiera captar fácilmente. A veces, la claridad no solo está en lo que se dice, sino en cómo se dice. Tu enfoque estructurado es una fortaleza, pero necesita ir acompañado de una conexión emocional que permita que la audiencia se enganche con lo que estás comunicando.
+Lo que puedes trabajar es en cómo humanizar tus mensajes. Pregúntate: ¿Cómo puedo vincular estas ideas con historias, ejemplos o situaciones que sean relevantes para las personas? ¿Cómo puedo hacer que mi presentación no solo sea lógica, sino también emocionalmente atractiva? Tu habilidad para estructurar y organizar ya está ahí; ahora se trata de añadirle un toque más personal y cercano.
+Tienes todo lo necesario para convertir presentaciones como esta en experiencias significativas. Si logras equilibrar tu enfoque estratégico con una conexión más emocional, tus ideas tendrán el impacto que merecen. Con un poco de práctica, alcanzarás ese nivel de comunicación que deja huella.
+`,
+
+    Interferencia: `Tu presentación mostró una de tus mayores fortalezas: la habilidad para organizar ideas y estructurar mensajes de manera lógica y ordenada. Sin embargo, en esta ocasión, las emociones jugaron un papel importante, y aunque intentaste conectar con la audiencia, esa conexión no fue del todo efectiva. Es como si la emoción en el mensaje se volviera demasiado intensa o confusa, desviando la atención del contenido bien pensado que estabas tratando de transmitir.
+Esto no significa que lo hayas hecho mal, sino que las emociones y la lógica no lograron trabajar juntas de la mejor manera. A veces, cuando intentamos conectar emocionalmente, podemos perder un poco la claridad del mensaje o hacer que se perciba menos genuino. La clave aquí es encontrar un balance entre tu estructura lógica, que ya es sólida, y una conexión emocional más auténtica y dosificada.
+Lo que puedes trabajar es cómo integrar las emociones en tu presentación sin que opaquen tu claridad. Pregúntate: ¿Qué emoción quiero que sienta mi audiencia y cómo puedo expresarla de forma clara y sincera? ¿Cómo puedo mantener mi enfoque lógico mientras utilizo historias o ejemplos que generen conexión? Al hacerlo, lograrás que tus mensajes sean tanto impactantes como emocionales.
+Recuerda, tu fortaleza está en tu capacidad para pensar y comunicar con estructura. Si añades a eso un toque emocional bien calibrado, tus presentaciones no solo serán claras, sino también memorables. Con un poco de ajuste, puedes alcanzar ese equilibrio que hará que tus ideas lleguen con toda la fuerza que merecen.
+`,
+
+    "Comunicación No Decodificada": `Tu presentación reflejó tu capacidad para estructurar ideas y ofrecer un enfoque lógico y bien pensado. Esta es una habilidad que no todos tienen y que puede ser una gran fortaleza. Sin embargo, en esta ocasión, el mensaje no terminó de ser comprendido con claridad. Aunque las ideas eran sólidas, parecían un poco complejas o difíciles de seguir para tu audiencia, lo que generó cierta desconexión.
+Esto no significa que tu contenido no fuera valioso, sino que a veces, cuando conocemos mucho un tema o lo hemos trabajado en profundidad, podemos asumir que los demás están en el mismo nivel de comprensión. La clave aquí está en simplificar y traducir tus ideas para que sean más accesibles, sin perder su esencia estratégica.
+Lo que puedes trabajar es cómo presentar tus ideas de una manera más clara y directa. Pregúntate: ¿Cómo puedo organizar mi mensaje para que sea fácil de seguir, incluso para alguien que no esté familiarizado con el tema? ¿Qué ejemplos o metáforas pueden ayudar a ilustrar mis puntos de manera más efectiva? Esto te permitirá conectar con tu audiencia y asegurarte de que no solo entiendan tu mensaje, sino que lo recuerden.
+Tienes una habilidad especial para el análisis y la estructura, y eso es una gran ventaja. Ahora, con un enfoque en la claridad y la adaptación del mensaje al público, puedes transformar tus presentaciones en experiencias realmente impactantes. Con un poco de ajuste, lograrás que tus ideas sean tanto comprensibles como inspiradoras.
+
+`,
+
+    "Alta Resolución": `Tu presentación fue un ejemplo claro de cómo combinar estructura y claridad con un mensaje que conecta y guía a la audiencia. Como estratega, tu capacidad para organizar ideas y ofrecer soluciones prácticas brilló en esta ocasión. Lograste transmitir tus puntos de manera lógica y bien fundamentada, pero también conectaste con las personas al comunicar con un equilibrio perfecto entre razón y propósito.
+Lo que hiciste muy bien fue mantener un enfoque claro y directo, asegurándote de que cada parte de tu mensaje estuviera alineada con un objetivo específico. La audiencia no solo entendió lo que querías decir, sino que también pudo visualizar cómo aplicar tus ideas en la práctica. Este tipo de comunicación no solo informa, sino que también inspira confianza y acción.
+Este nivel de presentación refleja un dominio completo de tus fortalezas como estratega. Al integrar estructura con claridad y conexión, tu mensaje llegó con fuerza y propósito, dejando a tu audiencia con un entendimiento claro y un plan para avanzar.
+Sigue cultivando este enfoque. Tienes la capacidad de ser un comunicador altamente efectivo, alguien que no solo organiza ideas, sino que las convierte en herramientas prácticas para quienes te escuchan. Este equilibrio entre lógica y conexión es lo que hace que tus presentaciones sean realmente memorables.
+`,
+  },
+
+  Científico: {
+    "Silencio Radial": `Tu presentación mostró una característica muy valiosa: un conocimiento profundo y bien fundamentado sobre el tema. Esta capacidad de análisis y detalle es una fortaleza que pocos tienen, y refleja el rigor con el que abordas las cosas. Sin embargo, en esta ocasión, ese conocimiento no logró traducirse en una conexión clara con tu audiencia. Fue como si las ideas estuvieran ahí, pero no terminaran de cruzar el puente hacia quienes te escuchaban.
+Esto puede suceder cuando asumimos que los demás comparten nuestra perspectiva o el contexto necesario para entender el mensaje. A veces, el entusiasmo por compartir ideas complejas puede llevar a un exceso de detalle o a una falta de simplificación que haga que el mensaje no sea accesible. Esto no es un fallo, sino una oportunidad para ajustar cómo traduces tu conocimiento a un lenguaje más universal.
+Lo que puedes trabajar es en cómo simplificar tus ideas y crear un marco claro para tu audiencia. Pregúntate: ¿Cómo puedo organizar el contenido de manera que los conceptos clave sean más fáciles de seguir? ¿Qué analogías o ejemplos puedo usar para ilustrar puntos complejos? Con esto, no solo mantendrás tu profundidad analítica, sino que también lograrás que tus ideas sean más comprensibles.
+Tu habilidad para entender y explicar temas complejos es algo excepcional. Si añades a eso un enfoque más centrado en la conexión con la audiencia, tus presentaciones no solo destacarán por su rigor, sino también por su capacidad de inspirar y educar de manera efectiva. Con pequeños ajustes, podrás llevar tu comunicación al siguiente nivel.
+`,
+
+    Interferencia: `Tu presentación demostró una gran fortaleza: un conocimiento sólido y bien fundamentado que respalda cada punto que compartiste. Esto habla de tu rigor y de tu capacidad para analizar los temas con profundidad, algo que muchas personas admiran y respetan. Sin embargo, en esta ocasión, las emociones jugaron un papel que, en lugar de complementar tu mensaje, terminaron generando cierta confusión. Esto hizo que la claridad de tus ideas quedara un poco opacada por la intensidad emocional.
+A veces, cuando tratamos de conectar emocionalmente, podemos perder un poco de enfoque en la estructura del mensaje, y eso es lo que ocurrió aquí. Es como si el contenido estuviera presente, pero las emociones añadieran ruido que dificultó que la audiencia comprendiera completamente tus puntos.
+Lo que puedes trabajar es encontrar un equilibrio entre tus emociones y tu claridad intelectual. Pregúntate: ¿Cómo puedo expresar mi entusiasmo o mis sentimientos de manera que refuercen mi mensaje, en lugar de complicarlo? ¿Cómo puedo estructurar mi contenido para que sea claro, incluso si la emoción se intensifica? Al hacerlo, lograrás que tus presentaciones sean más impactantes y fáciles de entender.
+Tienes una base de conocimiento que es un gran activo, y tu pasión por lo que haces es evidente. Si logras canalizar esa pasión de manera que complemente tu mensaje en lugar de distraer, tus presentaciones alcanzarán un nivel de excelencia que resonará profundamente con tu audiencia. Este ajuste te permitirá mantener tu profundidad y, al mismo tiempo, maximizar tu impacto.
+`,
+
+    "Comunicación No Decodificada": `Tu presentación reflejó una habilidad impresionante para abordar temas con profundidad y precisión, algo que solo se logra con un conocimiento sólido y un enfoque analítico. Sin embargo, en esta ocasión, tu mensaje no logró ser completamente claro para la audiencia. Las ideas estaban ahí, bien fundamentadas y valiosas, pero su complejidad dificultó que quienes te escuchaban las comprendieran con facilidad.
+Esto es algo que puede suceder cuando conocemos un tema tan a fondo que olvidamos que la audiencia no tiene el mismo contexto o nivel de detalle. A veces, asumimos que ciertas cosas son evidentes, pero lo que realmente necesitan quienes nos escuchan es una guía más sencilla y accesible para poder seguirnos sin esfuerzo.
+Lo que puedes trabajar es en traducir tus ideas a un lenguaje más claro y amigable. Pregúntate: ¿Qué ejemplos simples puedo usar para explicar conceptos complejos? ¿Cómo puedo estructurar mi mensaje para llevar a la audiencia paso a paso hacia las conclusiones importantes? Esto no significa simplificar tu pensamiento, sino hacerlo más accesible y relevante para tu público.
+Tienes una capacidad extraordinaria para generar contenido valioso. Si logras complementarlo con una comunicación más clara y enfocada en tu audiencia, tus presentaciones no solo serán informativas, sino también transformadoras. Este ajuste te permitirá aprovechar al máximo tu conocimiento y asegurarte de que tu mensaje llegue tan lejos como merece.
+
+
+`,
+
+    "Alta Resolución": `Tu presentación fue un ejemplo claro de cómo transformar conocimiento profundo en una experiencia enriquecedora para tu audiencia. Lograste combinar tu habilidad analítica con una claridad envidiable, lo que permitió que incluso conceptos complejos se entendieran de manera sencilla y efectiva. Esto es lo que define una comunicación en alta resolución: profundidad con accesibilidad.
+Lo que hiciste especialmente bien fue estructurar tu contenido de forma lógica, utilizando un enfoque paso a paso que guió a tu audiencia a través de tus ideas. Además, complementaste esta claridad con ejemplos o explicaciones que conectaron emocionalmente, haciendo que tu mensaje no solo fuera comprendido, sino también valorado. Tus palabras transmitieron confianza, y tu enfoque demostró dominio del tema.
+Este tipo de presentaciones no solo educan, sino que inspiran. Has mostrado que es posible comunicar ideas complejas de una manera que sea accesible y relevante para cualquier público. Esto te posiciona no solo como alguien con conocimiento, sino también como un comunicador efectivo y confiable.
+Continúa aprovechando esta habilidad. Tu capacidad para transmitir información de manera clara y estructurada, mientras conectas con tu audiencia, es una fortaleza poderosa. Este enfoque te permitirá no solo compartir tus ideas, sino también generar un impacto real en quienes te escuchan. Este nivel de comunicación te convierte en un referente en tu campo.
+
+
+`,
+  },
+
+  Narrador: {
+    "Silencio Radial": `Tu habilidad para contar historias y conectar con las emociones de tu audiencia es un talento que muchos admiran, y está claro que tienes esa inclinación natural para hacerlo. Sin embargo, en esta presentación, algo crucial se perdió en la ejecución: la conexión. Fue como si tus historias no lograran cruzar ese puente emocional hacia la audiencia, dejando un espacio de desconexión que impidió que el mensaje llegara con claridad.
+Esto no significa que lo hicieras mal, sino que quizá el contexto o la forma en que se estructuraron tus historias no ayudaron a que tu audiencia se enganchara como debería. A veces, al intentar abarcar demasiado detalle o no establecer un marco claro para la narrativa, podemos perder a las personas en el camino.
+Lo que puedes trabajar es cómo afinar tus historias para que sean más directas y relevantes para quienes te escuchan. Pregúntate: ¿Cómo puedo conectar mi historia con las experiencias o intereses de mi audiencia? ¿Estoy dejando claro desde el principio cuál es el propósito de mi narrativa? Al ajustar estos elementos, tus historias no solo captarán la atención, sino que resonarán profundamente.
+Tienes un don para narrar y crear significado a través de tus palabras. Con un poco de refinamiento en la manera en que presentas tus historias y aseguras su relevancia, podrás convertir presentaciones como esta en experiencias poderosas. Tu habilidad para narrar tiene un gran potencial para impactar; ahora se trata de pulirla para que brille aún más.
+`,
+
+    Interferencia: `Tu habilidad para contar historias y capturar la atención de las personas es indudable, y tienes un talento natural para crear una narrativa que involucre a tu audiencia. Sin embargo, en esta presentación, esa misma pasión por conectar emocionalmente pudo haberse llevado al extremo, generando un exceso de intensidad que terminó por distraer de tu mensaje principal.
+A veces, cuando nos enfocamos demasiado en las emociones, el mensaje puede sentirse abrumador o incluso desconcertante. Es como si las historias que querías transmitir tuvieran demasiada carga emocional, y eso dificultó que la audiencia pudiera seguirte con claridad. No se trata de eliminar la emoción, sino de dosificarla para que complemente, en lugar de opacar, tu mensaje.
+Lo que puedes trabajar es cómo balancear tus historias y emociones con una estructura más clara y enfocada. Pregúntate: ¿Cómo puedo mantener las emociones presentes, pero sin que sean el único punto de atención? ¿Estoy utilizando mis historias para reforzar mi mensaje, o están desviando la conversación? Al lograr ese equilibrio, tu presentación tendrá tanto impacto emocional como claridad en su propósito.
+Tu capacidad para conectar es un gran activo, y con algunos ajustes, puedes llevar tus presentaciones a un nivel en el que las emociones y el contenido trabajen juntos para transmitir tus ideas de manera efectiva. Tienes el potencial de impactar profundamente a tu audiencia, y este es un paso clave para lograrlo.
+`,
+
+    "Comunicación No Decodificada": `Tu talento para contar historias y conectar emocionalmente es evidente, y eso es algo que no muchas personas logran con tanta naturalidad. Sin embargo, en esta ocasión, tu mensaje no llegó con la claridad que esperabas. Aunque las historias que compartiste tenían potencial, su estructura o propósito no quedaron del todo claros para tu audiencia, lo que dificultó que entendieran tu mensaje principal.
+Esto puede suceder cuando una historia, por muy interesante o emotiva que sea, no está completamente alineada con el objetivo de la presentación. Puede que asumieras que ciertos puntos eran evidentes, o que las conexiones entre las historias y el mensaje no fueran tan obvias para quienes te escuchaban. Esto no es un error, sino una oportunidad para ajustar cómo encuadras tus narrativas.
+Lo que puedes trabajar es en simplificar y clarificar tus historias para que sean más accesibles y directamente relacionadas con tu mensaje. Pregúntate: ¿Qué puntos clave quiero que mi audiencia recuerde? ¿Cómo puedo alinear mis historias para que refuercen estos puntos? Al construir tus narrativas con un propósito claro, lograrás que tu mensaje sea tan poderoso como conmovedor.
+Tienes una habilidad única para crear significado a través de tus palabras. Si logras combinar eso con una estructura narrativa clara y enfocada, tus presentaciones tendrán un impacto duradero en quienes te escuchan. Este es un ajuste pequeño que puede marcar una gran diferencia en la forma en que tus historias resuenan con tu público.
+`,
+
+    "Alta Resolución": `Tu presentación fue un excelente ejemplo de cómo conectar profundamente con una audiencia a través de historias significativas. Lograste captar la atención, despertar emociones y, al mismo tiempo, transmitir un mensaje claro y bien estructurado. Este es el equilibrio ideal para cualquier narrador: lograr que las historias no solo sean entretenidas, sino que también aporten claridad y refuercen el propósito de la presentación.
+Lo que hiciste especialmente bien fue usar tus historias para crear un puente entre tu mensaje y las experiencias de la audiencia. Cada relato tenía un propósito claro y servía para ilustrar puntos clave de manera memorable. Esto no solo mantuvo a tu público interesado, sino que también hizo que las ideas principales fueran fáciles de comprender y recordar.
+Este tipo de comunicación es lo que convierte una presentación en una experiencia poderosa. Al conectar emoción con estructura, no solo informaste, sino que inspiraste y creaste un impacto duradero en quienes te escucharon.
+Sigue aprovechando esta capacidad de narrar con propósito. Tu habilidad para construir historias que conecten emocionalmente y refuercen el mensaje es una fortaleza única. Este nivel de comunicación no solo es efectivo, sino que también te posiciona como alguien que entiende el poder de las palabras y sabe cómo utilizarlas para generar transformación.
+`,
+  },
+
+  Futurista: {
+    "Silencio Radial": `Tu presentación mostró una inclinación natural hacia la visión y la creatividad, cualidades que te permiten pensar más allá del presente y plantear ideas emocionantes sobre lo que podría ser. Sin embargo, en esta ocasión, esas ideas se quedaron atrapadas en un espacio de desconexión con la audiencia. Fue como si tus visiones del futuro no lograran construir un puente sólido para que las personas pudieran seguirte.
+Esto suele pasar cuando asumimos que la emoción o el entusiasmo por nuestras ideas son suficientes para transmitirlas. Si no estructuramos nuestras visiones de una manera clara y accesible, las personas pueden sentirse perdidas o desconectadas, incluso si las ideas son valiosas y están bien pensadas.
+Lo que puedes trabajar es en cómo aterrizar tus ideas futuristas en el presente, creando un camino claro para que tu audiencia entienda no solo hacia dónde los estás llevando, sino también por qué es importante. Pregúntate: ¿Cómo puedo hacer que mis conceptos sean más tangibles y relevantes para el ahora? ¿Estoy conectando mi visión del futuro con los desafíos y oportunidades actuales de mi audiencia?
+Tu capacidad para imaginar y proponer nuevas posibilidades es una fortaleza increíble. Si logras combinar esa visión con una conexión más clara y directa con tu audiencia, tus presentaciones no solo serán inspiradoras, sino también profundamente transformadoras. Este ajuste te permitirá aprovechar al máximo tu talento visionario y construir puentes más sólidos hacia quienes te escuchan.
+`,
+
+    Interferencia: `Tu presentación destacó por tu capacidad de imaginar y proponer ideas visionarias, algo que siempre aporta frescura y entusiasmo. Sin embargo, en esta ocasión, el fuerte componente emocional de tu mensaje pudo haber generado un ruido que desvió la atención de tu audiencia, dificultando que comprendieran plenamente las ideas clave que querías transmitir.
+Es común que, al intentar inspirar o emocionar, podamos cruzar el límite hacia una intensidad que abruma más que conecta. Las emociones son valiosas, pero cuando dominan la narrativa, el mensaje puede perder claridad y estructura, y eso parece haber sucedido aquí. Aunque el entusiasmo por tus visiones del futuro es contagioso, la falta de un enfoque más balanceado dificultó que tu audiencia se enganchara de forma efectiva.
+Lo que puedes trabajar es encontrar un equilibrio entre la emoción que transmites y la claridad con la que estructuras tus ideas. Pregúntate: ¿Estoy canalizando mis emociones para reforzar mi mensaje, o están distrayendo de lo importante? ¿Cómo puedo estructurar mis ideas para que sean claras sin sacrificar su impacto emocional?
+Tu capacidad para visualizar un futuro prometedor y transmitir esa pasión es un talento único. Si logras combinar esa energía con una estructura narrativa más clara y enfocada, tus presentaciones no solo inspirarán, sino que también dejarán una huella duradera en tu audiencia. Ajustar ese balance emocional será clave para maximizar tu impacto como futurista.
+`,
+
+    "Comunicación No Decodificada": `Tu presentación reflejó tu extraordinaria capacidad para mirar hacia adelante y visualizar lo que el futuro podría ser. Tus ideas tienen el potencial de inspirar y transformar, pero en esta ocasión, el mensaje no logró conectar del todo con la audiencia. Aunque tu visión era valiosa, la forma en que la compartiste pudo haber sido demasiado abstracta o compleja, dificultando que quienes te escuchaban pudieran seguir el hilo de tus ideas.
+Esto es algo que sucede cuando nuestras ideas futuristas, aunque brillantes, no se traducen en un lenguaje que la audiencia pueda procesar fácilmente. La falta de ejemplos concretos o de un vínculo claro con el presente puede hacer que el mensaje quede en el aire, sin aterrizar completamente en las personas que nos escuchan.
+Lo que puedes trabajar es en cómo traducir tus ideas visionarias a un lenguaje más accesible, sin perder su profundidad. Pregúntate: ¿Cómo puedo vincular mis visiones del futuro con situaciones actuales que sean relevantes para mi audiencia? ¿Estoy utilizando ejemplos claros o historias que hagan más tangible lo que estoy proponiendo?
+Tu habilidad para pensar más allá del presente es una fortaleza que no muchas personas poseen. Con un enfoque más claro y estructurado en tu comunicación, podrás transmitir tus ideas de manera que inspiren y sean comprensibles al mismo tiempo. Esto no solo hará que tu mensaje llegue más lejos, sino que permitirá que tu audiencia realmente se conecte con tu visión del futuro y se sienta parte de ella.
+`,
+
+    "Alta Resolución": `Tu presentación fue un ejemplo sobresaliente de cómo transmitir una visión del futuro de manera clara, emocionante y profundamente inspiradora. Lograste combinar tus ideas innovadoras con una estructura sólida y un enfoque emocional equilibrado, haciendo que tu audiencia no solo entendiera tu mensaje, sino que se sintiera motivada a imaginar un mañana mejor junto contigo.
+Lo que hizo especial tu presentación fue tu capacidad para conectar el futuro con el presente, mostrando de manera concreta cómo tus ideas pueden tener un impacto tangible en la vida de las personas. Utilizaste ejemplos claros y relevantes, acompañados de una narrativa cautivadora que hizo que cada punto resonara en quienes te escuchaban. Este tipo de comunicación no solo inspira, sino que también genera confianza y credibilidad en tu mensaje.
+La claridad y la conexión emocional que lograste establecieron un estándar alto para lo que significa una presentación visionaria. Supiste articular tus ideas de forma que fueran comprensibles y accesibles, sin sacrificar la profundidad ni la complejidad de tu pensamiento futurista. Este equilibrio es el corazón de una comunicación de alta resolución.
+Continúa construyendo sobre esta habilidad. Tu capacidad para proyectar un futuro mejor y conectar emocionalmente con tu audiencia es una combinación poderosa que puede generar un impacto duradero. Mantén ese enfoque y sigue afinando la manera en que traduces tus ideas para que cada vez más personas se sientan parte de la visión que propones. Estás en el camino de convertirte en un referente para los demás.
+`,
+  },
+
+  Predicador: {
+    "Silencio Radial": `Tu presentación refleja una convicción profunda y un compromiso genuino con los valores que defiendes, algo que pocos logran transmitir con tanta autenticidad. Sin embargo, en esta ocasión, el mensaje no logró encontrar una conexión significativa con tu audiencia. Las ideas quedaron dispersas y, aunque la intención era clara, la falta de estructura y claridad hizo que tu mensaje se perdiera en el ruido.
+Esto suele pasar cuando las palabras, aunque bien intencionadas, no están organizadas de forma que el público pueda seguirlas con facilidad. Como predicador, tu fortaleza está en inspirar con tus principios y en reforzar un sentido de pertenencia y propósito, pero es importante recordar que estos mensajes necesitan una base narrativa sólida para resonar.
+Lo que puedes trabajar es en estructurar mejor tu mensaje, asegurándote de que cada idea esté conectada y respaldada por ejemplos claros. Pregúntate: ¿Estoy llevando a mi audiencia por un camino lógico? ¿Estoy utilizando palabras y conceptos que ellos puedan relacionar fácilmente con sus propias experiencias?
+Tu pasión por transmitir valores y fortalecer el sentido de comunidad es una cualidad excepcional. Si logras combinar esa pasión con un enfoque más claro y organizado, tu presentación tendrá un impacto mucho mayor. Con pequeños ajustes en cómo comunicas tus ideas, puedes convertir tu convicción en una fuerza que inspire y movilice a quienes te escuchan.
+`,
+
+    Interferencia: `Tu presentación mostró una intensidad y una pasión que son características propias de un predicador comprometido con sus valores y principios. Este entusiasmo tiene un gran potencial para inspirar y movilizar a tu audiencia, pero en esta ocasión, la emoción pareció sobrepasar la claridad del mensaje, generando un exceso de intensidad que pudo desconectar a quienes te escuchaban.
+Cuando la emoción domina sin un balance adecuado con la estructura del contenido, puede suceder que el mensaje principal se pierda o se interprete de maneras diferentes a lo que pretendías. Aunque tu convicción es palpable, algunos elementos emocionales pudieron haberse percibido como exagerados, lo que opacó la profundidad de tus ideas.
+Lo que puedes trabajar es en canalizar tu pasión de manera más equilibrada, dejando que la emoción refuerce tus palabras sin eclipsarlas. Pregúntate: ¿Estoy usando mi intensidad para amplificar mi mensaje, o está distrayendo de lo que quiero transmitir? ¿Cómo puedo conectar mejor mi emoción con el contenido para que ambos trabajen juntos?
+Tu habilidad para generar empatía y fortalecer valores es poderosa, y con un enfoque más estructurado, puedes lograr que tu mensaje no solo emocione, sino que también quede claro y memorable. Encontrar ese balance entre emoción y claridad te permitirá maximizar el impacto de tus presentaciones y construir una conexión más sólida con tu audiencia.
+`,
+
+    "Comunicación No Decodificada": `Tu presentación mostró tu gran compromiso por transmitir valores y principios esenciales, un rasgo que caracteriza a los predicadores más influyentes. Sin embargo, en esta ocasión, tu mensaje, aunque bien intencionado, no logró conectarse del todo con la audiencia debido a que algunos conceptos o expresiones no fueron lo suficientemente claros o accesibles.
+Es común que, al tratar de transmitir ideas profundas o arraigadas, asumamos que la audiencia comparte nuestro marco de referencia. Pero si no damos los pasos necesarios para aclarar o contextualizar nuestras palabras, el mensaje puede parecer abstracto o difícil de interpretar. Esto puede hacer que incluso las ideas más poderosas no lleguen a resonar como deberían.
+Lo que puedes trabajar es en simplificar tu mensaje sin perder su esencia. Pregúntate: ¿Estoy explicando los conceptos de una manera que sea fácil de seguir para cualquier persona? ¿Estoy usando ejemplos concretos o historias que conecten mi mensaje con las experiencias de la audiencia?
+Tu capacidad para transmitir valores y generar sentido de pertenencia es una fortaleza que pocos poseen. Si logras traducir tus principios en un lenguaje más claro y cercano, tus presentaciones tendrán el poder de inspirar y motivar a quienes te escuchan. Con pequeños ajustes, puedes asegurarte de que tu mensaje sea tan contundente como lo son tus convicciones.
+`,
+
+    "Alta Resolución": `Tu presentación fue un ejemplo brillante de cómo transmitir valores y principios de manera clara, emocionalmente resonante y profundamente impactante. Lograste conectar con tu audiencia al combinar una narrativa sólida, basada en convicciones fuertes, con una estructura clara y accesible que permitió que cada palabra dejara una huella.
+Lo que hizo especial tu presentación fue la capacidad de equilibrar la intensidad de tus emociones con un mensaje bien articulado y lleno de propósito. Supiste captar la atención de tu audiencia y mantenerla, mostrando no solo pasión, sino también claridad en tus ideas. Esta combinación permitió que quienes te escucharon no solo entendieran tu mensaje, sino que se sintieran parte de él.
+Como predicador, tu fortaleza está en inspirar y reforzar un sentido de pertenencia y propósito, y en esta ocasión lo lograste con excelencia. Tu habilidad para conectar emocionalmente, sin dejar de lado la profundidad y la claridad de tu mensaje, posiciona tus presentaciones como herramientas poderosas para generar cambios y fortalecer valores.
+Mantén este enfoque y sigue afinando cómo integras tu pasión con la claridad de tus ideas. Has demostrado que es posible inspirar, conectar y dejar un impacto duradero cuando la emoción y la estructura trabajan juntas. Este es el estándar que marca la diferencia, y tú lo estás alcanzando con maestría.
+`,
+  },
+
+  Visionario: {
+    "Silencio Radial": `Tu presentación mostró destellos de tu capacidad para visualizar soluciones innovadoras y conectar ideas ambiciosas con acciones prácticas, algo que es característico de los visionarios. Sin embargo, en esta ocasión, tu mensaje no logró encontrar un canal efectivo para conectar con tu audiencia. Las ideas parecieron quedar atrapadas en un flujo confuso o poco articulado, lo que dificultó que la audiencia entendiera y se sintiera inspirada por tu visión.
+Es importante reconocer que tener una gran visión no siempre garantiza que esta sea entendida por los demás. Cuando la estructura del mensaje no está clara o el lenguaje no es accesible, las ideas pueden perderse en el proceso, creando una barrera entre tú y quienes te escuchan. Esto es lo que define una presentación en silencio radial: un mensaje con potencial, pero que no llega.
+Lo que puedes trabajar es en traducir tus ideas ambiciosas a un lenguaje que sea claro y tangible para cualquier tipo de audiencia. Pregúntate: ¿Estoy explicando mi visión de una manera que todos puedan relacionar con su realidad? ¿Estoy usando ejemplos específicos o pasos concretos que hagan que mi mensaje sea más accesible?
+Tu capacidad para ver más allá de lo evidente y encontrar soluciones innovadoras es un talento valioso. Si logras combinar esa visión con una comunicación más estructurada y clara, podrás inspirar y movilizar a quienes te escuchan para que se unan a tus ideas. Con pequeños ajustes, tus presentaciones pueden convertirse en una herramienta poderosa para materializar tu visión y dejar un impacto significativo.
+`,
+
+    Interferencia: `Tu presentación dejó entrever tu increíble habilidad para generar ideas transformadoras y articular soluciones innovadoras que podrían cambiar paradigmas. Sin embargo, en esta ocasión, la pasión por transmitir tu visión pareció sobrepasar la estructura y la claridad del mensaje, haciendo que la intensidad emocional de la presentación opacara parte del contenido. Este desequilibrio creó una sensación de conexión emocional, pero con ruido que dificultó que la audiencia captara la profundidad de tus ideas.
+Cuando las emociones dominan el mensaje sin un equilibrio adecuado, es fácil que la audiencia sienta el impacto del entusiasmo, pero pierda de vista el mensaje central. En el caso de un visionario, esta interferencia puede desviar la atención de lo que realmente importa: cómo convertir una visión en un plan concreto y motivador.
+Lo que puedes trabajar es en canalizar tu energía y entusiasmo de una manera que complemente, en lugar de competir, con la claridad del mensaje. Pregúntate: ¿Estoy articulando mi visión de forma que sea fácil de entender? ¿Estoy permitiendo que la emoción amplifique mi mensaje, o lo está distrayendo?
+Tu capacidad para ver soluciones donde otros solo ven problemas es un don extraordinario. Con un enfoque más balanceado que combine tu pasión con una narrativa estructurada, lograrás que tu mensaje inspire y motive a tu audiencia de manera más contundente. El entusiasmo es una herramienta poderosa, pero cuando se usa con claridad, tiene el potencial de transformar ideas en acción.
+`,
+
+    "Comunicación No Decodificada": `Tu presentación reflejó una capacidad notable para imaginar un futuro lleno de posibilidades y soluciones innovadoras, un rasgo característico de los visionarios. Sin embargo, en esta ocasión, el mensaje no logró ser completamente claro para tu audiencia. Aunque las ideas eran potentes, la manera en que fueron articuladas hizo que algunos puntos se percibieran complejos o abstractos, dificultando que tu visión fuera completamente entendida y adoptada.
+Cuando las ideas no están suficientemente contextualizadas o traducidas a un lenguaje accesible, es común que la audiencia sienta que el mensaje está fuera de su alcance. En el caso de un visionario, este desafío radica en encontrar el equilibrio entre compartir una gran visión y aterrizarla en conceptos concretos que otros puedan seguir con facilidad.
+Lo que puedes trabajar es en simplificar tu mensaje sin sacrificar la profundidad de tus ideas. Pregúntate: ¿Estoy explicando mi visión con ejemplos tangibles que conecten con la experiencia de la audiencia? ¿Estoy adaptando mi lenguaje para que sea comprensible para quienes no comparten mi nivel de conocimiento o perspectiva?
+Tu habilidad para ver más allá del presente es una fortaleza excepcional. Si logras traducir tus ideas complejas en mensajes claros y directos, tu capacidad para inspirar y liderar el cambio será inigualable. Con un poco más de enfoque en la claridad, puedes convertir cada presentación en una herramienta para movilizar y motivar a otros hacia un futuro mejor.
+`,
+
+    "Alta Resolución": `Tu presentación fue un claro ejemplo de cómo una visión innovadora y bien articulada puede inspirar a una audiencia y motivarla a actuar. Lograste combinar ideas ambiciosas con una estructura sólida y un lenguaje accesible, lo que permitió que tu mensaje resonara profundamente con quienes te escucharon. Este balance entre inspiración y claridad es lo que caracteriza una presentación de alta resolución.
+Lo que destacó fue tu habilidad para traducir conceptos complejos y futuristas en términos prácticos y comprensibles, haciendo que cada idea se sintiera tangible y relevante. Además, lograste mantener el interés y la conexión emocional de tu audiencia al mostrar cómo tu visión podría impactar directamente en sus vidas o proyectos. Este enfoque no solo hizo que te escucharan, sino que también los involucró activamente en tus propuestas.
+Como visionario, tu capacidad para equilibrar imaginación con practicidad te posiciona como un líder con un impacto duradero. Continúa perfeccionando esta habilidad para conectar con diferentes audiencias, adaptando tu mensaje a sus necesidades y perspectivas. Has demostrado que no solo puedes visualizar un futuro mejor, sino también comunicarlo de manera que otros quieran ser parte de él. Este es el estándar de excelencia que marca la diferencia en el liderazgo transformador, y tú estás liderando con esa fuerza.
+`,
+  },
+
+  Mentor: {
+    "Silencio Radial": `Tu presentación mostró destellos de tu capacidad como mentor para transmitir conocimientos y conectar ideas con un propósito más grande. Sin embargo, en esta ocasión, tu mensaje no logró alcanzar a la audiencia de la manera que esperabas. Aunque tu intención era clara, las palabras parecieron quedarse atrapadas en un espacio donde no se generó la conexión necesaria para inspirar o enseñar de forma efectiva.
+El desafío en este tipo de presentación radica en que, como mentor, posees tanto el conocimiento como la capacidad de narrar historias significativas. Pero cuando no logras alinear estas fortalezas con una estructura clara y un tono accesible, es fácil que la audiencia se sienta desconectada o que el mensaje no tenga el impacto esperado.
+Lo que puedes trabajar es en establecer un puente más sólido entre tus ideas y tu audiencia. Pregúntate: ¿Estoy adaptando mi mensaje a las necesidades de quienes me escuchan? ¿Estoy utilizando ejemplos o historias que puedan resonar emocionalmente con ellos?
+Tu habilidad para enseñar y guiar es invaluable, y tienes el potencial para construir presentaciones que no solo informen, sino que transformen. Si logras superar las barreras de comunicación y enfocarte en generar una conexión más clara y directa, tus palabras tendrán el impacto profundo que tus ideas merecen. Recuerda: la esencia de un mentor no solo está en lo que enseña, sino en cómo lo comunica para inspirar y cambiar vidas.
+`,
+
+    Interferencia: `Tu presentación reflejó tu habilidad para compartir conocimientos profundos y tu deseo de guiar a otros, dos cualidades esenciales en un mentor. Sin embargo, en esta ocasión, la emoción con la que transmitiste tu mensaje, aunque poderosa, no estuvo completamente equilibrada con la claridad del contenido. Esto creó un efecto de interferencia, donde las emociones opacaron en ciertos momentos las ideas clave, haciendo que el mensaje llegara de forma confusa o parcial.
+Como mentor, es natural querer transmitir con pasión e intensidad lo que sabes, pero es importante recordar que la claridad y la conexión emocional deben ir de la mano. Cuando la emoción sobrepasa la estructura, la audiencia puede sentirse atrapada en un torbellino de intensidad que, aunque impactante, dificulta comprender el mensaje central.
+Lo que puedes trabajar es en canalizar tu entusiasmo para que complemente y no compita con tu claridad. Pregúntate: ¿Estoy guiando a mi audiencia paso a paso para que comprendan mi mensaje? ¿Estoy organizando mis ideas de manera que sigan un flujo lógico y accesible?
+Tu habilidad para inspirar y enseñar tiene un impacto único, y con un enfoque más equilibrado, puedes convertir cada presentación en una experiencia transformadora para tu audiencia. Recuerda: la verdadera conexión ocurre cuando emoción y estructura trabajan juntas para transmitir un mensaje que no solo informa, sino que también resuena y motiva. Con este ajuste, estarás liderando con el impacto y la excelencia que definen a un gran mentor.
+`,
+
+    "Comunicación No Decodificada": `Tu presentación mostró tu compromiso genuino con enseñar y guiar, un rasgo distintivo de los grandes mentores. Sin embargo, en esta ocasión, el mensaje que querías transmitir no logró ser completamente comprendido por tu audiencia. Aunque tus ideas eran profundas y valiosas, el lenguaje o la estructura utilizada hicieron que algunos puntos fueran difíciles de seguir o conectar con ellos.
+Como mentor, tienes la capacidad de unir conocimiento y narrativas poderosas para transformar la manera en que otros aprenden. Pero cuando el mensaje no se traduce de forma accesible, la audiencia puede sentirse desconectada, incluso cuando perciben la intención detrás de tus palabras. Esto es lo que caracteriza una comunicación no decodificada: un mensaje con un gran potencial, pero que no encuentra el camino adecuado para llegar a todos.
+Lo que puedes trabajar es en simplificar y estructurar tu presentación para que las ideas se sientan más claras y aplicables. Pregúntate: ¿Estoy adaptando mi lenguaje al nivel de mi audiencia? ¿Estoy utilizando ejemplos o historias que les ayuden a relacionarse y entender mejor los conceptos que comparto?
+Tu capacidad para impactar y guiar a otros es un talento invaluable. Si logras alinear tu conocimiento con una comunicación más clara y directa, puedes crear presentaciones que no solo informen, sino que también conecten profundamente y transformen a tu audiencia. Con algunos ajustes, tu mensaje puede alcanzar su máximo potencial y reforzar tu papel como un mentor extraordinario.
+`,
+
+    "Alta Resolución": `Tu presentación fue un ejemplo claro de lo que significa ser un mentor excepcional. Lograste combinar tu profundo conocimiento con una narrativa que conectó emocionalmente con tu audiencia, haciendo que tu mensaje no solo se entendiera, sino que se sintiera relevante e inspirador. Este balance entre claridad y conexión es lo que define una presentación de alta resolución.
+Lo que destacó fue tu capacidad para traducir ideas complejas en conceptos claros y aplicables, usando ejemplos o historias que resonaron con las experiencias de tu audiencia. Además, tu habilidad para adaptar el tono y el ritmo de tu presentación mostró una comprensión profunda de las necesidades de quienes te escucharon, lo que generó un ambiente de confianza y aprendizaje.
+Como mentor, este nivel de comunicación no solo informa, sino que también transforma. Has demostrado que tienes la capacidad de impactar a otros, no solo por lo que sabes, sino por cómo lo compartes. Sigue desarrollando esta habilidad de integrar conocimiento y conexión, ya que es lo que te permitirá dejar una huella significativa en quienes tienen la fortuna de aprender de ti.
+Tu capacidad para enseñar y guiar a través de una comunicación clara y emocionalmente conectada te posiciona como un verdadero líder. Este tipo de presentaciones son el estándar que inspira confianza, impulsa el aprendizaje y transforma a las personas. ¡Sigue así! Estás marcando la diferencia con cada palabra que compartes.
+`,
+  },
+
+  Profeta: {
+    "Silencio Radial": `Tu presentación dejó entrever destellos de tu capacidad para conectar el pasado con el futuro y ofrecer una perspectiva profunda sobre lo que realmente importa. Sin embargo, en esta ocasión, el mensaje quedó atrapado en el "silencio radial", donde las ideas no lograron resonar o conectar con tu audiencia de la manera que esperabas. Aunque tu visión estaba presente, la falta de claridad o de conexión emocional impidió que tu audiencia comprendiera y sintiera el impacto de tus palabras.
+Como profeta, tienes un don único: una perspectiva que combina sabiduría histórica con una mirada hacia el futuro. Este equilibrio te permite identificar lo que es verdaderamente relevante y trascendental. Pero cuando tu comunicación no logra alcanzar a la audiencia, esa riqueza de ideas queda en un espacio donde el mensaje no logra brillar.
+Lo que puedes trabajar es en encontrar un puente más efectivo entre tus ideas y quienes te escuchan. Pregúntate: ¿Estoy estructurando mi presentación de manera que sea accesible para todos? ¿Estoy utilizando historias o ejemplos que hagan que mis ideas cobren vida y se sientan tangibles para mi audiencia?
+Tu capacidad para ver el panorama completo y transmitir una visión transformadora es invaluable. Con un enfoque más claro y directo, puedes asegurarte de que tus presentaciones no solo informen, sino que también inspiren y movilicen. Recuerda: lo que dices tiene un valor inmenso, y tu audiencia necesita escucharlo de una manera que lo entienda, lo sienta y lo haga suyo. Con algunos ajustes, puedes convertir tu sabiduría en un faro que guíe a los demás hacia el futuro que visualizas.
+`,
+
+    Interferencia: `Tu presentación mostró la profundidad de tu capacidad para integrar el pasado con el futuro, un rasgo distintivo de quienes poseen una perspectiva única y visionaria. Sin embargo, en esta ocasión, la emoción y la pasión que acompañaron tu mensaje no siempre estuvieron equilibradas con la claridad necesaria para que tu audiencia pudiera seguirte plenamente. Esto creó momentos de "interferencia", donde las ideas, aunque poderosas, se vieron opacadas por la intensidad emocional o el exceso de elementos que desviaron la atención.
+Como profeta, tienes una habilidad excepcional para identificar lo que es esencial y trascendental, y transmitirlo con impacto. Pero cuando la emoción sobrepasa la estructura, existe el riesgo de que tu audiencia se pierda en el mensaje, en lugar de sentirse inspirada por él.
+Lo que puedes trabajar es canalizar tu entusiasmo y pasión para que complementen, en lugar de competir, con la claridad de tus ideas. Pregúntate: ¿Estoy guiando a mi audiencia de manera que comprendan el contexto y el propósito de mis palabras? ¿Estoy ajustando mi tono y ritmo para mantener el equilibrio entre emoción y claridad?
+Tu capacidad para inspirar y movilizar a través de tu visión es una herramienta poderosa. Con un enfoque más estructurado, puedes asegurarte de que cada presentación no solo emocione, sino que también transforme a quienes te escuchan. Recuerda: la clave no está en apagar la pasión, sino en dirigirla para que refuerce tu mensaje y lo haga inolvidable. Con este ajuste, tu voz como profeta resonará más fuerte y clara, cumpliendo su propósito de iluminar el camino hacia el futuro.
+`,
+
+    "Comunicación No Decodificada": `Tu presentación reflejó tu capacidad única para explorar el pasado y proyectar el futuro, una habilidad que distingue a los verdaderos líderes visionarios. Sin embargo, en esta ocasión, tu mensaje no logró ser completamente comprendido por la audiencia. Aunque tus ideas eran profundas y con gran significado, el lenguaje, la estructura o la manera de transmitirlas hicieron que algunos puntos se sintieran inaccesibles o difíciles de conectar.
+Como profeta, posees una perspectiva invaluable que combina sabiduría y visión. Pero cuando el mensaje no es codificado de forma clara para la audiencia, el impacto de tus palabras puede perderse, dejando tus ideas en el aire en lugar de anclarse en las mentes de quienes te escuchan.
+Lo que puedes trabajar es en traducir tus ideas complejas a un lenguaje más simple y en utilizar ejemplos concretos que ayuden a tu audiencia a visualizar y entender tu mensaje. Pregúntate: ¿Estoy comunicando mis ideas de forma que resuenen con las experiencias de mi audiencia? ¿Estoy utilizando narrativas que faciliten la conexión emocional y el entendimiento?
+Tu capacidad para iluminar el camino hacia el futuro es un don, pero ese don solo se realiza plenamente cuando las ideas llegan claras y transformadoras a quienes te escuchan. Con un enfoque más claro y una mayor empatía hacia las necesidades de tu audiencia, puedes convertir cada presentación en una experiencia reveladora y significativa, fiel a tu esencia como profeta.
+`,
+
+    "Alta Resolución": `Tu presentación fue un claro ejemplo de lo que significa comunicar con profundidad y visión. Lograste integrar con éxito la sabiduría del pasado con una perspectiva inspiradora del futuro, haciendo que tu mensaje resonara de manera clara y emocionalmente poderosa con tu audiencia. Este equilibrio entre conexión y contenido es lo que define una comunicación de alta resolución.
+Como profeta, destacaste al transmitir un mensaje que no solo informaba, sino que también inspiraba, iluminando un camino claro hacia posibilidades nuevas y significativas. Tus ideas estuvieron estructuradas de manera que guiaron a la audiencia con fluidez, mientras que la emoción en tu presentación generó un vínculo auténtico que fortaleció aún más el impacto de tus palabras.
+Esta combinación de claridad, estructura y conexión emocional no solo subrayó tu habilidad para captar la atención de tu audiencia, sino también para movilizarla hacia un entendimiento más profundo y hacia la acción. Has demostrado una capacidad excepcional para utilizar tu conocimiento y visión para transformar la manera en que otros perciben el presente y el futuro.
+Continúa aprovechando esta habilidad para equilibrar emoción y contenido, ya que es lo que eleva tus presentaciones a otro nivel. Tu mensaje tiene el poder de inspirar, movilizar y dejar una huella duradera. Como profeta, estás cumpliendo tu propósito al ser esa voz que guía con claridad, propósito y una visión que trasciende. ¡Felicidades por esta presentación que dejó una marca en quienes te escucharon!
+`,
+  },
+};
+
+/* ===========================
+   SECCIÓN DE RECOMENDACIONES
+============================ */
+const recommendations = {
+  Carismático: {
+    "Silencio Radial": `
+ Desarrolla señal y conexión.
+ Entiendo perfectamente lo complicado que puede ser encontrar ese balance entre transmitir tus ideas y hacerlas resonar con los demás. Lo primero que quiero que recuerdes es que ya tienes mucho valor que aportar. Ahora el reto es encontrar una forma de estructurar tus ideas para que sean claras y accesibles. Piensa en señal como las ideas esenciales que tu audiencia necesita llevarse, y en conexión como ese lazo emocional que les hace sentir que lo que dices es relevante para ellos. Para avanzar, intenta usar menos información pero más ejemplos específicos, o incluso una historia breve, para que lo que digas deje una marca clara y personal en ellos.
+
+ Ponte más en los zapatos del auditorio.
+ A veces, estamos tan inmersos en lo que queremos transmitir, que olvidamos preguntarnos: ¿Qué le importa a mi audiencia? Esto no significa que lo hayas hecho mal, al contrario, significa que tienes la oportunidad de hacer que tu presentación hable directamente de las preocupaciones y los problemas de quienes te escuchan. Dedica un momento para pensar: ¿Qué solución les estoy dando? ¿Cómo puedo mostrarles que estoy aquí para ayudar? Hablarles desde ese lugar no solo capta su atención, sino que les demuestra que entiendes lo que necesitan.
+
+ Conecta con ejemplos reales y sencillos.
+ A todos nos gusta sentir que lo que escuchamos tiene sentido y que está hecho para nosotros. Si puedes compartir un ejemplo, una historia personal o algo que se relacione directamente con lo que tu audiencia vive, tu mensaje va a cobrar vida. No te preocupes si no es perfecto, lo importante es que sea auténtico y que ayude a los demás a ver cómo lo que propones puede marcar una diferencia. Recuerda: conectar no significa ser impecable, significa ser humano.
+Estoy segura de que con estos pequeños ajustes, tus próximas presentaciones van a brillar mucho más. Ya tienes la base, ahora solo se trata de encontrar esas pequeñas formas de encender la chispa. ¡Lo estás haciendo muy bien!
+`,
+    Interferencia: `
+ Aprovecha tu conexión y fortalece la señal.
+ Es evidente que tienes una habilidad natural para conectar emocionalmente con tu audiencia, y eso es un gran activo. Ahora, trabajemos en organizar y clarificar tu mensaje (señal) para que no se pierda en la emoción. Piensa en tu presentación como una conversación con propósito: ¿qué idea quieres que recuerden al final? Define tu mensaje clave y asegúrate de que cada parte de tu presentación lo refuerce de manera clara y estructurada.
+
+ Habla de los problemas del auditorio.
+ Para captar más atención, enfoca tu contenido en los desafíos y preocupaciones reales de quienes te escuchan. Más allá de compartir lo que tú sabes, ponte en sus zapatos y muestra cómo tus ideas responden directamente a lo que ellos están viviendo. Empieza tu presentación con preguntas o ejemplos que resalten esos problemas; eso hará que las personas se sientan vistas y valoradas desde el primer momento.
+
+ Equilibra emoción con claridad.
+ Es fantástico que busques conectar emocionalmente, pero recuerda que demasiada emoción puede distraer del mensaje principal. Intenta balancear tus expresiones emocionales con momentos de pausa y reflexión, en los que las ideas puedan asentarse. Esto no significa que dejes de ser apasionado, sino que des espacio para que tu audiencia asimile el valor de lo que estás compartiendo.
+Tu conexión con el público ya es un gran punto a tu favor. Con un enfoque un poco más claro en el mensaje y una mayor atención a los problemas de tu audiencia, puedes llevar tus presentaciones a un nivel mucho más impactante. Estoy segura de que lo lograrás. ¡Confío en ti!
+`,
+    "Comunicación No Decodificada": ` Elogia tu esfuerzo por ofrecer contenido valioso y enfócate en conectar.
+ Es evidente que tienes mucho conocimiento y una gran disposición para compartirlo. Ahora el reto es que tu audiencia no solo escuche, sino que también se sienta vista y comprendida. Una buena conexión empieza por demostrar que entiendes los problemas y necesidades de quienes te escuchan. Habla menos del tema y más de cómo ese tema les afecta directamente.
+
+ Ponte en los zapatos de tu audiencia.
+ Para captar su atención, hazles sentir que la presentación está hecha para ellos. Haz preguntas retóricas, usa ejemplos de su contexto y menciona problemas comunes que ellos podrían estar enfrentando. Esto hará que presten más atención porque sentirán que lo que estás diciendo es relevante para su vida.
+
+ Simplifica y personaliza tu introducción.
+ En lugar de entrar directamente al contenido técnico, empieza con algo que enganche: una pregunta, una anécdota o incluso una frase que conecte emocionalmente. Por ejemplo: “¿Alguna vez han sentido que están haciendo todo bien, pero aún no logran el impacto que desean? Hoy vamos a explorar cómo resolver eso juntos”. Esto hará que tu audiencia se interese desde el principio.
+Tu disposición para aportar conocimiento ya es un gran paso, pero recuerda que la atención es la puerta de entrada para que tu mensaje llegue. Con un enfoque más claro en conectar desde el inicio, lograrás que todos se mantengan atentos y comprometidos con lo que tienes para compartir. ¡Confío en que lo lograrás!
+`,
+    "Alta Resolución": `
+ Elogia el balance entre señal y conexión, pero trabaja en capturar los problemas del auditorio desde el inicio.
+ Tu presentación tiene un excelente equilibrio entre claridad y contenido valioso, pero podrías empezar por hablar directamente de los desafíos o intereses específicos de tu audiencia. Esto crea un puente inmediato entre tu mensaje y sus necesidades. Puedes abrir con preguntas como: “¿Alguna vez te has enfrentado a [problema relevante]? Esto es lo que veremos hoy.”
+
+ Inicia con una frase poderosa o una anécdota que llame la atención.
+ Un buen comienzo marca la diferencia. Una frase como: “En los próximos minutos, voy a mostrarte algo que puede cambiar tu perspectiva sobre [tema]” o una anécdota breve que resuma el impacto de tu mensaje captará su interés desde el principio.
+
+ Involucra a tu audiencia con preguntas o reflexiones.
+ Haz que se sientan parte de la conversación desde el inicio. Preguntas como: “¿Cómo crees que [tema] afecta tu día a día?” o “¿Qué harías diferente si supieras [beneficio del contenido]?” los harán sentir que tu presentación está diseñada para ellos.
+Tienes una base sólida con tu comunicación de alta resolución. Con un pequeño ajuste hacia el enfoque en la atención inicial del público, tu presentación puede ser aún más impactante. Estoy segura de que tienes todo lo necesario para lograrlo. ¡Adelante!
+`,
+  },
+  Estratega: {
+    "Silencio Radial": ` Desarrolla señal y conexión.
+ Quiero reconocer tu esfuerzo por presentar tus ideas, porque eso ya es un gran paso. Ahora, enfoquémonos en cómo hacerlas más claras (señal) y más cercanas a tu audiencia (conexión). Imagina que estás guiando a alguien paso a paso hacia lo que quieres transmitir; esa claridad y empatía son clave. Una buena estrategia es simplificar tu mensaje, dejando solo lo esencial, y añadir elementos que toquen las emociones del público, como ejemplos prácticos o anécdotas relacionadas.
+
+ Convierte tus ideas en pasos accionables.
+ A veces, una presentación puede ser interesante, pero si las personas no saben cómo aplicar lo que les compartes, tu mensaje puede perder impacto. Para aumentar la aplicabilidad, incluye recomendaciones prácticas, guías sencillas o ejemplos concretos de cómo llevar tus ideas a la vida real. Pregúntate: “¿Cómo puede mi audiencia usar esto mañana mismo?”. Ayúdalos a visualizar cómo lo que compartes encaja en sus propias situaciones.
+
+ Habla desde la perspectiva del público.
+ Para que tu presentación sea más útil, conecta tus ideas con problemas reales que ellos estén enfrentando. Por ejemplo, en lugar de solo describir un concepto o una idea, explica cómo esta puede resolver un desafío específico. Usa un lenguaje cercano y evita términos complicados, para que todos se sientan capaces de tomar acción de inmediato. Recuerda, no se trata solo de enseñar algo nuevo, sino de equipar a tu audiencia para que puedan llevarlo a la práctica.
+Tus ideas ya tienen valor, y con estas recomendaciones, podrás asegurarte de que ese valor no solo se entienda, sino que también se use. Estoy segura de que con pequeños ajustes, tu presentación podrá marcar una verdadera diferencia. ¡Confío en tu capacidad para lograrlo!
+`,
+    Interferencia: `
+ Elogia tu capacidad para conectar y aclara el contenido.
+ Tu habilidad para generar emociones y conectar con la audiencia es evidente y muy valiosa. Ahora, enfoquémonos en añadir una estructura práctica que les permita no solo emocionarse, sino también saber exactamente qué hacer con lo que les has compartido. Piensa en tu presentación como una herramienta: además de inspirar, debe ser útil y aplicable.
+
+ Convierte tus ideas en pasos concretos.
+ Aunque tus ideas puedan ser interesantes y valiosas, lo que muchas veces marca la diferencia es que las personas sepan cómo implementarlas. Desarrolla una lista de pasos claros o un plan de acción que tu audiencia pueda seguir. Incluso algo tan sencillo como “Primero haz esto, luego aquello” puede marcar una gran diferencia en la utilidad de tu presentación.
+
+ Habla del “cómo” además del “qué”.
+ Tu audiencia no solo quiere escuchar ideas brillantes, sino también entender cómo pueden ponerlas en práctica en su día a día. Por ejemplo, si les compartes una estrategia o concepto, asegúrate de explicar con ejemplos reales cómo podrían aplicarlo en sus contextos. Esto hará que tu mensaje sea más relevante y memorable.
+El hecho de que logres emocionar a tu público ya es un gran logro. Al añadir practicidad y aplicabilidad a tus presentaciones, estarás dando un paso más hacia convertir tus ideas en acciones reales. Tienes todo para hacerlo, y estoy segura de que lo lograrás con éxito. ¡Manos a la obra!
+`,
+    "Comunicación No Decodificada": ` Reconoce tu habilidad para ofrecer contenido valioso y hazlo accionable.
+ Tu presentación está llena de información interesante y útil, pero recuerda que lo que hace que una idea realmente destaque es que las personas sepan cómo aplicarla en su día a día. Esto significa traducir tus conceptos en pasos prácticos y claros que la audiencia pueda seguir.
+
+ Convierte tus ideas en un “cómo hacerlo”.
+ Piensa en qué acciones específicas puede tomar tu audiencia después de escucharte. Por ejemplo, si estás explicando una teoría o modelo, ofrece una guía sencilla: “Aquí hay tres pasos para empezar: primero, identifica X; segundo, ajusta Y; y tercero, implementa Z”. Esta estructura ayuda a tu audiencia a conectar tu mensaje con su realidad.
+
+ Utiliza ejemplos prácticos y ejercicios simples.
+ El contenido aplicable brilla cuando está acompañado de ejemplos concretos. Puedes decir: “Imagina que estás en esta situación… ¿cómo podrías usar esta idea?”. Si tienes tiempo, incluir un ejercicio breve o una pregunta reflexiva puede hacer que las personas interioricen lo que compartes de forma más directa.
+Tu presentación ya está llena de conocimiento, y dar el paso adicional de mostrar cómo implementarlo será lo que realmente la haga memorable y útil para tu audiencia. Estoy convencida de que tienes la capacidad para hacerlo, ¡y estoy emocionada de ver cómo tu mensaje se transforma en acción!
+`,
+    "Alta Resolución": ` Reconoce tu habilidad para comunicar de manera clara y conectada, pero enfócate en traducir tus ideas en pasos prácticos que tu audiencia pueda implementar.
+ Tu presentación es inspiradora y bien estructurada, pero para que realmente impacte, es crucial que los conceptos se traduzcan en acciones concretas. Piensa: “¿Qué puede hacer mi audiencia con esta información mañana mismo?”
+
+ Desarrolla una lista de pasos simples y claros para aplicar tus ideas.
+ Por ejemplo: “Si quieres implementar este enfoque, sigue estos tres pasos: 1. [Primer paso sencillo], 2. [Segundo paso], 3. [Tercer paso].” Estas instrucciones no solo facilitan la acción, sino que también generan un sentido de logro inmediato en quienes te escuchan.
+
+ Ofrece ejemplos o plantillas que tu audiencia pueda usar como guía.
+ Presentar herramientas prácticas, como un esquema, checklist o recursos descargables, asegura que tus ideas no solo sean valiosas, sino también utilizables. Por ejemplo: “Aquí hay una plantilla que puedes usar para implementar esta estrategia en tu equipo.”
+Tu presentación de alta resolución ya es un modelo a seguir en términos de claridad y conexión, pero al incluir elementos que lleven tus ideas al terreno de lo práctico, te asegurarás de que tu audiencia no solo se inspire, sino que también pase a la acción. Estoy segura de que puedes hacerlo de manera sencilla y efectiva. ¡Sigue adelante!
+`,
+  },
+  Científico: {
+    "Silencio Radial": `Desarrolla señal y conexión.
+ Primero, quiero felicitarte porque estás mostrando el valor de tus ideas al atreverte a presentarlas. Ahora, para fortalecer tu comunicación, necesitamos que tu mensaje sea más claro (señal) y que se sienta más conectado con tu audiencia (conexión). Esto significa estructurar tus ideas de manera que fluyan con facilidad y agregar elementos que despierten empatía, como ejemplos o historias que hablen directamente a los problemas e intereses de quienes te escuchan. Hazlo sencillo y personal, y verás cómo se amplifica tu impacto.
+
+ Fortalece tu credibilidad con evidencia sólida.
+ El gran desafío aquí es que, aunque tus ideas son valiosas, puede que tu audiencia necesite más pruebas para creer en ellas. Recuerda que algunas personas confían en lo que dices por quién eres, pero la mayoría necesita respaldo. Esto puede incluir datos de investigaciones, ejemplos de casos reales o incluso citas de expertos que respalden tus puntos clave. Incorpora elementos como estudios científicos, estadísticas claras o testimonios relevantes. Esto no solo fortalecerá tu argumento, sino que hará que quienes te escuchen sientan que están recibiendo información confiable y bien fundamentada.
+
+ Construye confianza con transparencia.
+ Si en algún momento no tienes toda la evidencia o datos necesarios, no tengas miedo de ser honesto. Reconocer lo que está en construcción o lo que aún no es definitivo también es una forma de mostrar seguridad y autenticidad. Esto te permitirá proyectar confianza y, al mismo tiempo, conectar más profundamente con tu público. Además, plantea claramente cómo tus ideas podrían ser puestas en práctica o cómo podrías seguir profundizando en ellas.
+Tus ideas tienen un gran potencial, y reforzar la credibilidad es un pequeño ajuste que hará una gran diferencia. Estoy convencida de que, con estos pasos, tu presentación no solo será escuchada, sino también valorada y recordada. ¡Tú puedes hacerlo!
+`,
+    Interferencia: ` Elogia tu conexión emocional y refuerza la señal.
+ Es evidente que tienes un gran don para conectar con tu audiencia, lo cual es una habilidad clave. Ahora, enfoquémonos en estructurar tu mensaje con más evidencia que respalde tus ideas. La señal (contenido claro y sustancial) ayuda a transformar esas emociones en confianza y credibilidad. Piensa en tu presentación como un puente entre lo que sientes y lo que demuestras.
+
+ Apoya tus ideas con evidencia concreta.
+ Aunque tus ideas pueden ser valiosas, para muchas personas es más fácil confiar cuando ven datos, referencias o ejemplos reales que respalden lo que estás diciendo. Incorpora estudios, estadísticas, citas de expertos o casos prácticos que refuercen tus puntos principales. Estos elementos no solo añaden peso a tus argumentos, sino que también muestran que te tomaste el tiempo de preparar una base sólida.
+
+ Encuentra un equilibrio entre emoción y lógica.
+ La emoción es poderosa para captar la atención, pero cuando se combina con datos y hechos concretos, genera un impacto duradero. Pregúntate: ¿cómo puedo demostrar lo que digo de forma tangible? Por ejemplo, si haces una afirmación importante, acompáñala con un dato o una historia real que la valide. De esta forma, tu audiencia no solo se conectará contigo, sino que también confiará en lo que compartes.
+Tu capacidad de conectar con el público es una fortaleza increíble. Si la complementas con una base sólida de credibilidad, tus presentaciones serán aún más impactantes y confiables. Sé que puedes hacerlo, y estoy aquí para apoyarte en cada paso del camino. ¡A seguir creciendo!
+`,
+    "Comunicación No Decodificada": ` Reconoce tu esfuerzo por compartir mucho contenido y refuérzalo con evidencia.
+ Es evidente que tienes un gran conocimiento y deseas transmitirlo a tu audiencia. Sin embargo, recuerda que para muchas personas, creer en lo que dices requiere más que tu palabra; necesitan referencias externas que respalden tus ideas. Esto puede ser datos, estudios científicos, citas de expertos o ejemplos prácticos que validen tu mensaje.
+
+ Incorpora evidencia de terceros para reforzar tu mensaje.
+ Piensa en tu presentación como un edificio: tus ideas son los muros, pero la evidencia es el cimiento que les da estabilidad. Si hablas de un concepto, cita un estudio que lo respalde o menciona un caso de éxito relacionado. Por ejemplo, podrías decir: “Según un estudio reciente de la Universidad X, este enfoque ha demostrado ser un 30% más efectivo”. Esto le dará peso a tus palabras y aumentará la confianza de tu audiencia.
+
+ Sé claro sobre tus fuentes y ejemplos.
+ Si usas datos o referencias, asegúrate de explicar de dónde vienen y por qué son relevantes. No necesitas saturar la presentación con cifras, pero al usar un par de datos sólidos, acompañados de su contexto, puedes construir un puente de confianza. Por ejemplo: “Un estudio publicado en el Journal of Y en 2023 muestra cómo esta técnica ha impactado en…”.
+Tu mensaje ya tiene mucho valor. Al incorporar elementos de credibilidad, no solo aumentarás la confianza de tu audiencia, sino que también les estarás dando herramientas para justificar tus ideas en otros espacios. Sé que puedes lograrlo, y estoy aquí para apoyarte en el camino. ¡A dar lo mejor!
+`,
+    "Alta Resolución": ` Reconoce tu habilidad para conectar y transmitir ideas claras, pero refuerza tu mensaje con evidencia que lo respalde.
+ Tu presentación tiene una estructura excelente, pero la credibilidad se fortalece cuando introduces datos concretos, referencias o ejemplos verificables que den soporte a tus puntos clave. Considera incluir estadísticas, investigaciones o estudios relevantes que validen tu mensaje.
+
+ Incorpora citas o fuentes confiables para respaldar tus afirmaciones.
+ Por ejemplo: “Según un estudio reciente de [organización o experto], esta estrategia ha demostrado un aumento del [porcentaje] en [resultado].” Esto no solo añade peso a tus argumentos, sino que también genera confianza en tu audiencia.
+
+ Comparte casos prácticos o historias de éxito que demuestren la efectividad de tus ideas.
+ Hablar sobre situaciones reales en las que tus conceptos han funcionado ayuda a tu audiencia a visualizar el impacto. Por ejemplo: “En [lugar/empresa], aplicaron este enfoque y lograron [resultado medible].” Esto conecta lo abstracto con la realidad y refuerza la confianza en tu propuesta.
+Tu comunicación de alta resolución ya es impresionante, pero al sumar elementos que fortalezcan tu credibilidad, lograrás que tu audiencia no solo conecte emocionalmente, sino que también confíe plenamente en el contenido que ofreces. Estoy segura de que puedes hacerlo. ¡Estás a un paso de perfeccionar tu presentación!
+`,
+  },
+  Narrador: {
+    "Silencio Radial": ` Desarrolla señal y conexión.
+ Tienes muchísimo valor que aportar, y lo primero que quiero que reconozcas es que ya diste un gran paso al preparar esta presentación. Sin embargo, puede que el mensaje no haya sido claro o que le haya faltado esa chispa que conecta emocionalmente con las personas. Señal significa ofrecer un contenido bien estructurado y directo, mientras que conexión es lo que hace que tu público sienta que les hablas directamente a ellos. Intenta simplificar tus ideas clave y acompáñalas con ejemplos o historias que hagan que tu mensaje cobre vida y resuene en quienes te escuchan.
+
+ Atrévete a contar historias.
+ Puede ser que no te sientas del todo cómodo compartiendo historias, pero te aseguro que las historias tienen un poder enorme para capturar la atención y abrir la mente de tu audiencia. No necesitas que sea una historia perfecta, solo algo auténtico que ayude a ilustrar el punto que estás tratando de transmitir. Piensa en una anécdota, una experiencia personal o incluso un ejemplo simple que sirva como puente entre tu mensaje y tu público. Las historias no solo informan, sino que también generan emociones y crean un ambiente cálido y cercano.
+
+ Comienza con una conexión emocional.
+ A veces, el mayor desafío es simplemente dar el primer paso para conectar con la audiencia. Antes de entrar en datos o ideas complejas, prueba empezar con algo sencillo pero emocional: una pregunta reflexiva, un recuerdo personal o una observación que invite a las personas a sentirse parte de tu historia. Esto puede abrir la puerta a que tu público te escuche con más interés y receptividad.
+Recuerda que no necesitas ser perfecto, solo auténtico. Tu capacidad de conectar está ahí, solo falta darle un pequeño espacio para que brille. Estoy convencida de que con estos ajustes, tus presentaciones tendrán una calidez y un impacto únicos. ¡Tú puedes hacerlo!
+`,
+    Interferencia: ` Aprovecha tu conexión y ajusta la señal.
+ Es evidente que tienes un gran interés en conectar con tu audiencia, y eso es muy valioso. Ahora, trabajemos en hacer que tu mensaje sea más claro y estructurado (señal) para que se entienda con mayor facilidad. Piensa en tu presentación como un mapa: si tu audiencia no ve el camino con claridad, puede perderse en el recorrido. Organiza tus ideas en un flujo lógico y asegúrate de que cada punto refuerce tu mensaje principal.
+
+ Atrévete a contar historias.
+ Tu habilidad para emocionar al público puede convertirse en una herramienta poderosa si la combinas con relatos que los enganchen. Las historias son una forma fantástica de abrir puertas a nuevas ideas, porque nos permiten visualizar y sentir lo que estás compartiendo. Piensa en momentos personales, experiencias que te marcaron o ejemplos cercanos que ilustren tus puntos clave. Esto no solo atraerá la atención, sino que también hará que tu mensaje sea más memorable.
+
+ Conecta desde la empatía.
+ Para abrir a tu audiencia hacia nuevas perspectivas, busca empezar desde un punto común. Pregúntate: ¿qué tienen en común mis ideas con las experiencias de quienes me escuchan? Usa anécdotas o preguntas que los hagan reflexionar y sentir que lo que compartes está directamente relacionado con sus vidas. Al hacerlo, no solo capturarás su interés, sino también su confianza para explorar nuevas ideas contigo.
+Tienes un potencial increíble para emocionar e inspirar. Con un poco más de enfoque en cómo abrir la conversación y compartir historias que los inviten a imaginar, tus presentaciones pueden tener un impacto aún más poderoso. Estoy segura de que lo lograrás. ¡Sigue adelante!
+`,
+    "Comunicación No Decodificada": `
+ Elogia tu esfuerzo por ofrecer contenido valioso y motívate a abrir con historias.
+ Es evidente que tienes mucho que compartir y te enfocas en el valor del contenido. Ahora, piensa en cómo puedes llevar a tu audiencia contigo desde el inicio, ayudándoles a conectar emocionalmente. Las historias son una puerta maravillosa para abrir su mente y su corazón, preparándolos para recibir el conocimiento que ofreces.
+
+ Atrévete a contar historias que ilustren tus puntos.
+ Las historias crean una conexión inmediata porque las personas se ven reflejadas en ellas. Puedes empezar con algo personal, algo que hayas observado o incluso algo que alguien más te haya contado. Por ejemplo: “Recuerdo la primera vez que me enfrenté a este problema…”. Esto no solo les atraerá, sino que hará que tu presentación sea más memorable.
+
+ Muestra cómo las historias enriquecen tus conceptos.
+ Piensa en las historias como una herramienta para explicar ideas complejas de una manera simple y humana. No necesitas que sean largas ni detalladas; basta con que sean relevantes y que ilustren el punto que estás tratando de transmitir. Una buena historia no solo capta atención, también genera empatía y hace que el contenido sea más claro.
+Tu conocimiento es valioso y tiene el poder de transformar, pero al añadir apertura con historias y momentos personales, tu mensaje puede llegar más lejos. Las historias son el puente entre tu contenido y la conexión emocional con tu audiencia. ¡Estoy segura de que puedes lograrlo!
+`,
+    "Alta Resolución": ` Reconoce la claridad y el balance en tu presentación, pero considera abrirte más a las historias.
+ Tu presentación es precisa y efectiva en términos de contenido y conexión, pero agregar un toque de narración puede darle una dimensión emocional que la haga más memorable. Contar una historia no solo informa, también crea un vínculo profundo con tu audiencia.
+
+ Atrévete a compartir experiencias personales o casos relevantes.
+ Piensa en un momento de tu vida o en un ejemplo del mundo real que ilustre el impacto de tus ideas. Por ejemplo: “Cuando empecé a aplicar este concepto, me encontré con [situación]. Esto es lo que aprendí…”. Este tipo de apertura invita a tu audiencia a empatizar contigo y a ver el valor práctico de tu mensaje.
+
+ Explica conceptos a través de historias que humanicen tus ideas.
+ Cuando introduces un nuevo concepto, hazlo con una narrativa que lo haga tangible. Por ejemplo: “Imagina a alguien enfrentando este problema… Ahora, piensa en cómo este enfoque podría transformar su situación.” Este enfoque conecta tu mensaje con las emociones y experiencias de las personas.
+Tu comunicación de alta resolución ya es un gran logro, pero al incorporar historias, lograrás que tu audiencia no solo entienda, sino que también sienta lo que estás transmitiendo. Sé que puedes añadir esta capa y llevar tu presentación al siguiente nivel. ¡Confía en tu voz narrativa!
+`,
+  },
+  Futurista: {
+    "Silencio Radial": ` Desarrolla señal y conexión.
+ Lo primero que quiero que tengas claro es que ya estás en el camino correcto: te estás esforzando por comunicar tus ideas. Ahora, para avanzar, debemos trabajar en cómo esas ideas pueden ser más claras (señal) y, al mismo tiempo, más emocionales (conexión). Esto no significa saturar tu presentación con datos ni emociones, sino encontrar el equilibrio perfecto. Intenta identificar cuáles son las ideas esenciales que quieres transmitir y encuentra maneras de presentarlas con más impacto. Una buena forma es simplificar el mensaje y añadir ejemplos o historias que enganchen desde el inicio.
+
+ Enfócate en destacar una idea paradigmática.
+ Cuando una presentación tiene menos del 10% de asombro, puede ser porque estás compartiendo demasiadas ideas al mismo tiempo y, como resultado, el mensaje pierde fuerza. El asombro no surge de tener mucho contenido, sino de presentar una sola idea clave de forma tan poderosa que deje una marca en tu audiencia. Pregúntate: ¿Cuál es la idea más importante que quiero que recuerden? Luego, resáltala como si fuera el corazón de tu presentación. Conviértela en la protagonista.
+
+ Haz que tu mensaje sorprenda a través de la simplicidad.
+ A veces, lo más impactante no es lo más complicado, sino lo más sencillo. Encuentra formas de expresar tus ideas de manera inesperada: una metáfora, un ejemplo curioso o incluso una pregunta provocadora pueden hacer toda la diferencia. El objetivo es que la audiencia se detenga un momento y piense: “¡Wow, no lo había visto así antes!”. Y recuerda, no se trata de abrumar, sino de crear momentos donde tu público diga: “Esto es algo importante”.
+Ten en mente que la magia del asombro no radica en algo extraordinario, sino en cómo cuentas lo que ya es valioso. Con estos ajustes, estoy segura de que podrás capturar la atención de tu público y llevar tu presentación a otro nivel. ¡Confío en ti!
+`,
+    Interferencia: `
+ Elogia tu conexión y trabaja en clarificar tu mensaje.
+ Es evidente que tienes una habilidad natural para conectar emocionalmente con tu audiencia, y eso es una gran ventaja. Ahora, enfoquémonos en mejorar la claridad (señal) de tus ideas para que no se pierdan en la emoción. Define una idea principal que sea el corazón de tu mensaje y asegúrate de que todo lo que compartas gire en torno a esa idea, permitiendo que brille con claridad.
+
+ Destaca una idea paradigmática.
+ Es posible que tu presentación haya tocado varios puntos interesantes, pero a veces eso puede diluir el impacto de las ideas clave. Piensa en cuál es la idea más importante que deseas que tu audiencia recuerde y constrúyela como una revelación. Este concepto, llamado “Idea Paradigmática”, es el eje que puede causar ese momento de asombro que transforma tu mensaje en algo inolvidable.
+
+ Crea momentos que despierten sorpresa.
+ Para lograr asombro, considera usar ejemplos sorprendentes, datos impactantes o una pregunta que rompa las expectativas de tu audiencia. Este tipo de elementos no solo capta la atención, sino que también invita a reflexionar y genera interés genuino. Recuerda, no se trata de abrumar, sino de darle un giro inesperado a tu mensaje que lo haga único y especial.
+Tu conexión con la audiencia ya es un punto muy fuerte. Al centrarte en simplificar tu mensaje y destacar una idea poderosa, puedes transformar tus presentaciones en momentos que realmente inspiren y dejen huella. Estoy convencida de que puedes lograrlo. ¡A seguir adelante con confianza!
+`,
+    "Comunicación No Decodificada": ` Elogia tu profundidad y organiza tus ideas para destacar lo esencial.
+ Es claro que tienes mucho contenido valioso y deseas compartirlo al máximo. Sin embargo, el asombro no viene de abarcar demasiado, sino de enfocar la atención en una idea clave que destaque por encima de las demás. Esta idea, la llamamos la “Idea Paradigmática”: esa que cambia perspectivas y da un nuevo significado al tema.
+
+ Encuentra y resalta tu Idea Paradigmática.
+ Elige la idea más poderosa de tu presentación, la que realmente pueda sorprender y quedarse en la mente de tu audiencia. Una vez que la tengas, preséntala como el núcleo de tu mensaje. Por ejemplo, en lugar de presentar múltiples datos, podrías decir: “Lo que estoy a punto de mostrarles puede cambiar la manera en la que ven este problema”.
+
+ Haz pausas estratégicas y utiliza ejemplos impactantes.
+ El asombro se genera cuando le das a tu audiencia el tiempo y los recursos para procesar algo extraordinario. Usa ejemplos, analogías o datos que sean inesperados y haz pausas para permitir que lo reflexionen. Incluso una pregunta como “¿Te imaginas lo que esto significa para tu trabajo diario?” puede causar impacto.
+Tu presentación tiene un gran potencial por todo lo que aportas. Al darle un enfoque más claro y resaltar una idea central que provoque asombro, puedes transformar tu mensaje en algo que no solo sea útil, sino también inolvidable. Estoy segura de que puedes hacerlo. ¡Adelante!
+`,
+    "Alta Resolución": ` Reconoce el balance entre conexión y contenido, pero trabaja en destacar una idea central que sorprenda e inspire.
+ Tu presentación tiene un excelente equilibrio entre claridad y conexión, pero incorporar una idea paradigmática puede darle un impacto más duradero. Pregúntate: “¿Qué concepto quiero que la audiencia recuerde incluso después de días?” Este enfoque ayudará a generar ese momento de asombro.
+
+ Introduce una idea transformadora con un enfoque simple y directo.
+ El asombro surge cuando presentas una idea que cambia perspectivas o invita a reflexionar de una forma inesperada. Por ejemplo: “¿Y si te dijera que todo lo que creías sobre [tema] está incompleto? Esto es lo que nadie te ha dicho…”. Este tipo de introducción no solo capta la atención, sino que también prepara el terreno para sorprender.
+
+ Crea contraste al mostrar cómo una idea desafía expectativas comunes.
+ Elige un punto de tu presentación para plantear algo que la audiencia no espera. Por ejemplo: “Mientras todos están enfocados en [idea común], aquí está lo que realmente marca la diferencia.” Este enfoque no solo cautiva, sino que también posiciona tu presentación como única y memorable.
+Tu comunicación de alta resolución ya es sobresaliente. Añadiendo momentos de asombro, lograrás elevarla aún más, capturando no solo la mente, sino también la imaginación de tu audiencia. Estoy segura de que puedes lograrlo con pequeños ajustes. ¡Confía en tu capacidad para sorprender!
+
+`,
+  },
+  Predicador: {
+    "Silencio Radial": ` Desarrolla señal y conexión.
+ Quiero felicitarte por dar el paso de compartir tus ideas. Ahora, vamos a trabajar juntos en cómo darles mayor claridad (señal) y un toque más personal (conexión). Piensa en tu mensaje como un puente entre lo que sabes y lo que tu audiencia necesita escuchar. Simplifica lo complejo y encuentra formas de que tus palabras toquen emociones, ya sea con ejemplos cotidianos, historias cercanas o momentos de reflexión compartida. Este equilibrio hará que tu presentación cobre vida.
+
+ Habla desde los valores que unen.
+ Para inspirar verdaderamente, es importante ir más allá de los datos o las ideas. Haz que tu mensaje resuene hablando de lo que compartimos como comunidad o equipo: los valores, metas o sueños que nos conectan como personas. Cuando hables, piensa en cómo tu mensaje responde no solo a lo que tu audiencia necesita, sino también a lo que anhela. Esto despertará en ellos ese sentido de pertenencia que lleva a la acción.
+
+ Comparte momentos personales o vulnerables.
+ A veces, lo que más inspira a las personas no es el contenido más elaborado, sino esos pequeños momentos en los que compartimos algo personal o mostramos un poco de nuestra humanidad. Hablar de un desafío que enfrentaste o de algo que te movió emocionalmente puede ser justo lo que tu audiencia necesita para conectar contigo a un nivel más profundo. No tengas miedo de abrir esa puerta; muchas veces, en esas historias está la verdadera magia.
+Tu presentación ya tiene una base sólida, y añadiendo estos toques de inspiración, será más que una transmisión de ideas: será una experiencia que motive y movilice. Estoy convencida de que, con tu autenticidad y dedicación, puedes lograrlo. ¡Adelante!
+`,
+    Interferencia: ` Elogia tu capacidad de conectar y trabaja en despertar un sentido de pertenencia.
+ Es claro que tienes una habilidad natural para emocionar y conectar con las personas. Ahora es momento de dar un paso más y tocar ese nivel más profundo donde las emociones no solo cautivan, sino también inspiran. La inspiración surge cuando logramos que el público sienta que forman parte de algo más grande que ellos mismos, algo significativo.
+
+ Habla desde los valores que nos unen.
+ Para inspirar, no solo hables de ideas o datos, sino de los valores que comparten tú y tu audiencia. Por ejemplo, si tu presentación toca un tema profesional, conecta con valores como la perseverancia, la integridad o el trabajo en equipo. Este tipo de discurso no solo emociona, sino que da un propósito más profundo a lo que estás diciendo.
+
+ Usa historias para despertar emociones transformadoras.
+ Las historias personales o de terceros que reflejen momentos de superación, aprendizajes importantes o decisiones trascendentales son herramientas poderosas para inspirar. Encuentra una historia que resuene con el mensaje central de tu presentación y úsala para que tu audiencia no solo entienda, sino que sienta.
+Ya tienes una excelente conexión emocional y una manera de llegar al público. Con un poco más de enfoque en la inspiración, puedes convertir tus presentaciones en experiencias inolvidables que no solo emocionen, sino que motiven a las personas a tomar acción. ¡Estoy segura de que tienes todo lo necesario para lograrlo!
+`,
+    "Comunicación No Decodificada": `
+ Reconoce el valor de tu contenido y añade un toque emocional que conecte.
+ Tu presentación está llena de ideas y conocimientos profundos, pero recuerda que para que las personas realmente actúen, necesitan sentir una conexión emocional contigo y con tu mensaje. Esto se logra hablando desde el corazón, compartiendo valores comunes o apelando al sentido de pertenencia.
+
+ Comparte historias o ejemplos que toquen fibras emocionales.
+ Piensa en una experiencia personal, un caso conmovedor o una historia que muestre cómo tus ideas pueden cambiar vidas. Por ejemplo, podrías decir: “Hace unos años, conocí a alguien que implementó esta idea y transformó completamente su forma de trabajar. Esto es lo que pasó…”. Las historias no solo capturan la atención, también generan empatía y motivan a la acción.
+
+ Habla de los valores que unen a tu audiencia.
+ Las personas quieren sentirse parte de algo más grande. Identifica cuáles son los valores que tu audiencia comparte (como el deseo de crecer, ayudar a otros o resolver problemas importantes) e intégralos en tu mensaje. Por ejemplo: “Lo que nos une aquí es nuestra pasión por hacer una diferencia en nuestras comunidades. Esto no se trata solo de ideas, se trata de cambiar vidas”.
+Al agregar inspiración a tu presentación, no solo estarás compartiendo ideas, sino también energía, esperanza y motivación. Estoy segura de que puedes tocar corazones mientras compartes tu conocimiento. ¡Confía en ti y en el impacto que puedes tener!
+`,
+    "Alta Resolución": ` Reconoce que tu presentación tiene un equilibrio excepcional entre claridad y conexión, pero enfócate en añadir un toque emocional que motive a tu audiencia a actuar.
+ Recuerda que las personas no solo se mueven por lo que saben, sino por lo que sienten. Introducir inspiración no solo impulsa la acción, sino que crea un vínculo más profundo con tu mensaje.
+
+ Conecta tus ideas con los valores compartidos por tu audiencia.
+ Por ejemplo: “Todos estamos aquí porque creemos en [valor compartido], y eso es lo que nos une. Este proyecto no es solo una estrategia; es un compromiso con [impacto o meta mayor].” Hablar de lo que nos une genera un sentido de pertenencia y propósito.
+
+ Añade una historia personal o un ejemplo emocional que resuene con tu público.
+ Narrar un momento significativo en el que tu idea marcó la diferencia para ti o para alguien más ayuda a crear una conexión emocional poderosa. Por ejemplo: “Hace unos años, enfrenté [desafío relacionado], y gracias a esta idea, no solo encontré una solución, sino también un propósito mayor.”
+
+ Invita a tu audiencia a imaginar un futuro ideal.
+ Guiarlos en una breve visualización del impacto positivo que tus ideas pueden tener en sus vidas crea un anclaje emocional. Por ejemplo: “Imaginen cómo sería si [resultado positivo]. Esto es posible si juntos damos este primer paso.”
+Tu presentación es sólida y equilibrada, pero añadiendo un poco más de emoción e inspiración, no solo resonará en la mente de tu audiencia, sino también en sus corazones. Estoy segura de que tienes las herramientas para lograrlo. ¡Haz que tus ideas despierten el entusiasmo y la acción que merecen!
+`,
+  },
+  Visionario: {
+    "Silencio Radial": `Conecta tus ideas innovadoras con desafíos y oportunidades actuales para hacerlas más relevantes. Utiliza visualizaciones o diagramas que ilustren tu visión de manera clara.`,
+    Interferencia: `Canaliza tu entusiasmo hacia explicaciones claras y estructuradas de tus ideas. Asegúrate de que cada propuesta visionaria esté respaldada por pasos concretos para su implementación.`,
+    "Comunicación No Decodificada": `Descomplica tus conceptos futuristas utilizando analogías y ejemplos prácticos que faciliten la comprensión. Estructura tu presentación para que cada idea innovadora fluya naturalmente hacia la siguiente, asegurando una narrativa coherente y accesible.`,
+    "Alta Resolución": `Combina tu visión innovadora con una estructura lógica que guíe a la audiencia a través de tus propuestas. Utiliza historias de éxito o escenarios hipotéticos para ilustrar cómo tus ideas pueden transformar el futuro, manteniendo un balance entre imaginación y practicidad.`,
+  },
+  Mentor: {
+    "Silencio Radial": `Incorpora historias de éxito o ejemplos prácticos que ilustren tus enseñanzas. Asegúrate de que cada punto de tu mensaje esté claramente conectado con las experiencias de tu audiencia.`,
+    Interferencia: `Balancea tu deseo de compartir conocimientos con la necesidad de mantener la claridad. Utiliza un lenguaje sencillo y ejemplos que refuercen tus enseñanzas sin abrumar a la audiencia, asegurando que tu pasión complemente, en lugar de competir, con la claridad de tus ideas.`,
+    "Comunicación No Decodificada": `Simplifica conceptos complejos utilizando analogías o metáforas que faciliten la comprensión. Estructura tus presentaciones para guiar a la audiencia paso a paso a través de tus enseñanzas, asegurándote de que cada punto esté claramente definido y accesible.`,
+    "Alta Resolución": `Combina tu conocimiento profundo con una narrativa clara y accesible. Utiliza ejemplos relevantes y historias que conecten emocionalmente con tu audiencia, asegurando que tus enseñanzas sean tanto comprensibles como impactantes. Esto hará que tus presentaciones sean más efectivas y memorables.`,
+  },
+  Profeta: {
+    "Silencio Radial": `Tu capacidad para conectar el pasado con el futuro y ofrecer una perspectiva profunda es una fortaleza destacable. Sin embargo, en esta presentación, el mensaje no logró resonar o conectar con tu audiencia como esperabas. Es esencial que tus ideas se presenten de manera clara y emocionalmente conectada para que la audiencia pueda comprender y sentir el impacto de tus palabras.
+        Considera estructurar tu narrativa de manera que cada idea esté claramente definida y respaldada por ejemplos históricos o contemporáneos que ilustren tu visión.`,
+
+    Interferencia: `Mantén un equilibrio entre la pasión por tus visiones y la claridad de tu mensaje. Utiliza pausas estratégicas para permitir que la audiencia reflexione sobre lo que has dicho, asegurándote de que la emoción complemente, en lugar de competir, con la claridad de tus ideas.`,
+
+    "Comunicación No Decodificada": `Clarifica tus visiones utilizando un lenguaje sencillo y ejemplos tangibles. Asegúrate de que cada punto de tu mensaje esté claramente definido y relacionado con la realidad presente, facilitando que tu audiencia comprenda y adopte tus ideas.`,
+
+    "Alta Resolución": `Combina tu visión profunda con una estructura clara que guíe a la audiencia a través de tus ideas. Utiliza historias de impacto o escenarios hipotéticos para ilustrar cómo tus visiones pueden transformar el futuro, asegurando que tu mensaje sea tanto inspirador como comprensible para todos los miembros de tu audiencia.`,
+  },
+};
+
+/* -------------------------
+   Obtener Conclusión
+-------------------------- */
+function getConclusion(archetype, quadrant) {
+    console.log("Arquetipo:", archetype, "Cuadrante:", quadrant); // Depuración
+    if (conclusions[archetype] && conclusions[archetype][quadrant]) {
+        return conclusions[archetype][quadrant];
+    } else {
+        return "No hay una conclusión disponible para esta combinación de arquetipo y cuadrante.";
+    }
+}
+
+/* -------------------------
+   Obtener Recomendación
+-------------------------- */
+function getRecommendation(archetype, quadrant) {
+    if (recommendations[archetype] && recommendations[archetype][quadrant]) {
+        return recommendations[archetype][quadrant];
+    } else {
+        return "No hay recomendaciones disponibles para esta combinación de arquetipo y cuadrante.";
+    }
+}
+
+/* ===========================
+   DETERMINAR ARQUETIPO (9 posibles)
+==================================== */
+function determineArchetype() {
+    // Encontrar las 2 categorías más altas
+    let catList = Object.keys(categories).map(k => ({ key: k, val: categories[k] }));
+    catList.sort((a, b) => b.val - a.val);
+
+    let top1 = catList[0]; // Mayor
+    let top2 = catList[1]; // Segunda mayor
+
+    if (totalElapsedTime <= 0) {
+        return "Sin datos de contenido";
+    }
+
+    // Convertir a porcentajes
+    let pct1 = (top1.val / totalElapsedTime) * 100;
+    let pct2 = (top2.val / totalElapsedTime) * 100;
+    let diff = Math.abs(pct1 - pct2);
+
+    // Margen para considerar balanceado
+    let margin = 10;
+
+    // Verificar parejas balanceadas
+    let pair = [top1.key, top2.key].sort().join('|');
+
+    if (diff <= margin) {
+        if (pair === ['Aplicabilidad','Atención'].sort().join('|')) {
+            return "Visionario";
+        }
+        if (pair === ['Apertura','Credibilidad'].sort().join('|')) {
+            return "Mentor";
+        }
+        if (pair === ['Asombro','Inspiración'].sort().join('|')) {
+            return "Profeta";
+        }
+    }
+
+    // Si no está balanceado, determinar arquetipo dominante
+    let topCategory = top1.key;
+    switch(topCategory) {
+        case 'Atención':      return "Carismático";
+        case 'Aplicabilidad': return "Estratega";
+        case 'Credibilidad':  return "Científico";
+        case 'Apertura':      return "Narrador";
+        case 'Asombro':       return "Futurista";
+        case 'Inspiración':   return "Predicador";
+        default:              return "Sin coincidencia clara";
+    }
+}
+
+/* ===========================
+   DETERMINAR CUADRANTE (4 posibles)
+==================================== */
+function determineQuadrant() {
+    // Encontrar el cuadrante más alto
+    let quadList = Object.keys(quadrants).map(k => ({ key: k, val: quadrants[k] }));
+    quadList.sort((a, b) => b.val - a.val);
+
+    let topQuadrant = quadList[0].key;
+
+    switch(topQuadrant) {
+        case 'Silencio Radial':   return "Silencio Radial";
+        case 'Interferencia':    return "Interferencia";
+        case 'Comunicación No Decodificada': return "Comunicación No Decodificada";
+        case 'Alta Resolución':   return "Alta Resolución";
+        default:                 return "Sin coincidencia clara";
+    }
+}
+
+/* ===========================
+   RECOMENDACIONES
+==================================== */
+// Ya está definido arriba en el objeto `recommendations`
+
+    </script>
+
+</body>
+</html>
