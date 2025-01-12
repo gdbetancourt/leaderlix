@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Diseña la experiencia de tu siguiente presentación</title>
+  <style>
+    /* ================== ESTILOS BASADOS EN EL 2° SCRIPT ================== */
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      text-align: center;
+    }
+    .container {
+      background-color: #fff;
+      width: 90%;
+      max-width: 800px;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.2);
+      overflow-y: auto;
+      max-height: 90vh;
+      text-align: center;
+    }
+    h1, h2, h3 {
+      text-align: center;
+      color: #333;
+      margin: 10px 0;
+    }
+
+    /* Preguntas */
+    .question {
+      font-size: 1.2em;
+      margin-bottom: 10px;
+      color: #555;
+      text-align: center;
+    }
+    .question p {
+      margin: 10px 0;
+    }
+
+    /* Pequeña instrucción en cursiva */
+    .question p.instruction {
+      font-style: italic;
+      color: #777;
+    }
+
+    /* Lista draggable */
+    .draggable-list {
+      list-style: none;
+      padding: 0;
+      margin: 0 auto 20px auto;
+      max-width: 600px;
+    }
+    .draggable-list li {
+      padding: 15px;
+      background-color: #ff3300; /* color principal */
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: grab;
+      font-size: 1em;
+      margin-bottom: 10px;
+      text-align: center;
+      user-select: none;
+    }
+    .draggable-list li:active {
+      cursor: grabbing;
+    }
+
+    /* Botón Siguiente */
+    .btn-container {
+      margin-top: 20px;
+    }
+    #next-btn {
+      padding: 10px 20px;
+      background-color: #1c1e2c; /* color oscuro */
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 1em;
+      display: block;
+      margin: 0 auto;
+      transition: background-color 0.3s;
+    }
+    #next-btn:hover {
+      background-color: #2c2e3c; 
+    }
+
+    /* Resultados (oculto por defecto) */
+    #result-container {
+      display: none;
+      text-align: left;
+      background: #fafafa;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      padding: 15px;
+      margin-top: 30px;
+    }
+
+    /* Clases de DnD */
+    .dragging {
+      opacity: 0.4;
+    }
+    .drag-over {
+      border: 2px dashed #999;
+    }
+
+    .hidden { 
+      display: none; 
+    }
+
+    /* Formato para el texto de la experiencia final */
+    .experience-details {
+      margin-top: 20px;
+      line-height: 1.4;
+      font-size: 1em;
+    }
+    .experience-details p {
+      margin: 10px 0;
+    }
+    .experience-details ul {
+      list-style: disc;
+      margin: 8px 0 8px 20px; 
+      padding-left: 20px;
+    }
+    .paragraph-highlight {
+      margin-top: 10px;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Diseña la experiencia de tu siguiente presentación</h1>
+
+  <div id="quiz-container"></div>
+
+  <div class="btn-container">
+    <button id="next-btn" onclick="nextQuestion()">Siguiente</button>
+  </div>
+
+  <div id="result-container" class="hidden"></div>
+</div>
+
+<script>
+/*
+  TEST Interactivo:
+  - Mezcla preguntas y respuestas (drag & drop).
+  - Asigna puntos según la posición: arriba (más deseado) vs abajo (menos deseado).
+  - Muestra al final un resultado específico (1 de 12 posibles) con el nuevo tono y redacción.
+*/
+
+// ---------------------------------------------------------------------------
+// PREGUNTAS
+// ---------------------------------------------------------------------------
+const questions = [
+  // Sección Mental (6 preguntas, 3 respuestas c/u)
+  {
+    type: "mental",
+    text: "¿Cómo describirías la intención principal de tu dinámica?",
+    answers: [
+      { text: "Reforzar las creencias y valores que ya tienen", scoreID: "afirmativo" },
+      { text: "Desafiar sus ideas y sacarlos de su zona de confort mental", scoreID: "disruptivo" },
+      { text: "Presentar perspectivas diferentes y dejar que las exploren libremente", scoreID: "reflexivo" }
+    ]
+  },
+  {
+    type: "mental",
+    text: "¿Qué te gustaría que suceda al terminar tu sesión?",
+    answers: [
+      { text: "Que se sientan validados y con mayor motivación para seguir adelante", scoreID: "afirmativo" },
+      { text: "Que replanteen radicalmente sus puntos de vista y salgan con nuevas conclusiones", scoreID: "disruptivo" },
+      { text: "Que cada persona haya reflexionado de forma introspectiva para su propio crecimiento", scoreID: "reflexivo" }
+    ]
+  },
+  {
+    type: "mental",
+    text: "Si tuvieras que elegir un estilo general para tu contenido, ¿cuál sería?",
+    answers: [
+      { text: "Inspirador y optimista, reforzando la dirección del grupo", scoreID: "afirmativo" },
+      { text: "Provocador, buscando incomodar para generar verdaderos cambios", scoreID: "disruptivo" },
+      { text: "Curioso y abierto, sin imponer un camino único", scoreID: "reflexivo" }
+    ]
+  },
+  {
+    type: "mental",
+    text: "¿Qué te interesa lograr con respecto a las creencias del grupo?",
+    answers: [
+      { text: "Fortalecer sus convicciones y promover la unión interna", scoreID: "afirmativo" },
+      { text: "Romper esquemas y desafiar lo establecido", scoreID: "disruptivo" },
+      { text: "Proponer ideas para que cada uno decida su postura y evolución", scoreID: "reflexivo" }
+    ]
+  },
+  {
+    type: "mental",
+    text: "¿Cómo quieres que recuerden esta experiencia?",
+    answers: [
+      { text: "Como un estímulo positivo que reafirmó su camino actual", scoreID: "afirmativo" },
+      { text: "Como un evento disruptivo que rompió paradigmas", scoreID: "disruptivo" },
+      { text: "Como una oportunidad de exploración personal y libre", scoreID: "reflexivo" }
+    ]
+  },
+  {
+    type: "mental",
+    text: "¿Qué esperas en cuanto a la visión final del grupo?",
+    answers: [
+      { text: "Que confirmen su dirección y se sientan seguros de ello", scoreID: "afirmativo" },
+      { text: "Que exclamen: “Necesitamos un cambio radical”", scoreID: "disruptivo" },
+      { text: "Que piensen: “Ahora tenemos múltiples opciones y cada quien decidirá su camino”", scoreID: "reflexivo" }
+    ]
+  },
+
+  // Sección Personal (6 preguntas, 2 respuestas c/u)
+  {
+    type: "personal",
+    text: "¿Qué tipo de actividades imaginas para tu sesión?",
+    answers: [
+      { text: "Conversaciones y análisis de conceptos", scoreID: "teorico" },
+      { text: "Ejercicios prácticos y experimentación directa", scoreID: "practico" }
+    ]
+  },
+  {
+    type: "personal",
+    text: "¿Cómo te gustaría que se involucre el público con el contenido?",
+    answers: [
+      { text: "Mediante debates y discusión intelectual", scoreID: "teorico" },
+      { text: "Realizando dinámicas interactivas de inmediato", scoreID: "practico" }
+    ]
+  },
+  {
+    type: "personal",
+    text: "¿Qué materiales o recursos consideras esenciales?",
+    answers: [
+      { text: "Presentaciones, lecturas y reflexiones colectivas", scoreID: "teorico" },
+      { text: "Herramientas, prototipos o juegos de rol", scoreID: "practico" }
+    ]
+  },
+  {
+    type: "personal",
+    text: "¿Cómo medirías el éxito de tu sesión?",
+    answers: [
+      { text: "Si los participantes comprenden los conceptos clave en profundidad", scoreID: "teorico" },
+      { text: "Si pueden aplicar lo aprendido en situaciones reales de inmediato", scoreID: "practico" }
+    ]
+  },
+  {
+    type: "personal",
+    text: "Si tuvieras poco tiempo, ¿qué priorizarías para tu grupo?",
+    answers: [
+      { text: "Compartir modelos y teorías fundamentales antes de actuar", scoreID: "teorico" },
+      { text: "Lanzarlos a la práctica y ajustar sobre la marcha", scoreID: "practico" }
+    ]
+  },
+  {
+    type: "personal",
+    text: "¿Cómo describirías tu estilo de facilitación?",
+    answers: [
+      { text: "Guiar con conceptos sólidos y moderar la discusión", scoreID: "teorico" },
+      { text: "Probar, equivocarse y volver a intentar en dinámicas prácticas", scoreID: "practico" }
+    ]
+  },
+
+  // Sección Social (6 preguntas, 2 respuestas c/u)
+  {
+    type: "social",
+    text: "¿Cómo imaginas la interacción entre los participantes?",
+    answers: [
+      { text: "Más directa, con momentos de confrontación ante el grupo", scoreID: "masConfrontativo" },
+      { text: "Más reservada, evitando exponer a alguien públicamente", scoreID: "menosConfrontativo" }
+    ]
+  },
+  {
+    type: "social",
+    text: "¿Cómo piensas manejar los errores o desacuerdos en la sesión?",
+    answers: [
+      { text: "Haciendo un análisis abierto ante todos para aprender en conjunto", scoreID: "masConfrontativo" },
+      { text: "Tratándolo de forma privada o en grupos reducidos", scoreID: "menosConfrontativo" }
+    ]
+  },
+  {
+    type: "social",
+    text: "¿Qué papel juega la competitividad en tu dinámica?",
+    answers: [
+      { text: "Puede ser útil para motivar y presionar a la excelencia", scoreID: "masConfrontativo" },
+      { text: "Prefiero la cooperación y que cada quien avance a su ritmo", scoreID: "menosConfrontativo" }
+    ]
+  },
+  {
+    type: "social",
+    text: "Si alguien no está de acuerdo, ¿cómo lo abordarás?",
+    answers: [
+      { text: "Invitándolo a exponer su posición abiertamente ante todos", scoreID: "masConfrontativo" },
+      { text: "Impulsando un diálogo más privado o en pequeños grupos", scoreID: "menosConfrontativo" }
+    ]
+  },
+  {
+    type: "social",
+    text: "¿Cuál te parece el mejor escenario de retroalimentación?",
+    answers: [
+      { text: "Un entorno público donde todos cuestionen y aporten", scoreID: "masConfrontativo" },
+      { text: "Un espacio seguro y discreto para cada persona", scoreID: "menosConfrontativo" }
+    ]
+  },
+  {
+    type: "social",
+    text: "¿Cómo definirías la atmósfera ideal de tu sesión?",
+    answers: [
+      { text: "Intensa y retadora, generando debate y confrontación", scoreID: "masConfrontativo" },
+      { text: "Tranquila y reflexiva, sin exponer a nadie a situaciones incómodas", scoreID: "menosConfrontativo" }
+    ]
+  }
+];
+
+// Mezclamos las preguntas
+shuffleArray(questions);
+
+// Puntuaciones
+let scoreMental = { afirmativo: 0, disruptivo: 0, reflexivo: 0 };
+let scorePersonal = { teorico: 0, practico: 0 };
+let scoreSocial = { masConfrontativo: 0, menosConfrontativo: 0 };
+
+// Índice de pregunta actual
+let currentQuestionIndex = 0;
+
+/**
+ * Diccionario con la **nueva redacción** para cada combinación.
+ * Cada bloque: 
+ * 1) Título
+ * 2) Párrafo: "Con la Experiencia XXX lograrás..."
+ * 3) Párrafo: "El aspecto Mental..."
+ * 4) Párrafo: "El aspecto Personal..."
+ * 5) Párrafo: "El aspecto Social..."
+ * 6) Bullets "Para esta experiencia te recomiendo..."
+ */
+const experiencesDoc = {
+  "afirmativo-teorico-masConfrontativo": {
+    name: "Empuje",
+    details: `
+      <div class="experience-details">
+        <h3>La experiencia que te recomiendo usar es la Experiencia Empuje.</h3>
+        
+        <p class="paragraph-highlight">
+          Con la Experiencia Empuje lograrás fortalecer la confianza de tu audiencia en las ideas que ya poseen, 
+          pero llevándolas a un nuevo nivel de convicción. Generarás una atmósfera de validación y energía grupal, 
+          permitiendo que cada persona sienta que van “en la dirección correcta” y que es momento de afianzar esa 
+          postura con argumentos sólidos y discusión abierta.
+        </p>
+        
+        <p class="paragraph-highlight">
+          El aspecto Mental de la Experiencia Empuje debería ser estimulante y positivo, reforzando las 
+          creencias actuales de la audiencia con datos concretos, ejemplos de éxito y un discurso motivador 
+          que subraye las fortalezas del colectivo.
+        </p>
+        
+        <p class="paragraph-highlight">
+          El aspecto Personal de la Experiencia Empuje debería basarse en conceptos y análisis teóricos 
+          que permitan profundizar en las razones que respaldan estas creencias. Ofrece modelos claros, 
+          frameworks o teorías que consoliden el pensamiento del grupo.
+        </p>
+        
+        <p class="paragraph-highlight">
+          El aspecto Social de la Experiencia Empuje debería incorporar foros de conversación en público, 
+          donde se fomente una confrontación sana pero directa. Al colocar las ideas sobre la mesa, 
+          se impulsa a las personas a defenderlas y sentirse parte de un propósito compartido.
+        </p>
+        
+        <h4>Para esta experiencia te recomiendo:</h4>
+        <ul>
+          <li>Abrir con testimonios o casos de éxito que refuercen la “confianza colectiva.”</li>
+          <li>Utilizar debates estructurados o “hot seats” para que los participantes defiendan sus posturas ante el grupo.</li>
+          <li>Emplear breves exposiciones teóricas (estudios, estadísticas) que validen las convicciones existentes.</li>
+          <li>Cerrar con un mensaje enérgico que invite a la acción y al compromiso inmediato.</li>
+        </ul>
+      </div>
+    `
+  },
+  "afirmativo-teorico-menosConfrontativo": {
+    name: "Eco",
+    details: `
+      <div class="experience-details">
+        <h3>La experiencia que te recomiendo usar es la Experiencia Eco.</h3>
+        
+        <p class="paragraph-highlight">
+          Con la Experiencia Eco lograrás crear un ambiente de confort y seguridad, 
+          en el que las ideas predominantes del grupo se vean reflejadas y confirmadas. 
+          Permitirás que cada persona se sienta respaldada en sus creencias, sin presión 
+          de tener que justificarlas en público.
+        </p>
+        
+        <p class="paragraph-highlight">
+          El aspecto Mental de la Experiencia Eco debería enfocarse en reconocer y afirmar 
+          la validez de las posturas actuales, reforzando la serenidad y el optimismo dentro 
+          del grupo. La idea es destacar los logros e invitar a la continuidad en esa misma línea.
+        </p>
+        
+        <p class="paragraph-highlight">
+          El aspecto Personal de la Experiencia Eco debería desarrollarse a partir de reflexiones 
+          y conceptos teóricos, proponiendo charlas, análisis o lecturas que profundicen en 
+          el “porqué” de estas creencias, sin exigir un paso a la práctica inmediata.
+        </p>
+        
+        <p class="paragraph-highlight">
+          El aspecto Social de la Experiencia Eco debería ser muy amigable y poco confrontativo, 
+          priorizando espacios de diálogo tranquilo o intercambios anónimos. Así, se protege 
+          la comodidad emocional de los participantes.
+        </p>
+        
+        <h4>Para esta experiencia te recomiendo:</h4>
+        <ul>
+          <li>Iniciar con una plática inspiracional que valide las visiones del grupo.</li>
+          <li>Entregar material de lectura (artículos, estudios de caso) para ampliar la reflexión.</li>
+          <li>Permitir la retroalimentación anónima o el diálogo en parejas sin forzar la discusión abierta.</li>
+          <li>Finalizar con una invitación a seguir explorando estas ideas de manera introspectiva.</li>
+        </ul>
+      </div>
+    `
+  },
+  "afirmativo-practico-masConfrontativo": {
+    name: "Impulso",
+    details: `
+      <div class="experience-details">
+        <h3>La experiencia que te recomiendo usar es la Experiencia Impulso.</h3>
+        
+        <p class="paragraph-highlight">
+          Con la Experiencia Impulso lograrás canalizar la motivación de tu grupo hacia 
+          acciones concretas. Crearás un entorno en el que las convicciones actuales se 
+          traduzcan en pasos prácticos y visibles. Generarás un sentido de urgencia y 
+          permitirás que cada persona muestre, frente a los demás, cómo lleva sus ideas a la realidad.
+        </p>
+        
+        <p class="paragraph-highlight">
+          El aspecto Mental de la Experiencia Impulso debería ser claramente afirmativo, 
+          empoderando a los participantes con la seguridad de que sus creencias están bien 
+          encaminadas y que es el momento de “dar el siguiente paso”.
+        </p>
+        
+        <p class="paragraph-highlight">
+          El aspecto Personal de la Experiencia Impulso debería ser práctico, impulsando 
+          a la gente a ejecutar, construir y diseñar soluciones tangibles o prototipos 
+          que demuestren lo que defienden en teoría.
+        </p>
+        
+        <p class="paragraph-highlight">
+          El aspecto Social de la Experiencia Impulso debería admitir un nivel de confrontación 
+          moderada a alta: exponer resultados, recibir retroalimentación directa y dejar 
+          clara la responsabilidad de cada uno en la ejecución.
+        </p>
+        
+        <h4>Para esta experiencia te recomiendo:</h4>
+        <ul>
+          <li>Organizar miniproyectos o dinámicas de prototipado, donde se observen resultados en tiempo real.</li>
+          <li>Solicitar reportes o presentaciones rápidas, exigiendo a cada participante rendir cuentas ante el grupo.</li>
+          <li>Proporcionar retroalimentación franca y constructiva en un foro abierto.</li>
+          <li>Finalizar con un llamado a seguir avanzando en esos proyectos, afianzando el compromiso.</li>
+        </ul>
+      </div>
+    `
+  },
+  "afirmativo-practico-menosConfrontativo": {
+    name: "Guía",
+    details: `
+      <div class="experience-details">
+        <h3>La experiencia que te recomiendo usar es la Experiencia Guía.</h3>
+        
+        <p class="paragraph-highlight">
+          Con la Experiencia Guía lograrás acompañar a tu grupo de manera amable y productiva. 
+          Crearás un clima de confianza en el que los participantes se sientan seguros de poner 
+          en práctica sus ideas, generando un avance paso a paso y permitiendo que cada uno 
+          colabore sin sentir presión excesiva.
+        </p>
+        
+        <p class="paragraph-highlight">
+          El aspecto Mental de la Experiencia Guía debería ratificar que las convicciones del 
+          grupo son valiosas, inyectando optimismo y un espíritu de “estamos en sintonía” para 
+          alentar la participación activa.
+        </p>
+        
+        <p class="paragraph-highlight">
+          El aspecto Personal de la Experiencia Guía debería ser práctico, pero en un contexto 
+          de acompañamiento. Se proponen ejercicios, talleres o role-plays, pero brindando 
+          apoyo continuo y evitando el estrés de la competencia.
+        </p>
+        
+        <p class="paragraph-highlight">
+          El aspecto Social de la Experiencia Guía debería ser tranquilo y menos confrontativo, 
+          fomentando colaboraciones en pequeños grupos, asesorías personalizadas y retroalimentación 
+          “uno a uno.”
+        </p>
+        
+        <h4>Para esta experiencia te recomiendo:</h4>
+        <ul>
+          <li>Diseñar talleres con instrucciones claras y un enfoque en el aprendizaje colaborativo.</li>
+          <li>Crear espacios para preguntas individuales, evitando la presión de la exposición pública.</li>
+          <li>Proveer herramientas sencillas de seguimiento y reconocimiento de pequeños logros.</li>
+          <li>Cerrar con un resumen que refuerce la idea de que están avanzando en la dirección correcta.</li>
+        </ul>
+      </div>
+    `
+  },
+  "disruptivo-teorico-masConfrontativo": {
+    name: "Choque",
+    details: `
+      <div class="experience-details">
+        <h3>La experiencia que te recomiendo usar es la Experiencia Choque.</h3>
+        
+        <p class="paragraph-highlight">
+          Con la Experiencia Choque lograrás sacudir las bases de tu audiencia, 
+          creando un escenario donde las ideas tradicionales se vean retadas sin 
+          rodeos. Generarás un ambiente intenso de debate y permitirás que surja 
+          un cuestionamiento frontal de lo que antes se daba por hecho.
+        </p>
+        
+        <p class="paragraph-highlight">
+          El aspecto Mental de la Experiencia Choque debería apuntar a romper la 
+          comodidad, exponiendo contradicciones e inconsistencias de las creencias 
+          actuales. Se busca “abrir ojos” y provocar reflexión inmediata.
+        </p>
+        
+        <p class="paragraph-highlight">
+          El aspecto Personal de la Experiencia Choque debería ser teórico, 
+          presentando datos, estudios o argumentos contundentes que apoyen la 
+          visión disruptiva y exijan una reevaluación intelectual del público.
+        </p>
+        
+        <p class="paragraph-highlight">
+          El aspecto Social de la Experiencia Choque debería tener un tono 
+          confrontativo, abriendo foros de discusión fuertes, incluso incómodos, 
+          que empujen a cada persona a defender o replantear sus posturas ante la 
+          mirada colectiva.
+        </p>
+        
+        <h4>Para esta experiencia te recomiendo:</h4>
+        <ul>
+          <li>Comenzar mostrando evidencia radical que contradiga las prácticas o ideas vigentes.</li>
+          <li>Invitar a uno o varios expositores con posturas opuestas, para avivar el debate.</li>
+          <li>Permitir preguntas incisivas y críticas públicas, moderando para conservar el respeto mutuo.</li>
+          <li>Finalizar con un llamado a tomar decisiones valientes y romper esquemas obsoletos.</li>
+        </ul>
+      </div>
+    `
+  },
+  "disruptivo-teorico-menosConfrontativo": {
+    name: "Inquietud",
+    details: `
+      <div class="experience-details">
+        <h3>La experiencia que te recomiendo usar es la Experiencia Inquietud.</h3>
+        
+        <p class="paragraph-highlight">
+          Con la Experiencia Inquietud lograrás despertar dudas y curiosidad en tu 
+          audiencia, sin forzarlos a confrontaciones abiertas. Crearás un clima 
+          donde las certezas se “tambaleen” suavemente, permitiendo a cada persona 
+          replantearse sus convicciones de forma más íntima.
+        </p>
+        
+        <p class="paragraph-highlight">
+          El aspecto Mental de la Experiencia Inquietud debería sembrar preguntas 
+          incisivas que rompan la aparente solidez de las creencias actuales, 
+          fomentando la autoexploración de cada uno.
+        </p>
+        
+        <p class="paragraph-highlight">
+          El aspecto Personal de la Experiencia Inquietud debería sustentarse en 
+          datos teóricos o casos de estudio provocadores, sin obligar a la acción 
+          inmediata. Así, los participantes tienen tiempo de procesar internamente 
+          lo que están descubriendo.
+        </p>
+        
+        <p class="paragraph-highlight">
+          El aspecto Social de la Experiencia Inquietud debería ser menos confrontativo, 
+          preferiblemente favoreciendo diálogos en parejas, reflexiones anónimas o 
+          foros donde quien quiera participar lo haga sin presión.
+        </p>
+        
+        <h4>Para esta experiencia te recomiendo:</h4>
+        <ul>
+          <li>Proveer lecturas o testimonios que muestren “lagunas” o inconsistencias en las ideas comunes.</li>
+          <li>Ofrecer espacios de introspección o diarios de reflexión, para que cada persona asimile su inquietud.</li>
+          <li>Llevar un ritmo pausado, permitiendo silencios y momentos de autoanálisis.</li>
+          <li>Invitar a la gente a compartir hallazgos de forma voluntaria, sin exponer a nadie ante todo el grupo.</li>
+        </ul>
+      </div>
+    `
+  },
+  "disruptivo-practico-masConfrontativo": {
+    name: "Impacto",
+    details: `
+      <div class="experience-details">
+        <h3>La experiencia que te recomiendo usar es la Experiencia Impacto.</h3>
+        
+        <p class="paragraph-highlight">
+          Con la Experiencia Impacto lograrás un cambio rápido y contundente en la 
+          audiencia, evidenciando la obsolescencia de algunas creencias con pruebas 
+          prácticas y resultados claros. Crearás un panorama en el que “lo de antes” 
+          se vea superado, generando la urgencia de adoptar nuevas soluciones.
+        </p>
+        
+        <p class="paragraph-highlight">
+          El aspecto Mental de la Experiencia Impacto debería ser disruptivo y 
+          dejar en claro que aferrarse a viejas ideas conduce a errores o a 
+          quedarse atrás. Estimula la aceptación de que es preciso un giro drástico.
+        </p>
+        
+        <p class="paragraph-highlight">
+          El aspecto Personal de la Experiencia Impacto debería desarrollarse a 
+          través de ejercicios prácticos retadores, donde se compare lo que 
+          funcionaba antes con lo que se necesita ahora, poniendo de relieve 
+          las limitaciones.
+        </p>
+        
+        <p class="paragraph-highlight">
+          El aspecto Social de la Experiencia Impacto debería incluir exposiciones 
+          ante el grupo, retroalimentaciones intensas y un sentido de urgencia 
+          colectiva, para reforzar que “hay que cambiar y hay que hacerlo ya.”
+        </p>
+        
+        <h4>Para esta experiencia te recomiendo:</h4>
+        <ul>
+          <li>Diseñar dinámicas de colisión, presentando en vivo ejemplos de fallas del método antiguo.</li>
+          <li>Exigir resultados rápidos, estimulando la improvisación y la capacidad de respuesta ante la presión.</li>
+          <li>Retroalimentar con franqueza para dejar claro que el status quo ya no es suficiente.</li>
+          <li>Cerrar motivando a emprender acciones inmediatas y radicales en su práctica habitual.</li>
+        </ul>
+      </div>
+    `
+  },
+  "disruptivo-practico-menosConfrontativo": {
+    name: "Despertar",
+    details: `
+      <div class="experience-details">
+        <h3>La experiencia que te recomiendo usar es la Experiencia Despertar.</h3>
+        
+        <p class="paragraph-highlight">
+          Con la Experiencia Despertar lograrás que el grupo se dé cuenta de las 
+          limitaciones en sus convicciones, pero de un modo más suave y progresivo. 
+          Crearás ejercicios prácticos que revelen, paso a paso, la necesidad de 
+          cambiar, permitiendo a cada persona asimilarlo a su propio ritmo.
+        </p>
+        
+        <p class="paragraph-highlight">
+          El aspecto Mental de la Experiencia Despertar debería centrarse en confrontar 
+          las ideas obsoletas con tacto, mostrándoles pequeñas señales de que algo 
+          debe modificarse, en lugar de un golpe frontal.
+        </p>
+        
+        <p class="paragraph-highlight">
+          El aspecto Personal de la Experiencia Despertar debería utilizar dinámicas 
+          prácticas, minipruebas o casos simulados donde las viejas creencias fracasen, 
+          invitando a innovar sin forzar un show público.
+        </p>
+        
+        <p class="paragraph-highlight">
+          El aspecto Social de la Experiencia Despertar debería ser menos confrontativo, 
+          facilitando conversaciones en pequeño grupo, reflexiones privadas y la 
+          posibilidad de compartir hallazgos de manera voluntaria.
+        </p>
+        
+        <h4>Para esta experiencia te recomiendo:</h4>
+        <ul>
+          <li>Idear micro-simulaciones donde las viejas ideas no funcionen, impulsando la curiosidad por nuevas opciones.</li>
+          <li>Permitir la autoevaluación en grupos reducidos o en privado, para no generar ansiedad colectiva.</li>
+          <li>Proporcionar ejemplos de éxitos con métodos diferentes, inspirando la adopción de cambios graduales.</li>
+          <li>Concluir con un mensaje que invite a explorar, sin imponer la adopción inmediata de un nuevo paradigma.</li>
+        </ul>
+      </div>
+    `
+  },
+  "reflexivo-teorico-masConfrontativo": {
+    name: "Espejo",
+    details: `
+      <div class="experience-details">
+        <h3>La experiencia que te recomiendo usar es la Experiencia Espejo.</h3>
+        
+        <p class="paragraph-highlight">
+          Con la Experiencia Espejo lograrás que las personas exploren distintas 
+          visiones y se vean reflejadas en lo que otros opinan, creando un 
+          intercambio profundo y a la vez retador. Permitirás que cada uno 
+          confronte sus perspectivas al compararlas públicamente con las de 
+          los demás.
+        </p>
+        
+        <p class="paragraph-highlight">
+          El aspecto Mental de la Experiencia Espejo debería alentar la contemplación 
+          de múltiples posibilidades, sin imponer una verdad absoluta, sino 
+          invitando a la confrontación intelectual.
+        </p>
+        
+        <p class="paragraph-highlight">
+          El aspecto Personal de la Experiencia Espejo debería ser teórico, 
+          aportando lecturas, presentaciones o debates conceptuales que ayuden 
+          a ampliar la visión y a formularse preguntas más profundas.
+        </p>
+        
+        <p class="paragraph-highlight">
+          El aspecto Social de la Experiencia Espejo debería abrir espacios para 
+          exponer dichas reflexiones ante el grupo, promoviendo la crítica 
+          constructiva y el cuestionamiento mutuo de los supuestos.
+        </p>
+        
+        <h4>Para esta experiencia te recomiendo:</h4>
+        <ul>
+          <li>Compartir artículos o presentaciones que aborden un mismo tema desde diferentes ángulos.</li>
+          <li>Fomentar discusiones francas, donde cada quien “refleje” sus ideas y las compare con las de otros.</li>
+          <li>Propiciar preguntas abiertas que obliguen a replantear la propia postura.</li>
+          <li>Finalizar con una recapitulación conjunta de aprendizajes y posibles rutas de acción.</li>
+        </ul>
+      </div>
+    `
+  },
+  "reflexivo-teorico-menosConfrontativo": {
+    name: "Umbral",
+    details: `
+      <div class="experience-details">
+        <h3>La experiencia que te recomiendo usar es la Experiencia Umbral.</h3>
+        
+        <p class="paragraph-highlight">
+          Con la Experiencia Umbral lograrás que las personas descubran nuevas ideas 
+          y enfoques sin sentirse obligadas a definirse rápidamente. Crearás un 
+          “umbral” conceptual que cada quien decide si cruzar, permitiendo que 
+          surjan cambios internos de modo libre y no invasivo.
+        </p>
+        
+        <p class="paragraph-highlight">
+          El aspecto Mental de la Experiencia Umbral debería ofrecer varias 
+          propuestas reflexivas, disparando la curiosidad y dejando que cada 
+          individuo elija qué tan lejos quiere llegar en su búsqueda de respuestas.
+        </p>
+        
+        <p class="paragraph-highlight">
+          El aspecto Personal de la Experiencia Umbral debería sustentarse en 
+          lecturas, charlas o modelos teóricos, dando tiempo para que la gente 
+          digiera la información sin urgirlos a aplicar nada de inmediato.
+        </p>
+        
+        <p class="paragraph-highlight">
+          El aspecto Social de la Experiencia Umbral debería ser poco confrontativo, 
+          brindando diálogos en grupos pequeños, espacios de introspección o 
+          foros opcionales, siempre respetando la decisión de cada uno de participar 
+          o no.
+        </p>
+        
+        <h4>Para esta experiencia te recomiendo:</h4>
+        <ul>
+          <li>Proveer lecturas inspiradoras, estudios o videos con distintos puntos de vista.</li>
+          <li>Alentar la toma de apuntes personales o la meditación en silencio tras cada presentación.</li>
+          <li>Invitar a la exploración en talleres pequeños, sin forzar la discusión masiva.</li>
+          <li>Cerrar con un mensaje que recalque la libertad de cada quien para avanzar a su ritmo.</li>
+        </ul>
+      </div>
+    `
+  },
+  "reflexivo-practico-masConfrontativo": {
+    name: "Laboratorio",
+    details: `
+      <div class="experience-details">
+        <h3>La experiencia que te recomiendo usar es la Experiencia Laboratorio.</h3>
+        
+        <p class="paragraph-highlight">
+          Con la Experiencia Laboratorio lograrás que tu audiencia experimente 
+          de primera mano distintos métodos o ideas, generando aprendizajes 
+          profundos a partir del “ensayo y error”. Crearás un ambiente abierto 
+          a la prueba y permitirás que cada quien reflexione en público sobre 
+          los resultados obtenidos.
+        </p>
+        
+        <p class="paragraph-highlight">
+          El aspecto Mental de la Experiencia Laboratorio debería ser reflexivo, 
+          dejando que las conclusiones surjan de forma natural tras observar 
+          el éxito o el fallo de cada experimento.
+        </p>
+        
+        <p class="paragraph-highlight">
+          El aspecto Personal de la Experiencia Laboratorio debería ser muy práctico, 
+          con prototipos, dinámicas grupales y ejercicios interactivos que 
+          permitan descubrir, corregir y mejorar ideas de manera tangible.
+        </p>
+        
+        <p class="paragraph-highlight">
+          El aspecto Social de la Experiencia Laboratorio debería invitar a 
+          presentar los hallazgos ante todo el grupo, propiciando la confrontación 
+          y el cuestionamiento mutuo en busca de aprendizajes colectivos.
+        </p>
+        
+        <h4>Para esta experiencia te recomiendo:</h4>
+        <ul>
+          <li>Establecer “estaciones” de prueba donde los participantes experimenten distintos enfoques.</li>
+          <li>Solicitar reportes públicos de resultados, generando debates y retroalimentación colectiva.</li>
+          <li>Valorar los errores como parte esencial del proceso de descubrimiento.</li>
+          <li>Finalizar con una discusión de las lecciones más relevantes surgidas de la práctica.</li>
+        </ul>
+      </div>
+    `
+  },
+  "reflexivo-practico-menosConfrontativo": {
+    name: "Senda",
+    details: `
+      <div class="experience-details">
+        <h3>La experiencia que te recomiendo usar es la Experiencia Senda.</h3>
+        
+        <p class="paragraph-highlight">
+          Con la Experiencia Senda lograrás que cada persona explore caminos 
+          alternativos de forma práctica, pero sin la presión de la mirada 
+          pública. Crearás un ambiente en el que la experimentación sea libre 
+          y permitirás que los descubrimientos individuales florezcan, 
+          respetando la intimidad de cada proceso.
+        </p>
+        
+        <p class="paragraph-highlight">
+          El aspecto Mental de la Experiencia Senda debería ser reflexivo, 
+          proponiendo preguntas abiertas o sugerencias de mejora sin imponer 
+          conclusiones. Cada uno decide cuánto transforma de su realidad.
+        </p>
+        
+        <p class="paragraph-highlight">
+          El aspecto Personal de la Experiencia Senda debería girar en torno a 
+          actividades prácticas en grupos pequeños o de manera individual, 
+          donde se prueban ideas, se reflexiona y se decide de forma voluntaria 
+          si compartirlo con los demás.
+        </p>
+        
+        <p class="paragraph-highlight">
+          El aspecto Social de la Experiencia Senda debería ser menos confrontativo, 
+          dejando la puerta abierta a quienes quieran exponer sus hallazgos, 
+          pero sin forzar la exposición ante todo el público.
+        </p>
+        
+        <h4>Para esta experiencia te recomiendo:</h4>
+        <ul>
+          <li>Proporcionar lineamientos generales y dejar que cada equipo o persona defina su propia ruta.</li>
+          <li>Estimular la curiosidad y la autoevaluación, ofreciendo herramientas de reflexión opcionales.</li>
+          <li>Invitar a compartir resultados solo si así lo desean, evitando juicios colectivos.</li>
+          <li>Concluir con un espacio de recapitulación voluntaria, resaltando la diversidad de aprendizajes.</li>
+        </ul>
+      </div>
+    `
+  }
+};
+
+// ---------------------------------------------------------------------------
+// FUNCIONES DE DRAG & DROP Y LÓGICA DE PUNTAJES
+// ---------------------------------------------------------------------------
+function shuffleArray(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+}
+
+function showQuestion(index) {
+  const container = document.getElementById('quiz-container');
+  container.innerHTML = '';
+
+  if (index >= questions.length) {
+    showResult();
+    return;
+  }
+
+  const question = questions[index];
+  const questionDiv = document.createElement('div');
+  questionDiv.className = 'question';
+
+  const questionTitle = document.createElement('h3');
+  questionTitle.textContent = `Pregunta ${index + 1} de ${questions.length}`;
+  questionDiv.appendChild(questionTitle);
+
+  // Instrucción
+  const instruction = document.createElement('p');
+  instruction.className = 'instruction';
+  instruction.textContent = "Ordena las opciones según lo que más se asemeje a tus objetivos y tu visión de la experiencia que quieres diseñar. Dejando arriba lo que más refleja tu visión y abajo lo que menos refleja tu visión.";
+  questionDiv.appendChild(instruction);
+
+  // Enunciado de la pregunta
+  const questionText = document.createElement('p');
+  questionText.textContent = question.text;
+  questionDiv.appendChild(questionText);
+
+  // Mezclar respuestas
+  shuffleArray(question.answers);
+
+  const ul = document.createElement('ul');
+  ul.className = 'draggable-list';
+  ul.id = 'draggable-list';
+
+  question.answers.forEach(ans => {
+    const li = document.createElement('li');
+    li.draggable = true;
+    li.textContent = ans.text;
+    li.dataset.scoreID = ans.scoreID;
+    li.addEventListener('dragstart', handleDragStart);
+    li.addEventListener('dragover', handleDragOver);
+    li.addEventListener('drop', handleDrop);
+    li.addEventListener('dragend', handleDragEnd);
+    li.addEventListener('dragenter', handleDragEnter);
+    li.addEventListener('dragleave', handleDragLeave);
+    ul.appendChild(li);
+  });
+
+  questionDiv.appendChild(ul);
+  container.appendChild(questionDiv);
+}
+
+// Variables para drag & drop
+let draggedItem = null;
+
+function handleDragStart(e) {
+  draggedItem = this;
+  this.classList.add('dragging');
+}
+
+function handleDragOver(e) {
+  e.preventDefault();
+  this.classList.add('drag-over');
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  if (draggedItem !== this) {
+    const list = this.parentNode;
+    const items = Array.from(list.querySelectorAll('li'));
+    const draggedIndex = items.indexOf(draggedItem);
+    const droppedIndex = items.indexOf(this);
+
+    if (draggedIndex < droppedIndex) {
+      list.insertBefore(draggedItem, this.nextSibling);
+    } else {
+      list.insertBefore(draggedItem, this);
+    }
+  }
+  this.classList.remove('drag-over');
+}
+
+function handleDragEnd(e) {
+  this.classList.remove('dragging');
+  draggedItem = null;
+}
+
+function handleDragEnter(e) {
+  e.preventDefault();
+}
+
+function handleDragLeave(e) {
+  this.classList.remove('drag-over');
+}
+
+function nextQuestion() {
+  if (currentQuestionIndex >= questions.length) return;
+
+  const question = questions[currentQuestionIndex];
+  const ul = document.getElementById('draggable-list');
+  if (!ul) return;
+
+  const liElements = ul.querySelectorAll('li');
+  const sortedAnswers = Array.from(liElements);
+
+  // Asignar puntos según la posición
+  if (question.type === 'mental') {
+    // 3 respuestas => top=3, mid=2, last=1
+    if (sortedAnswers.length === 3) {
+      incrementScoreMental(sortedAnswers[0].dataset.scoreID, 3);
+      incrementScoreMental(sortedAnswers[1].dataset.scoreID, 2);
+      incrementScoreMental(sortedAnswers[2].dataset.scoreID, 1);
+    }
+  } else if (question.type === 'personal') {
+    // 2 respuestas => top=2, last=1
+    if (sortedAnswers.length === 2) {
+      incrementScorePersonal(sortedAnswers[0].dataset.scoreID, 2);
+      incrementScorePersonal(sortedAnswers[1].dataset.scoreID, 1);
+    }
+  } else if (question.type === 'social') {
+    // 2 respuestas => top=2, last=1
+    if (sortedAnswers.length === 2) {
+      incrementScoreSocial(sortedAnswers[0].dataset.scoreID, 2);
+      incrementScoreSocial(sortedAnswers[1].dataset.scoreID, 1);
+    }
+  }
+
+  currentQuestionIndex++;
+  showQuestion(currentQuestionIndex);
+}
+
+function incrementScoreMental(key, value) {
+  if (scoreMental.hasOwnProperty(key)) {
+    scoreMental[key] += value;
+  }
+}
+function incrementScorePersonal(key, value) {
+  if (scorePersonal.hasOwnProperty(key)) {
+    scorePersonal[key] += value;
+  }
+}
+function incrementScoreSocial(key, value) {
+  if (scoreSocial.hasOwnProperty(key)) {
+    scoreSocial[key] += value;
+  }
+}
+
+function getMaxKey(obj) {
+  let maxVal = -Infinity;
+  let maxKey = null;
+  for (let key in obj) {
+    if (obj[key] > maxVal) {
+      maxVal = obj[key];
+      maxKey = key;
+    }
+  }
+  return maxKey;
+}
+
+function showResult() {
+  // Ocultamos el contenedor de preguntas
+  document.getElementById('quiz-container').classList.add('hidden');
+
+  // Ocultamos el botón "Siguiente" de manera forzada
+  const nextBtn = document.getElementById('next-btn');
+  nextBtn.classList.add('hidden');
+  nextBtn.style.display = 'none';
+
+  // Calculamos tipo
+  const mentalType = getMaxKey(scoreMental);
+  const personalType = getMaxKey(scorePersonal);
+  const socialType = getMaxKey(scoreSocial);
+
+  const comboKey = `${mentalType}-${personalType}-${socialType}`;
+  const resultContainer = document.getElementById('result-container');
+
+  // Mostramos resultados
+  resultContainer.classList.remove('hidden');
+  resultContainer.style.display = 'block';
+
+  const finalExp = experiencesDoc[comboKey];
+
+  if (!finalExp) {
+    resultContainer.innerHTML = `
+      <h2>Resultado</h2>
+      <p>No se encontró una combinación para tus respuestas.</p>
+    `;
+    return;
+  }
+
+  resultContainer.innerHTML = finalExp.details;
+}
+
+// Inicia la primera pregunta
+showQuestion(currentQuestionIndex);
+</script>
+
+</body>
+</html>
