@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Evaluación de Presentaciones – Radar D / P</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+:root{ --dispo:#1c1e2c; --persu:#ff3300; }
+body{font-family:Arial,Helvetica,sans-serif;margin:0;padding:20px;background:#fafafa}
+.container{display:flex;flex-direction:column;align-items:center;gap:30px}
+
+/* Cronómetro y controles */
+#timer{font-size:48px;font-weight:700;text-align:right;margin-bottom:10px}
+.controls{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:20px;width:100%;max-width:550px}
+.controls input{flex:1;padding:10px;font-size:16px;border:1px solid #ccc;border-radius:6px}
+.controls button{padding:10px 18px;font-size:16px;border:none;border-radius:6px;color:#fff;cursor:pointer}
+#startStopButton,#pauseResumeButton{background:var(--dispo)}
+#pauseResumeButton[disabled],#startStopButton[disabled]{opacity:.5;cursor:default}
+
+/* Tablero */
+.radial-board{position:relative;width:420px;height:420px}
+.radial-board button,.radial-board span.label{position:absolute;transform:translate(-50%,-50%)}
+.circle-btn{width:70px;height:70px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+            font-size:22px;font-weight:600;border:none;color:#fff;cursor:pointer}
+.btn-D{background:var(--dispo);z-index:1}
+.btn-P{background:var(--persu);z-index:2}
+.label{font-size:18px;color:#666;font-weight:600;pointer-events:none}
+
+/* Sumarios y gráfica */
+.summaries{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:900px;width:100%}
+.summary-item{font-size:15px;padding:6px 10px;background:#fff;border:1px solid #e1e1e1;border-radius:6px}
+.summary-item span.time{font-weight:700}
+.summary-item span.pct{color:#888}
+.chart-box{width:550px;max-width:90vw}
+canvas{width:100%!important;height:100%!important}
+</style>
+</head>
+<body>
+<div class="container">
+    <div id="timer">00:00:00</div>
+
+    <div class="controls">
+        <input type="text" id="personName" placeholder="Nombre" oninput="validateName()">
+        <button id="startStopButton" onclick="startStopTimer()" disabled>Comenzar</button>
+        <button id="pauseResumeButton" onclick="pauseResumeTimer()" disabled>Pausa</button>
+    </div>
+
+    <!-- ===== TABLERO RADIAL ===== -->
+    <div class="radial-board">
+        <!-- Etiquetas desplazadas radialmente -->
+        <span class="label" style="top:35px;  left:210px">Atención</span>
+        <span class="label" style="top:125px; left:390px">Credibilidad</span>
+        <span class="label" style="top:295px; left:390px">Inspiración</span>
+        <span class="label" style="top:385px; left:210px">Aplicabilidad</span>
+        <span class="label" style="top:295px; left:30px">Apertura</span>
+        <span class="label" style="top:125px; left:30px">Asombro</span>
+
+        <!-- Botones P (anillo exterior) -->
+        <button class="circle-btn btn-P" style="top:80px; left:210px"  onclick="setCategory('Atención','P')">P</button>
+        <button class="circle-btn btn-P" style="top:160px;left:335px" onclick="setCategory('Credibilidad','P')">P</button>
+        <button class="circle-btn btn-P" style="top:250px;left:335px" onclick="setCategory('Inspiración','P')">P</button>
+        <button class="circle-btn btn-P" style="top:330px;left:210px" onclick="setCategory('Aplicabilidad','P')">P</button>
+        <button class="circle-btn btn-P" style="top:250px;left:85px"  onclick="setCategory('Apertura','P')">P</button>
+        <button class="circle-btn btn-P" style="top:160px;left:85px"  onclick="setCategory('Asombro','P')">P</button>
+
+        <!-- Botones D (anillo interior) -->
+        <button class="circle-btn btn-D" style="top:120px; left:210px" onclick="setCategory('Atención','D')">D</button>
+        <button class="circle-btn btn-D" style="top:195px;left:290px" onclick="setCategory('Credibilidad','D')">D</button>
+        <button class="circle-btn btn-D" style="top:235px;left:290px" onclick="setCategory('Inspiración','D')">D</button>
+        <button class="circle-btn btn-D" style="top:300px;left:210px" onclick="setCategory('Aplicabilidad','D')">D</button>
+        <button class="circle-btn btn-D" style="top:235px;left:130px" onclick="setCategory('Apertura','D')">D</button>
+        <button class="circle-btn btn-D" style="top:195px;left:130px" onclick="setCategory('Asombro','D')">D</button>
+    </div>
+
+    <!-- ===== SUMARIOS ===== -->
+    <div class="summaries">
+        <div class="summary-item">Atención<br>D <span id="Atención-D-time" class="time">00:00:00</span> (<span id="Atención-D-pct" class="pct">0%</span>) – P <span id="Atención-P-time" class="time">00:00:00</span> (<span id="Atención-P-pct" class="pct">0%</span>)</div>
+        <div class="summary-item">Apertura<br>D <span id="Apertura-D-time" class="time">00:00:00</span> (<span id="Apertura-D-pct" class="pct">0%</span>) – P <span id="Apertura-P-time" class="time">00:00:00</span> (<span id="Apertura-P-pct" class="pct">0%</span>)</div>
+        <div class="summary-item">Asombro<br>D <span id="Asombro-D-time" class="time">00:00:00</span> (<span id="Asombro-D-pct" class="pct">0%</span>) – P <span id="Asombro-P-time" class="time">00:00:00</span> (<span id="Asombro-P-pct" class="pct">0%</span>)</div>
+        <div class="summary-item">Credibilidad<br>D <span id="Credibilidad-D-time" class="time">00:00:00</span> (<span id="Credibilidad-D-pct" class="pct">0%</span>) – P <span id="Credibilidad-P-time" class="time">00:00:00</span> (<span id="Credibilidad-P-pct" class="pct">0%</span>)</div>
+        <div class="summary-item">Aplicabilidad<br>D <span id="Aplicabilidad-D-time" class="time">00:00:00</span> (<span id="Aplicabilidad-D-pct" class="pct">0%</span>) – P <span id="Aplicabilidad-P-time" class="time">00:00:00</span> (<span id="Aplicabilidad-P-pct" class="pct">0%</span>)</div>
+        <div class="summary-item">Inspiración<br>D <span id="Inspiración-D-time" class="time">00:00:00</span> (<span id="Inspiración-D-pct" class="pct">0%</span>) – P <span id="Inspiración-P-time" class="time">00:00:00</span> (<span id="Inspiración-P-pct" class="pct">0%</span>)</div>
+    </div>
+
+    <!-- ===== RADAR ===== -->
+    <div class="chart-box">
+        <canvas id="radarChart" width="500" height="450"></canvas>
+    </div>
+</div>
+
+<script>
+/* --- Variables y estructuras --- */
+let timerRunning=false,paused=false,startTime=0,pausedTime=0,totalElapsedTime=0;
+let lastCategoryPressTime=0;
+const dispoCategories={'Atención':0,'Credibilidad':0,'Inspiración':0,'Aplicabilidad':0,'Apertura':0,'Asombro':0};
+const categories={'Atención':0,'Credibilidad':0,'Inspiración':0,'Aplicabilidad':0,'Apertura':0,'Asombro':0};
+let timerInterval,statsInterval;
+
+/* --- Controles del cronómetro --- */
+function startStopTimer(){
+    if(!timerRunning){
+        resetValues(); startTime=performance.now(); lastCategoryPressTime=startTime;
+        timerInterval=setInterval(updateTimerDisplay,1000);
+        statsInterval=setInterval(updateStats,1000);
+        timerRunning=true;
+        document.getElementById('startStopButton').textContent='Detener';
+        document.getElementById('pauseResumeButton').disabled=false;
+        document.getElementById('personName').disabled=true;
+    }else{
+        clearInterval(timerInterval); clearInterval(statsInterval);
+        updateTimerDisplay(); updateStats();
+        timerRunning=false;
+        document.getElementById('startStopButton').textContent='Comenzar';
+        document.getElementById('pauseResumeButton').disabled=true;
+        document.getElementById('personName').disabled=false;
+        drawRadarChart();
+    }
+}
+function pauseResumeTimer(){
+    if(!paused){
+        clearInterval(timerInterval); clearInterval(statsInterval);
+        pausedTime=performance.now(); paused=true;
+        document.getElementById('pauseResumeButton').textContent='Reanudar';
+    }else{
+        const now=performance.now(),pausedDur=now-pausedTime;
+        startTime+=pausedDur; lastCategoryPressTime+=pausedDur;
+        timerInterval=setInterval(updateTimerDisplay,1000);
+        statsInterval=setInterval(updateStats,1000);
+        paused=false;
+        document.getElementById('pauseResumeButton').textContent='Pausa';
+    }
+}
+function resetValues(){
+    paused=false; totalElapsedTime=0; startTime=pausedTime=0;
+    for(let c in dispoCategories){
+        dispoCategories[c]=0; categories[c]=0;
+        document.getElementById(`${c}-D-time`).textContent='00:00:00';
+        document.getElementById(`${c}-D-pct`).textContent='0%';
+        document.getElementById(`${c}-P-time`).textContent='00:00:00';
+        document.getElementById(`${c}-P-pct`).textContent='0%';
+    }
+    document.getElementById('timer').textContent='00:00:00';
+}
+function validateName(){ document.getElementById('startStopButton').disabled=(document.getElementById('personName').value.trim()===''); }
+
+/* --- Registro de botones D / P --- */
+function setCategory(categoryName,type){
+    if(!timerRunning||paused)return;
+    const now=performance.now(),elapsed=now-lastCategoryPressTime;
+    if(type==='D'){ dispoCategories[categoryName]+=elapsed; }
+    else{ categories[categoryName]+=elapsed; dispoCategories[categoryName]+=elapsed; }
+    lastCategoryPressTime=now; updateStats();
+}
+
+/* --- Displays --- */
+function updateTimerDisplay(){
+    if(!startTime){document.getElementById('timer').textContent='00:00:00';return;}
+    const now=performance.now(),elapsed=now-startTime;
+    if(!paused)totalElapsedTime=elapsed;
+    document.getElementById('timer').textContent=formatTime(elapsed);
+}
+function updateStats(){
+    for(let c in categories){
+        const dTime=dispoCategories[c], pTime=categories[c];
+        const dPct=totalElapsedTime?dTime/totalElapsedTime*100:0;
+        const pPct=totalElapsedTime?pTime/totalElapsedTime*100:0;
+        document.getElementById(`${c}-D-time`).textContent=formatTime(dTime);
+        document.getElementById(`${c}-D-pct`).textContent=dPct.toFixed(1)+'%';
+        document.getElementById(`${c}-P-time`).textContent=formatTime(pTime);
+        document.getElementById(`${c}-P-pct`).textContent=pPct.toFixed(1)+'%';
+    }
+}
+function formatTime(ms){const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;return`${pad(h)}:${pad(m)}:${pad(sec)}`;}
+const pad=n=>(n<10?'0':'')+n;
+
+/* --- Radar --- */
+function drawRadarChart(){
+    const ctx=document.getElementById('radarChart').getContext('2d');
+    const order=['Atención','Credibilidad','Inspiración','Aplicabilidad','Apertura','Asombro'];
+    const dispoData=order.map(c=>totalElapsedTime?(dispoCategories[c]/totalElapsedTime*100).toFixed(2):0);
+    const persuData=order.map(c=>totalElapsedTime?(categories[c]/totalElapsedTime*100).toFixed(2):0);
+    if(window.radarChartInstance)window.radarChartInstance.destroy();
+    window.radarChartInstance=new Chart(ctx,{
+        type:'radar',
+        data:{labels:order,
+              datasets:[
+                {label:'Persuasión',data:persuData,backgroundColor:'#ff3300',
+                 borderColor:'#ff3300',borderWidth:2,pointRadius:0,fill:true},
+                {label:'Disponibilización',data:dispoData,backgroundColor:'#1c1e2c',
+                 borderColor:'#1c1e2c',borderWidth:2,pointRadius:0,fill:true}]},
+        options:{scales:{r:{beginAtZero:true,max:100,grid:{color:'#ddd'},ticks:{display:false},
+                             pointLabels:{font:{size:14},color:'#333'}}},
+                 plugins:{legend:{position:'top'}}}
+    });
+}
+</script>
+</body>
+</html>
