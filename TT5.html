@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <title>Evaluación de Presentaciones – Radar D / P</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root{
+      --dispo:#1c1e2c;
+      --persu:#ff3300;
+    }
+    body{font-family:Arial,sans-serif;margin:0;background:#fafafa;padding:24px}
+    .container{display:flex;flex-direction:column;align-items:center;gap:30px}
+    #timer{font-size:48px;font-weight:700;text-align:right}
+    .controls{display:flex;gap:10px;flex-wrap:wrap;width:100%;max-width:560px}
+    .controls input{flex:1;padding:10px;font-size:16px;border:1px solid #ccc;border-radius:6px}
+    .controls button{padding:10px 18px;font-size:16px;border:none;border-radius:6px;color:#fff;cursor:pointer}
+    #startStopButton,#pauseResumeButton{background:var(--dispo)}
+    #startStopButton[disabled],#pauseResumeButton[disabled]{opacity:.45;cursor:default}
+    .radial-board{position:relative;width:420px;height:420px}
+    .circle-btn{position:absolute;width:70px;height:70px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:600;border:none;color:#fff;cursor:pointer;transform:translate(-50%,-50%)}
+    .btn-D{background:var(--dispo);z-index:1}
+    .btn-P{background:var(--persu);z-index:2}
+    .label{position:absolute;transform:translate(-50%,-50%);font-size:18px;color:#666;font-weight:600;pointer-events:none}
+    .summaries{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;max-width:900px;width:100%}
+    .summary-item{background:#fff;border:1px solid #e1e1e1;border-radius:6px;padding:8px 10px;font-size:15px;line-height:1.35}
+    .summary-item .time{font-weight:700}
+    .summary-item .pct{color:#777}
+    .chart-box{width:550px;max-width:90vw;border:2px solid #222;padding:16px;background:#fff;border-radius:10px;box-shadow:0 2px 6px rgba(0,0,0,.08)}
+    canvas{width:100%!important;height:100%!important}
+  </style>
+</head>
+<body>
+<div class="container">
+  <div id="timer">00:00:00</div>
+  <div class="controls">
+    <input id="personName" type="text" placeholder="Nombre" oninput="validateName()"/>
+    <button id="startStopButton" onclick="startStopTimer()" disabled>Comenzar</button>
+    <button id="pauseResumeButton" onclick="pauseResumeTimer()" disabled>Pausa</button>
+  </div>
+  <div class="radial-board">
+    <span class="label" style="top:35px;left:210px">Atención</span>
+    <span class="label" style="top:125px;left:390px">Credibilidad</span>
+    <span class="label" style="top:295px;left:390px">Inspiración</span>
+    <span class="label" style="top:385px;left:210px">Aplicabilidad</span>
+    <span class="label" style="top:295px;left:30px">Apertura</span>
+    <span class="label" style="top:125px;left:30px">Asombro</span>
+
+    <button class="circle-btn btn-P" style="top:80px;left:210px" onclick="setCategory('Atención','P')">P</button>
+    <button class="circle-btn btn-P" style="top:160px;left:335px" onclick="setCategory('Credibilidad','P')">P</button>
+    <button class="circle-btn btn-P" style="top:250px;left:335px" onclick="setCategory('Inspiración','P')">P</button>
+    <button class="circle-btn btn-P" style="top:330px;left:210px" onclick="setCategory('Aplicabilidad','P')">P</button>
+    <button class="circle-btn btn-P" style="top:250px;left:85px" onclick="setCategory('Apertura','P')">P</button>
+    <button class="circle-btn btn-P" style="top:160px;left:85px" onclick="setCategory('Asombro','P')">P</button>
+
+    <button class="circle-btn btn-D" style="top:120px;left:210px" onclick="setCategory('Atención','D')">D</button>
+    <button class="circle-btn btn-D" style="top:195px;left:290px" onclick="setCategory('Credibilidad','D')">D</button>
+    <button class="circle-btn btn-D" style="top:235px;left:290px" onclick="setCategory('Inspiración','D')">D</button>
+    <button class="circle-btn btn-D" style="top:300px;left:210px" onclick="setCategory('Aplicabilidad','D')">D</button>
+    <button class="circle-btn btn-D" style="top:235px;left:130px" onclick="setCategory('Apertura','D')">D</button>
+    <button class="circle-btn btn-D" style="top:195px;left:130px" onclick="setCategory('Asombro','D')">D</button>
+  </div>
+  <div class="summaries" id="summaryGrid"></div>
+  <div class="chart-box"><canvas id="radarChart" width="500" height="450"></canvas></div>
+</div>
+
+<script>
+const categoryList=['Atención','Credibilidad','Inspiración','Aplicabilidad','Apertura','Asombro'];
+const dispoCategories=Object.fromEntries(categoryList.map(c=>[c,0]));
+const categories=Object.fromEntries(categoryList.map(c=>[c,0]));
+let timerRunning=false,paused=false;
+let startTime=0,pausedTime=0,totalElapsedTime=0,lastCategoryPressTime=0;
+let timerInterval,statsInterval,radarInstance;
+
+const pad=n=>n<10?`0${n}`:n;
+const formatTime=ms=>{const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;return `${pad(h)}:${pad(m)}:${pad(sec)}`};
+
+const grid=document.getElementById('summaryGrid');
+categoryList.forEach(cat=>{
+  const div=document.createElement('div');div.className='summary-item';
+  div.innerHTML=`${cat}<br>D <span id=\"${cat}-D-time\" class=\"time\">00:00:00</span> (<span id=\"${cat}-D-pct\" class=\"pct\">0%</span>) – P <span id=\"${cat}-P-time\" class=\"time\">00:00:00</span> (<span id=\"${cat}-P-pct\" class=\"pct\">0%</span>)`;
+  grid.appendChild(div);
+});
+
+function validateName(){document.getElementById('startStopButton').disabled=document.getElementById('personName').value.trim()==='';}
+function resetAll(){paused=false;totalElapsedTime=0;startTime=pausedTime=0;
+  categoryList.forEach(c=>{dispoCategories[c]=0;categories[c]=0;});
+  document.getElementById('timer').textContent='00:00:00';updateStats();
+  if(radarInstance)radarInstance.destroy();
+}
+
+function startStopTimer(){
+  if(!timerRunning){
+    resetAll();startTime=performance.now();lastCategoryPressTime=startTime;
+    timerInterval=setInterval(updateTimerDisplay,1000);
+    statsInterval=setInterval(updateStats,1000);
+    timerRunning=true;
+    document.getElementById('startStopButton').textContent='Detener';
+    document.getElementById('pauseResumeButton').disabled=false;
+    document.getElementById('personName').disabled=true;
+  }else{
+    clearInterval(timerInterval);clearInterval(statsInterval);
+    updateTimerDisplay();updateStats();timerRunning=false;
+    document.getElementById('startStopButton').textContent='Comenzar';
+    document.getElementById('pauseResumeButton').disabled=true;
+    document.getElementById('personName').disabled=false;
+    drawRadarChart();
+  }
+}
+
+function pauseResumeTimer(){
+  if(!paused){
+    clearInterval(timerInterval);clearInterval(statsInterval);
+    pausedTime=performance.now();paused=true;
+    document.getElementById('pauseResumeButton').textContent='Reanudar';
+  }else{
+    const now=performance.now(),delta=now-pausedTime;
+    startTime+=delta;lastCategoryPressTime+=delta;
+    timerInterval=setInterval(updateTimerDisplay,1000);
+    statsInterval=setInterval(updateStats,1000);
+    paused=false;
+    document.getElementById('pauseResumeButton').textContent='Pausa';
+  }
+}
+
+function setCategory(categoryName,type){
+  if(!timerRunning||paused)return;
+  const now=performance.now(),elapsed=now-lastCategoryPressTime;
+  if(type==='D'){dispoCategories[categoryName]+=elapsed;}
+  else{categories[categoryName]+=elapsed;dispoCategories[categoryName]+=elapsed;}
+  lastCategoryPressTime=now;
+  updateStats();
+}
+
+function updateTimerDisplay(){
+  const now=performance.now(),elapsed=now-startTime;
+  if(!paused)totalElapsedTime=elapsed;
+  document.getElementById('timer').textContent=formatTime(elapsed);
+}
+
+function updateStats(){
+  categoryList.forEach(c=>{
+    const dTime=dispoCategories[c],pTime=categories[c];
+    const dPct=totalElapsedTime?dTime/totalElapsedTime*100:0;
+    const pPct=totalElapsedTime?pTime/totalElapsedTime*100:0;
+    document.getElementById(`${c}-D-time`).textContent=formatTime(dTime);
+    document.getElementById(`${c}-P-time`).textContent=formatTime(pTime);
+    document.getElementById(`${c}-D-pct`).textContent=dPct.toFixed(1)+'%';
+    document.getElementById(`${c}-P-pct`).textContent=pPct.toFixed(1)+'%';
+  });
+}
+
+function drawRadarChart(){
+  const ctx=document.getElementById('radarChart').getContext('2d');
+  const dispoRaw=categoryList.map(c=>dispoCategories[c]);
+  const persuRaw=categoryList.map(c=>categories[c]);
+  const dispoMax=Math.max(...dispoRaw);
+  const persuMax=Math.max(...persuRaw);
+  const dispoData=dispoRaw.map(v=>dispoMax? (v/dispoMax*100).toFixed(2):0);
+  const persuData=persuRaw.map(v=>persuMax? (v/persuMax*100).toFixed(2):0);
+
+  if(radarInstance)radarInstance.destroy();
+  radarInstance=new Chart(ctx,{
+    type:'radar',
+    data:{
+      labels:categoryList,
+      datasets:[
+        {
+          label:'Persuasión',
+          data:persuData,
+          backgroundColor:'rgba(255,51,0,0.3)',
+          borderColor:'#ff3300',
+          borderWidth:2,
+          borderJoinStyle:'round',
+          tension:0.25,
+          pointRadius:0
+        },
+        {
+          label:'Disponibilización',
+          data:dispoData,
+          backgroundColor:'rgba(28,30,44,0.3)',
+          borderColor:'#1c1e2c',
+          borderWidth:2,
+          borderJoinStyle:'round',
+          tension:0.25,
+          pointRadius:0
+        }
+      ]
+    },
+    options:{
+      scales:{
+        r:{
+          beginAtZero:true,
+          max:100,
+          ticks:{display:false},
+          grid:{color:'#ccc'},
+          pointLabels:{font:{size:14},color:'#333'}
+        }
+      },
+      plugins:{
+        legend:{position:'top'}
+      }
+    }
+  });
+}
+</script>
+</body>
+</html>
