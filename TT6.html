@@ -28,10 +28,29 @@
     .summary-item .pct{color:#777}
     .chart-box{width:550px;max-width:90vw;border:2px solid #222;padding:16px;background:#fff;border-radius:10px;box-shadow:0 2px 6px rgba(0,0,0,.08)}
     canvas{width:100%!important;height:100%!important}
+    #mainSection{display:none}
+    #objectiveSection .slider-row{display:flex;align-items:center;gap:12px;width:100%;max-width:500px}
+    #objectiveSection input[type=range]{flex:1}
+    #objectiveSection label{width:110px}
+    #goal-total{font-weight:700}
+    #goal-total.error{color:#ff3300}
   </style>
 </head>
 <body>
-<div class="container">
+<div id="objectiveSection" class="container">
+  <div id="slidersWrapper">
+    <div class="slider-row"><label for="goal-Atención">Atención</label><input id="goal-Atención" type="range" min="0" max="100" value="0" oninput="updateGoal('Atención',this.value)"/><span id="goal-Atención-val">0%</span></div>
+    <div class="slider-row"><label for="goal-Credibilidad">Credibilidad</label><input id="goal-Credibilidad" type="range" min="0" max="100" value="0" oninput="updateGoal('Credibilidad',this.value)"/><span id="goal-Credibilidad-val">0%</span></div>
+    <div class="slider-row"><label for="goal-Inspiración">Inspiración</label><input id="goal-Inspiración" type="range" min="0" max="100" value="0" oninput="updateGoal('Inspiración',this.value)"/><span id="goal-Inspiración-val">0%</span></div>
+    <div class="slider-row"><label for="goal-Aplicabilidad">Aplicabilidad</label><input id="goal-Aplicabilidad" type="range" min="0" max="100" value="0" oninput="updateGoal('Aplicabilidad',this.value)"/><span id="goal-Aplicabilidad-val">0%</span></div>
+    <div class="slider-row"><label for="goal-Apertura">Apertura</label><input id="goal-Apertura" type="range" min="0" max="100" value="0" oninput="updateGoal('Apertura',this.value)"/><span id="goal-Apertura-val">0%</span></div>
+    <div class="slider-row"><label for="goal-Asombro">Asombro</label><input id="goal-Asombro" type="range" min="0" max="100" value="0" oninput="updateGoal('Asombro',this.value)"/><span id="goal-Asombro-val">0%</span></div>
+  </div>
+  <div id="goal-total">Total: 0%</div>
+  <button id="goalNextBtn" onclick="showMainSection()" disabled>Siguiente</button>
+</div>
+
+<div id="mainSection" class="container">
   <div id="timer">00:00:00</div>
   <div class="controls">
     <input id="personName" type="text" placeholder="Nombre" oninput="validateName()"/>
@@ -68,12 +87,45 @@
 const categoryList=['Atención','Credibilidad','Inspiración','Aplicabilidad','Apertura','Asombro'];
 const dispoCategories=Object.fromEntries(categoryList.map(c=>[c,0]));
 const categories=Object.fromEntries(categoryList.map(c=>[c,0]));
+const goals=Object.fromEntries(categoryList.map(c=>[c,0]));
 let timerRunning=false,paused=false;
 let startTime=0,pausedTime=0,totalElapsedTime=0,lastCategoryPressTime=0;
 let timerInterval,statsInterval,radarInstance;
 
 const pad=n=>n<10?`0${n}`:n;
 const formatTime=ms=>{const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;return `${pad(h)}:${pad(m)}:${pad(sec)}`};
+
+function updateGoal(category,val){
+  val=parseInt(val,10);
+  const othersTotal=Object.keys(goals).reduce((a,c)=>c===category?a: a+goals[c],0);
+  if(othersTotal+val>100){
+    val=100-othersTotal;
+    document.getElementById(`goal-${category}`).value=val;
+  }
+  goals[category]=val;
+  document.getElementById(`goal-${category}-val`).textContent=val+"%";
+  updateGoalTotal();
+}
+
+function updateGoalTotal(){
+  const total=Object.values(goals).reduce((a,b)=>a+b,0);
+  const el=document.getElementById('goal-total');
+  el.textContent=`Total: ${total}%`;
+  if(total===100){
+    el.classList.remove('error');
+    document.getElementById('goalNextBtn').disabled=false;
+  }else{
+    document.getElementById('goalNextBtn').disabled=true;
+    if(total>100)el.classList.add('error');
+    else el.classList.remove('error');
+  }
+}
+
+function showMainSection(){
+  document.getElementById('objectiveSection').style.display='none';
+  document.getElementById('mainSection').style.display='flex';
+  validateName();
+}
 
 const grid=document.getElementById('summaryGrid');
 categoryList.forEach(cat=>{
@@ -152,12 +204,9 @@ function updateStats(){
 
 function drawRadarChart(){
   const ctx=document.getElementById('radarChart').getContext('2d');
-  const dispoRaw=categoryList.map(c=>dispoCategories[c]);
-  const persuRaw=categoryList.map(c=>categories[c]);
-  const dispoMax=Math.max(...dispoRaw);
-  const persuMax=Math.max(...persuRaw);
-  const dispoData=dispoRaw.map(v=>dispoMax? (v/dispoMax*100).toFixed(2):0);
-  const persuData=persuRaw.map(v=>persuMax? (v/persuMax*100).toFixed(2):0);
+  const dispoData=categoryList.map(c=>totalElapsedTime?(dispoCategories[c]/totalElapsedTime*100).toFixed(2):0);
+  const persuData=categoryList.map(c=>totalElapsedTime?(categories[c]/totalElapsedTime*100).toFixed(2):0);
+  const goalData=categoryList.map(c=>goals[c]);
 
   if(radarInstance)radarInstance.destroy();
   radarInstance=new Chart(ctx,{
@@ -165,6 +214,16 @@ function drawRadarChart(){
     data:{
       labels:categoryList,
       datasets:[
+        {
+          label:'Objetivo',
+          data:goalData,
+          backgroundColor:'rgba(0,128,0,0.25)',
+          borderColor:'green',
+          borderWidth:2,
+          borderJoinStyle:'round',
+          tension:0.25,
+          pointRadius:0
+        },
         {
           label:'Persuasión',
           data:persuData,
