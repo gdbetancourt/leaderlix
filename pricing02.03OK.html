@@ -112,7 +112,7 @@
     }
     .date-popover input[type="date"]{ border:0; padding:6px; }
 
-    /* Próximo Curso (solo personal) */
+    /* Próximo Evento (solo personal) */
     #next-course.hidden{ display:none }
     #next-course{
       border:1px solid var(--bord); background:#ffffff;
@@ -206,9 +206,9 @@
     <div id="loader" class="spinner" role="status" aria-live="polite" aria-label="Cargando"></div>
     <div id="errorBox" role="alert"></div>
 
-    <!-- Próximo Curso (solo personal) -->
+    <!-- Próximo Evento (solo personal) -->
     <div id="next-course" class="hidden" aria-live="polite">
-      <h3>Próximo Curso</h3>
+      <h3>Próximo Evento</h3>
       <div class="row">
         <div>
           <div class="city" id="nc-city">—</div>
@@ -491,7 +491,7 @@ function reorderGanttItems(){
     const money=(n,ccy)=>(ccy==="usd"?"USD":"MXN")+" $"+nfByCcy(ccy).format(Number(n||0));
     const norm=s=>String(s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
 
-    /* ===== Próximo Curso (personal) ===== */
+    /* ===== Próximo Evento (personal) ===== */
     function pickNextEventObject(json){ return json?.siguiente_evento_presencial || json?.individual?.proximo_evento_presencial || null; }
     function safeDateFromPayload(obj){
       if(!obj) return null;
