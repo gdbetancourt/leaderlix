@@ -1,0 +1,1535 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Opciones de Inscripción</title>
+  <link href="https://fonts.googleapis.com/css2?family=Gochi+Hand&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --gap:16px; --radius:16px;
+      --bg:#ffffff; --card:#ffffff; --bord:#e6e6e6;
+      --muted:#49566a; --accent:#ff3300;
+      --text:#111111;
+      --ok:#16a34a; --warn:#c2410c; --error:#7f1d1d;
+      --shadow:0 6px 24px rgba(0,0,0,.06);
+      --gantt-grid:#eef2f7; --gantt-axis:#64748b; --gantt-today:#ff3300;
+      --pre:#286ef0; --imp1:#22a06b; --impG:#a855f7; --eval:#fb923c; --refresh:#0ea5e9;
+    }
+    *{ box-sizing:border-box }
+    body{ margin:0; font-family: Arial, Helvetica, sans-serif; background:var(--bg); color:var(--text) }
+    .container{ max-width:1100px; margin:0 auto; padding:28px 20px 64px }
+
+    h1{
+      margin:0 0 8px; font-size:36px; text-align:center;
+      font-family:"Gochi Hand", Arial, Helvetica, sans-serif; color:var(--accent)
+    }
+    .muted{ color:var(--muted); text-align:center; margin-bottom:18px }
+
+    .grid{ display:grid; gap:var(--gap) }
+    .row3{ grid-template-columns: repeat(3, 1fr) }
+    @media (max-width: 980px){ .row3{ grid-template-columns: 1fr } }
+
+    .card{
+      background:var(--card); border:1px solid #e5e7eb;
+      border-radius:var(--radius); padding:20px; box-shadow:var(--shadow);
+    }
+    .pricing{ display:flex; flex-direction:column; gap:14px }
+    .title{
+      font-weight:800; font-size:26px; text-align:center; margin-bottom:6px;
+      font-family:"Gochi Hand", Arial, Helvetica, sans-serif; color:var(--accent)
+    }
+    .subtle{ color:var(--muted); font-size:13px }
+    .label{ color:#334155; font-size:14px }
+    .line{ display:flex; justify-content:space-between; align-items:center; gap:12px; padding-top:6px }
+    select, input[type="text"], input[type="tel"], input[type="email"], textarea, input[type="number"]{
+      width:100%; background:#fff; color:#111;
+      border:1px solid #c9d1db; border-radius:12px; padding:10px 12px; outline:none; font-size:15px
+    }
+    textarea{ min-height:88px; resize:vertical }
+    button{ background:var(--accent); color:#fff; border:none; border-radius:10px; padding:10px 14px; cursor:pointer; font-weight:700 }
+    button:disabled{ opacity:.6; cursor:not-allowed }
+    .primary{ background:var(--accent); color:#fff }
+    .muted-btn{ background:#f3f4f6; color:#111; }
+
+    ul.benefits{ list-style:none; padding:0; margin:6px 0 0; display:flex; flex-direction:column; gap:6px }
+    ul.benefits li{ display:flex; gap:8px; align-items:flex-start; font-size:15px }
+    .check,.cross{ font-weight:700; color:currentColor }
+    .off{ color:#94a3b8 } .off s{ color:inherit }
+
+    .note{ color:#64748b; font-size:12px; min-height:18px; display:block }
+    .vishide{ visibility:hidden }
+    .hidden{ display:none }
+
+    .total-block{ margin-top:18px; border-top:1px dashed #d4dbe4; padding-top:12px }
+    .grand{ font-weight:800; font-size:22px; color:var(--accent) }
+    .warn{ color:var(--warn); font-size:13px; margin-top:8px }
+    .ok{ color:var(--ok) }
+
+    #top-controls{ display:flex; gap:24px; justify-content:center; align-items:flex-start; margin:8px 0 22px; flex-wrap:wrap; pointer-events:auto; position:relative; z-index:2 }
+    #top-controls.hidden{ display:none }
+    .inline-toggle{ display:flex; flex-direction:column; align-items:center; gap:6px; position:relative }
+    .toggle-labels{ display:flex; justify-content:space-between; width:160px; white-space:nowrap; height:18px; line-height:18px; }
+    .toggle-labels .flag{ font-size:18px; line-height:18px }
+    .toggle{
+      position:relative; width:160px; height:40px; background:#ffffff;
+      border:1px solid #c9d1db; border-radius:999px; cursor:pointer; outline:none
+    }
+    .toggle::after{
+      content:""; position:absolute; top:4px; left:4px; width:32px; height:32px;
+      background:var(--accent); border-radius:50%; transition:left .18s ease
+    }
+    .toggle.right::after{ left:124px }
+
+    .spinner{ width:28px; height:28px; border:3px solid rgba(0,0,0,.1); border-top-color:var(--accent); border-radius:50%; animation:spin .8s linear infinite; margin:18px auto }
+    @keyframes spin{ to{ transform:rotate(360deg) } }
+
+    .coupon-row{ display:grid; grid-template-columns: 1fr auto; gap:10px; align-items:center; margin-top:10px }
+    .coupon-info{ font-size:13px; color:#475569 }
+    .sum-grid{ display:grid; grid-template-columns: 1fr auto auto; gap:8px; margin-top:10px }
+    .footer-actions{ display:flex; justify-content:flex-end; margin-top:16px; gap:10px }
+    .hint{ color:#64748b; font-size:12px }
+
+    #errorBox{ display:none; margin:10px auto 0; max-width:780px; background:#fff0f0; color:#7f1d1d; border:1px solid #fecaca; padding:10px 12px; border-radius:8px }
+
+    #actions-bar.hidden{ display:none }
+    #actions-bar{ display:flex; justify-content:flex-end; gap:10px; margin-bottom:12px; align-items:center }
+    #share-info{ font-size:12px; color:#64748b }
+
+    #gp-card.hidden{ display:none }
+    #gp-card{ margin-bottom:18px }
+    #gp-grid{ display:grid; grid-template-columns: 1fr 1fr; gap:12px }
+    #gp-grid .full{ grid-column: 1 / -1 }
+    #gp-card h3{
+      margin:0 0 8px; font-size:24px; color:var(--accent);
+      font-family:"Gochi Hand", Arial, Helvetica, sans-serif;
+    }
+    .date-wrap{ position:relative }
+    .date-popover{
+      position:absolute; top:100%; left:0; margin-top:6px;
+      background:#fff; border:1px solid #c9d1db; border-radius:12px; padding:6px;
+      box-shadow:var(--shadow); z-index:10;
+    }
+    .date-popover input[type="date"]{ border:0; padding:6px; }
+
+    /* Próximo Curso (solo personal) */
+    #next-course.hidden{ display:none }
+    #next-course{
+      border:1px solid var(--bord); background:#ffffff;
+      padding:16px; border-radius:16px; margin-bottom:18px; box-shadow:var(--shadow);
+    }
+    #next-course h3{
+      margin:0 0 6px; font-size:22px; color:#111;
+      font-family:"Gochi Hand", Arial, Helvetica, sans-serif;
+    }
+    #next-course .row{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:space-between }
+    #next-course .city{ font-weight:700 }
+    #next-course .date{ color:#334155 }
+    #next-course .count{ font-weight:800; font-size:20px; color:#111 }
+
+    /* Beneficios corporativos (detalle) */
+    #corp-benefits-detail.hidden{ display:none }
+    #corp-benefits-detail{
+      display:grid; grid-template-columns: 1fr;
+      gap:12px; margin-top:12px; margin-bottom:12px
+    }
+    #corp-benefits-detail .benef-card{
+      border:1px solid var(--bord); border-radius:16px; padding:18px; background:#fff; box-shadow:var(--shadow);
+    }
+    #corp-benefits-detail .benef-title{ font-weight:700; margin:0 0 6px; color:#111; font-size:19px }
+    #corp-benefits-detail .benef-desc{ color:#334155; font-size:16px; line-height:1.5 }
+
+    /* ===== GANTT ===== */
+    #gantt-card.hidden{ display:none }
+    #gantt-card h3{
+      margin:0 0 10px; font-size:22px; color:#111; font-family:"Gochi Hand", Arial, Helvetica, sans-serif;
+    }
+    .gantt-tools{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:8px }
+    .gantt-tools .seg{ display:flex; gap:8px; align-items:center }
+    .badge{ display:inline-block; padding:4px 8px; border-radius:999px; font-size:12px; color:#fff; background:#94a3b8 }
+    .b-pre{ background:var(--pre) } .b-imp1{ background:var(--imp1) } .b-impG{ background:var(--impG) } .b-eval{ background:var(--eval) } .b-ref{ background:var(--refresh) }
+
+    #gantt-wrap{ border:1px solid var(--bord); border-radius:16px; padding:12px; background:#fff; box-shadow:var(--shadow); margin-bottom:12px }
+    #gantt-canvas{ width:100%; overflow:auto }
+    /* SVG ahora es totalmente flexible */
+    #gantt-svg{ display:block; height:auto }
+
+    /* Editor AHORA DEBAJO del visual */
+    #gantt-editor.hidden{ display:none }
+    #gantt-editor{ display:grid; grid-template-columns: 1fr; gap:10px; margin-top:12px }
+    .gantt-row{ display:grid; grid-template-columns: 1.2fr 0.6fr 0.6fr 0.6fr 0.6fr 0.6fr auto; gap:8px; align-items:center }
+    .gantt-row.readonly{ opacity:.8; pointer-events:none }
+    .gantt-row .del{ background:#fef2f2; color:#991b1b }
+    .gantt-legend{ display:flex; gap:8px; flex-wrap:wrap; margin-top:6px; color:#334155; font-size:12px }
+    .gantt-table{ width:100%; border-collapse:collapse; margin-top:10px; font-size:14px }
+    .gantt-table th, .gantt-table td{ border-top:1px solid #e5e7eb; padding:8px 6px; text-align:left }
+
+    /* Totales / Requisitos */
+    #cards{ margin-top:18px }
+    #totales{ margin-top:18px; margin-bottom:18px }
+    #req-card{ margin-top:18px }
+    #req-card.hidden{ display:none }
+    #req-card h3{ margin:0 0 8px; font-size:20px; color:#111 }
+    #req-list{ margin:8px 0 0; padding-left:18px }
+    #req-list li{ margin-bottom:6px }
+
+    .anim-flash{ animation: flash .35s ease; }
+    @keyframes flash{ 0%{ background:rgba(255,90,42,.15) } 100%{ background:transparent } }
+
+    /* Manijas de redimensionado */
+    .handle{ cursor:ew-resize }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Opciones de Inscripción</h1>
+    <div class="muted">Selecciona la que mejor te funcione.</div>
+
+    <!-- Controles -->
+    <div id="top-controls" class="hidden" role="group" aria-label="Preferencias de visualización">
+      <div id="mode-toggle-wrap" class="inline-toggle">
+        <div class="toggle-labels"><span>Personal</span><span>Corporativo</span></div>
+        <div id="modeToggle" class="toggle" role="switch" aria-checked="false" tabindex="0" aria-label="Cambiar Personal/Corporativo" title="Ver precios personales o corporativos"></div>
+      </div>
+      <div id="currency-toggle-wrap" class="inline-toggle">
+        <div class="toggle-labels"><span class="flag" aria-hidden>🇲🇽</span><span class="flag" aria-hidden>🇺🇸</span></div>
+        <div id="currencyToggle" class="toggle" role="switch" aria-checked="false" tabindex="0" aria-label="Cambiar moneda" title="Cambiar entre MXN y USD"></div>
+      </div>
+    </div>
+
+    <!-- Acciones (solo corporativo) -->
+    <div id="actions-bar" class="hidden">
+      <button id="share-btn" title="Copiar enlace con esta vista">Compartir esta vista</button>
+      <div id="share-info" aria-live="polite"></div>
+    </div>
+
+    <div id="loader" class="spinner" role="status" aria-live="polite" aria-label="Cargando"></div>
+    <div id="errorBox" role="alert"></div>
+
+    <!-- Próximo Curso (solo personal) -->
+    <div id="next-course" class="hidden" aria-live="polite">
+      <h3>Próximo Curso</h3>
+      <div class="row">
+        <div>
+          <div class="city" id="nc-city">—</div>
+          <div class="date" id="nc-date">—</div>
+        </div>
+        <div class="count" id="nc-count">—</div>
+      </div>
+    </div>
+
+    <!-- Generales del Proyecto -->
+    <div id="gp-card" class="card hidden" aria-live="polite">
+      <h3>Generales del Proyecto</h3>
+      <div id="gp-grid">
+        <div class="date-wrap">
+          <label class="label" for="gp-fecha">Fecha de la propuesta</label>
+          <input id="gp-fecha" type="text" readonly />
+          <div id="gp-fecha-pop" class="date-popover hidden"><input id="gp-fecha-picker" type="date" aria-label="Seleccionar fecha de la propuesta" /></div>
+        </div>
+        <div class="date-wrap">
+          <label class="label" for="gp-vigencia">Vigencia de la propuesta</label>
+          <input id="gp-vigencia" type="text" readonly />
+          <div id="gp-vigencia-pop" class="date-popover hidden"><input id="gp-vigencia-picker" type="date" aria-label="Seleccionar vigencia de la propuesta" /></div>
+        </div>
+        <div>
+          <label class="label" for="gp-empresa">Nombre de la empresa</label>
+          <input id="gp-empresa" type="text" placeholder="Ej. ACME S.A. de C.V." />
+        </div>
+        <div>
+          <label class="label" for="gp-solicita">Nombre de quien solicita</label>
+          <input id="gp-solicita" type="text" placeholder="Ej. Ana Pérez" />
+        </div>
+        <div>
+          <label class="label" for="gp-resp">Responsable en Leaderlix</label>
+          <input id="gp-resp" type="text" placeholder="Ej. Gerardo Betancourt" />
+        </div>
+        <div>
+          <label class="label" for="gp-tel">Teléfono</label>
+          <input id="gp-tel" type="tel" placeholder="Ej. +52 55 1234 5678" />
+        </div>
+        <div>
+          <label class="label" for="gp-mail">Correo</label>
+          <input id="gp-mail" type="email" placeholder="Ej. contacto@empresa.com" />
+        </div>
+        <div class="full">
+          <label class="label" for="gp-notas">Generales del proyecto</label>
+          <textarea id="gp-notas" placeholder="Describe brevemente el contexto, objetivos, sede(s), fechas tentativas y consideraciones."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pricing Cards -->
+    <div id="cards" class="grid row3 hidden" aria-live="polite"></div>
+
+    <!-- Beneficios corporativos (detalle) -->
+    <div id="corp-benefits-detail" class="hidden" aria-live="polite"></div>
+
+    <!-- ===== Cronograma (Gantt) ===== -->
+    <div id="gantt-card" class="card hidden" aria-live="polite">
+      <h3>Cronograma (Gantt)</h3>
+      <div class="gantt-tools">
+        <div class="seg">
+          <label class="label">Vista</label>
+          <select id="gantt-scale">
+            <option value="weeks">Semanas</option>
+            <option value="months">Meses</option>
+            <option value="quarters">Trimestres</option>
+          </select>
+        </div>
+        <div class="seg">
+          <button id="gantt-add-empty" class="muted-btn">Agregar etapa personalizada</button>
+        </div>
+        <div class="seg">
+          <button id="gantt-toggle-editor" class="muted-btn">Ocultar editor</button>
+        </div>
+      </div>
+
+      <div id="gantt-wrap">
+        <div id="gantt-canvas">
+          <svg id="gantt-svg" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Diagrama de Gantt"></svg>
+        </div>
+        <div class="gantt-legend">
+          <span class="badge b-pre">Pre-implementación</span>
+          <span class="badge b-imp1">Implementación 1:1</span>
+          <span class="badge b-impG">Implementación grupal</span>
+          <span class="badge b-eval">Evaluación / Certificación</span>
+          <span class="badge b-ref">Refresh</span>
+        </div>
+        <table class="gantt-table" id="gantt-table">
+          <thead><tr><th>Etapa</th><th>Fase</th><th>Inicio</th><th>Fin</th><th>Duración (sem)</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <!-- EDITOR AHORA DEBAJO DEL VISUAL -->
+      <div id="gantt-editor">
+        <div class="gantt-row" aria-hidden="true" style="font-weight:700; color:#334155">
+          <div>Título</div>
+          <div>Año</div>
+          <div>Trimestre</div>
+          <div>Semana</div>
+          <div>Duración (sem)</div>
+          <div>Fase</div>
+          <div></div>
+        </div>
+        <div id="gantt-rows"></div>
+      </div>
+    </div>
+
+    <!-- Totales -->
+    <div id="totales" class="card hidden" aria-live="polite">
+      <div class="coupon-row">
+        <input id="coupon-input" type="text" placeholder="Si tienes un cupón puedes ingresarlo aquí" />
+        <button id="coupon-apply">Aplicar cupón</button>
+      </div>
+      <div id="coupon-info" class="coupon-info"></div>
+
+      <div class="sum-grid">
+        <div>Apertura del grupo</div><div id="t-met-count">—</div><div id="t-met">—</div>
+        <div>Inscripciones <span class="hint">— Renovables a los 365 días de forma opcional</span></div><div id="t-subins-count">—</div><div id="t-subins">—</div>
+        <div id="coupon-line-label" class="hidden">Cupón</div><div></div><div id="coupon-line-value" class="hidden">—</div>
+      </div>
+
+      <div class="total-block grid" style="grid-template-columns: 1fr auto; row-gap:8px; margin-top:12px">
+        <div class="grand">Total antes de impuestos</div><div class="grand" id="t-corp">—</div>
+        <div id="t-iva-label">IVA (16%)</div><div id="t-iva">—</div>
+
+        <div id="t-conimp-label">Total con impuestos</div><div id="t-conimp">—</div>
+      </div>
+
+      <div class="line" style="justify-content:flex-start; gap:10px">
+        <input id="pay-card" type="checkbox" />
+        <label for="pay-card" class="label">Pagar con tarjeta (se agrega 4.5%)</label>
+      </div>
+
+      <div id="scale-warn" class="warn hidden"></div>
+      <div class="footer-actions">
+        <button id="btn-interesado" class="primary">Estoy interesado</button>
+      </div>
+    </div>
+
+    <!-- Requisitos -->
+    <div id="req-card" class="card hidden" aria-live="polite">
+      <h3>Requisitos para Eventos In Company u Off Site</h3>
+      <ul id="req-list"></ul>
+      <div class="footer-actions">
+        <button id="btn-interesado-req" class="primary">Estoy interesado</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Endpoint -->
+  <script>
+    window.LEADERLIX_ENDPOINT = "https://script.google.com/macros/s/AKfycbyt9Ny_dq9-o6x4IBih7lawmoCzH4KJAA2VxFngJ-c4y9DDAtXrOq9chm82Qv2zqSvB/exec";
+  </script>
+
+  <!-- Utilidades de red (con reintentos y timeout) -->
+  <script>
+    const REQUEST_TIMEOUT_MS = 25000;
+    const MAX_RETRIES = 2;
+    function showError(msg){ const b=document.getElementById("errorBox"); b.style.display="block"; b.textContent=msg||"No se pudo cargar la información."; }
+ 
+    function fetchJSON(url, attempt=0){
+      return new Promise((res, rej)=>{
+        const ctrl = new AbortController();
+        const to = setTimeout(()=>ctrl.abort(), REQUEST_TIMEOUT_MS);
+        const sep = url.includes("?") ? "&" : "?";
+        fetch(`${url}${sep}_=${Date.now()}`, { headers:{Accept:"application/json"}, signal: ctrl.signal })
+          .then(r=>r.text())
+          .then(t=>{
+            clearTimeout(to);
+            try{ res(JSON.parse(t)); }
+            catch(_){ (attempt<MAX_RETRIES)?setTimeout(()=>fetchJSON(url,attempt+1).then(res).catch(rej),500):rej(new Error("Respuesta no JSON")); }
+          })
+          .catch(e=>{
+            clearTimeout(to);
+            (attempt<MAX_RETRIES)?setTimeout(()=>fetchJSON(url,attempt+1).then(res).catch(rej),500):rej(e);
+          });
+      });
+    }
+  </script>
+
+  <!-- App -->
+  <script>
+    /* ===== Utilidades fecha y semanas ===== */
+    function toYMD(d){ const y=d.getFullYear(); const m=String(d.getMonth()+1).padStart(2,'0'); const day=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${day}`; }
+    function capitalizeFecha(s){ const skip=new Set(['de','del']); return s.split(' ').map(w=>skip.has(w)?w:(w.charAt(0).toUpperCase()+w.slice(1))).join(' '); }
+    function formatDateLong(d){ try{ return capitalizeFecha(d.toLocaleDateString('es-MX',{weekday:'long', day:'numeric', month:'long', year:'numeric'})); }catch(_){ return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`; } }
+    function isoWeekStart(year, week){
+      const simple = new Date(Date.UTC(year,0,1+ (week-1)*7));
+      const dow = simple.getUTCDay()||7;
+      if(dow>4) simple.setUTCDate(simple.getUTCDate()+ 8-dow); else simple.setUTCDate(simple.getUTCDate()- (dow-1));
+      return new Date(simple.getUTCFullYear(), simple.getUTCMonth(), simple.getUTCDate());
+    }
+    function dateToISOWeekLabel(d){
+      // Encuentra semana ISO tal que isoWeekStart == lunes de esa semana
+      const y = d.getFullYear();
+      for(let w=1; w<=53; w++){ const s=isoWeekStart(y,w); if(s<=d && d<new Date(s.getTime()+7*86400000)) return `${y}-W${String(w).padStart(2,'0')}`; }
+      // Bordes de año:
+      for(let w=1; w<=53; w++){ const s=isoWeekStart(y-1,w); if(s<=d && d<new Date(s.getTime()+7*86400000)) return `${y-1}-W${String(w).padStart(2,'0')}`; }
+      for(let w=1; w<=53; w++){ const s=isoWeekStart(y+1,w); if(s<=d && d<new Date(s.getTime()+7*86400000)) return `${y+1}-W${String(w).padStart(2,'0')}`; }
+      return `${y}-W01`;
+    }
+    function parseISOWeek(w){
+      const m = /^(\d{4})-W(\d{2})$/.exec(String(w||""));
+      if(!m) return null; const y=+m[1], wk=+m[2]; return isoWeekStart(y, wk);
+    }
+    function addWeeks(d, n){ const x=new Date(d); x.setDate(x.getDate()+ n*7); return x; }
+    function getQuarterOfDate(d){ return Math.floor(d.getMonth()/3)+1; }
+    function weeksOfYear(year){
+      const out=[]; for(let w=1; w<=53; w++){ const s=isoWeekStart(year, w); if(s.getFullYear()<year-1) continue; out.push(w); } return out;
+    }
+    function weeksOfQuarter(year, q){
+      const m0=(q-1)*3, m1=m0+2; const res=[];
+      for(const w of weeksOfYear(year)){ const s=isoWeekStart(year, w); const m=s.getMonth(); if(m>=m0 && m<=m1) res.push({w, startDate:s}); }
+      return res;
+    }
+    function formatWeekLabel(year, w){ return `${year}-W${String(w).padStart(2,'0')}`; }
+
+    // Wrap ISO semanas (para cruces de año)
+    function wrapISOWeek(year, week){
+      let y=year, w=week;
+      while(w>53){ w-=53; y+=1; }
+      while(w<1){ w+=53; y-=1; }
+      return {y,w};
+    }
+    function formatWeekLabelSafe(year, week){
+      const {y,w}=wrapISOWeek(year, week);
+      return `${y}-W${String(w).padStart(2,'0')}`;
+    }
+// Convierte una fecha (lunes de semana ISO) a etiqueta "YYYY-Www"
+// Usada por los handlers globales de drag/resize
+function weeksCacheIndexToISO(d){
+  const y = d.getFullYear();
+
+  // mismo año
+  for (let w = 1; w <= 53; w++) {
+    const s = isoWeekStart(y, w);
+    if (s.getTime() === d.getTime()) return formatWeekLabel(y, w);
+  }
+  // año anterior
+  for (let w = 1; w <= 53; w++) {
+    const s = isoWeekStart(y - 1, w);
+    if (s.getTime() === d.getTime()) return formatWeekLabel(y - 1, w);
+  }
+  // año siguiente
+  for (let w = 1; w <= 53; w++) {
+    const s = isoWeekStart(y + 1, w);
+    if (s.getTime() === d.getTime()) return formatWeekLabel(y + 1, w);
+  }
+  return null;
+}
+
+    /* ===== Estado general ===== */
+    const ENDPOINT=window.LEADERLIX_ENDPOINT;
+    const MODS=[{key:"autodidacta",title:"Autodidacta"},{key:"yotenseno",title:"Yo Te Enseño"},{key:"lohagocontigo",title:"Lo Hago Contigo"}];
+    let DATA=null, currency="mxn", mode="personal", personalPeriod="mensual", appliedCoupon=null, inCompanyIndex=-1, readOnly=false;
+
+    /* ===== Estado Gantt ===== */
+    const GANTT_TZ = "America/Mexico_City";
+    const phaseColor = (p)=> p==="Pre"?"var(--pre)" : p==="Imp1"?"var(--imp1)" : p==="ImpG"?"var(--impG)" : p==="Eval"?"var(--eval)" : "var(--refresh)";
+    let gantt = { tz:GANTT_TZ, scale:"weeks", items:[] };
+function reorderGanttItems(){
+  if (!gantt || !Array.isArray(gantt.items)) return;
+  // Ordena por fecha de inicio; si empatan, por fase y luego por título
+  gantt.items.sort((a, b) => {
+    const da = parseISOWeek(a.w), db = parseISOWeek(b.w);
+    const ta = da ? da.getTime() : 0;
+    const tb = db ? db.getTime() : 0;
+    if (ta !== tb) return ta - tb;
+    const pa = String(a.phase||"").localeCompare(String(b.phase||""));
+    if (pa !== 0) return pa;
+    return String(a.t||"").localeCompare(String(b.t||""));
+  });
+}
+
+
+    const $=s=>document.querySelector(s);
+    const el=(t,c)=>{const n=document.createElement(t); if(c) n.className=c; return n;};
+    const nfByCcy=ccy=>new Intl.NumberFormat(ccy==="usd"?"en-US":"es-MX",{minimumFractionDigits:2,maximumFractionDigits:2});
+    const money=(n,ccy)=>(ccy==="usd"?"USD":"MXN")+" $"+nfByCcy(ccy).format(Number(n||0));
+    const norm=s=>String(s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+
+    /* ===== Próximo Curso (personal) ===== */
+    function pickNextEventObject(json){ return json?.siguiente_evento_presencial || json?.individual?.proximo_evento_presencial || null; }
+    function safeDateFromPayload(obj){
+      if(!obj) return null;
+      if(typeof obj.fecha_ms === "number" && isFinite(obj.fecha_ms)) return new Date(obj.fecha_ms);
+      if(obj.fecha_iso){ const d=new Date(String(obj.fecha_iso)); if(isFinite(d)) return d; }
+      if(obj.fecha_texto){ const d=new Date(String(obj.fecha_texto)); if(isFinite(d)) return d; }
+      return null;
+    }
+    function renderNextCourseBox(json){
+      const box=$("#next-course"); const cityEl=$("#nc-city"); const dateEl=$("#nc-date"); const countEl=$("#nc-count");
+      const evt = pickNextEventObject(json);
+      if(!evt){ box.classList.add("hidden"); return; }
+      const city = String(evt.ciudad||"").trim();
+      const d = safeDateFromPayload(evt);
+      if(!city && !d){ box.classList.add("hidden"); return; }
+      if(city) cityEl.textContent = city;
+      if(d){ dateEl.textContent = formatDateLong(d); startCountdown(d, countEl); } else { dateEl.textContent = "Por confirmar"; countEl.textContent = "—"; }
+      box.classList.remove("hidden");
+    }
+    function startCountdown(targetDate, outEl){
+      function tick(){ const now=new Date(), diff=targetDate-now; if(diff<=0){ outEl.textContent="¡Hoy!"; return; }
+        const s=Math.floor(diff/1000), days=Math.floor(s/86400), hours=Math.floor((s%86400)/3600), mins=Math.floor((s%3600)/60), secs=s%60;
+        outEl.textContent=`${days}d ${hours}h ${mins}m ${secs}s`; setTimeout(tick, 1000); }
+      tick();
+    }
+
+    /* ===== In Company helpers ===== */
+    function isIncluded(v){ if(typeof v==="boolean") return v; if(typeof v==="number") return v!==0;
+      const s=String(v??"").trim().toLowerCase(); return ["si","sí","yes","true","1","✓","✔","✅"].includes(s); }
+    function findIndexFloor(arr,count){
+      const c=Number(count); const exact=arr.indexOf(c); if(exact>=0) return exact;
+      let best=-1,val=-Infinity; for(let i=0;i<arr.length;i++){ const v=Number(arr[i]); if(v<=c && v>val){ val=v; best=i; } } return best;
+    }
+    function getPrice(mod,count,ccy){
+      const idx=findIndexFloor(DATA.escalas,count);
+      if(idx<0) return {ok:false,price:0,discount:0,scale:null};
+      return { ok:true, price:Number(DATA.precios[mod][ccy][idx])||0, discount:Number(DATA.descuentos[mod][idx])||0, scale:Number(DATA.escalas[idx])||0 };
+    }
+
+    /* ===== Beneficios: detalle corporativo ===== */
+    function renderCorpBenefitDetails(){
+      const box = $("#corp-benefits-detail");
+      if(mode!=="corporativo"){ box.classList.add("hidden"); box.innerHTML=""; return; }
+      const nombres = (DATA?.beneficios?.nombres)||[];
+      const det = (DATA?.beneficios?.detalle)||[];
+      const cols = {
+        autodidacta:(DATA?.beneficios?.autodidacta||[]),
+        yotenseno:(DATA?.beneficios?.yotenseno||[]),
+        lohagocontigo:(DATA?.beneficios?.lohagocontigo||[])
+      };
+      const sel = {
+        autodidacta: Number($("#p-autodidacta")?.value||0)>0,
+        yotenseno: Number($("#p-yotenseno")?.value||0)>0,
+        lohagocontigo: Number($("#p-lohagocontigo")?.value||0)>0
+      };
+      const cards=[]; const idxInco=(DATA?.beneficios?.nombres||[]).findIndex(n=>norm(String(n||"")).includes("curso in company"));
+
+      // Si el módulo alcanza su UM, sólo ese módulo muestra ✓
+      if (idxInco >= 0) {
+  const mins = DATA?.condiciones?.incompany || {};
+  const qualifiesAny = MODS.some(({ key }) => {
+    const min = Number(mins[key] || 0);
+    const cnt = Number(document.getElementById("p-" + key)?.value || 0);
+    return (min <= 0) || (cnt >= min);
+  });
+
+  if (qualifiesAny) {
+    const name = String(nombres[idxInco] || "Curso in Company");
+    const desc = Array.isArray(det) ? String(det[idxInco]?.descripcion || det[idxInco] || "") : "";
+    cards.push(makeBenefitCard(name, desc));
+  }
+}
+      for(let i=0;i<nombres.length;i++){
+        if(i===idxInco) continue;
+        const applies=
+          (sel.autodidacta && isIncluded(cols.autodidacta[i])) ||
+          (sel.yotenseno && isIncluded(cols.yotenseno[i])) ||
+          (sel.lohagocontigo && isIncluded(cols.lohagocontigo[i]));
+        if(!applies) continue;
+        const name=String(nombres[i]||"").trim(); if(!name) continue;
+        const desc=Array.isArray(det)?String(det[i]?.descripcion || det[i] || "").trim():"";
+        cards.push(makeBenefitCard(name, desc));
+      }
+      box.innerHTML=""; if(cards.length===0){ box.classList.add("hidden"); return; }
+      cards.forEach(c=>box.appendChild(c)); box.classList.remove("hidden");
+    }
+    function makeBenefitCard(title, desc){ const c=el("div","benef-card"); const h=el("div","benef-title"); h.textContent=title||"Beneficio"; const p=el("div","benef-desc"); p.textContent=desc||"—"; c.appendChild(h); c.appendChild(p); return c; }
+
+    /* ===== Construcción de pricing ===== */
+    function buildCards(){
+      const cards=$("#cards"); cards.innerHTML=""; cards.classList.remove("hidden");
+      const corpNames=(DATA?.beneficios?.nombres)||[];
+      const idxByName=corpNames.findIndex(n=>norm(n).includes("curso in company"));
+      inCompanyIndex = (idxByName>=0 ? idxByName : -1);
+
+      MODS.forEach(({key,title})=>{
+        const card=el("div","card pricing"); const h=el("div","title"); h.textContent=title; card.appendChild(h);
+        if(mode==="corporativo"){
+          const iw=el("div","line");
+          const lbl=el("label","label"); lbl.textContent="Participantes"; lbl.htmlFor="p-"+key;
+          // Cambiamos a input numérico (mejor rendimiento)
+          const sel=document.createElement("input"); sel.id="p-"+key; sel.type="number"; sel.min="0"; sel.step="1";
+          sel.value=String(Math.max(0,Number(DATA.participantes[key]||0)));
+          iw.appendChild(lbl); iw.appendChild(sel); card.appendChild(iw);
+
+          const st=el("div","line"), stl=el("div"), stv=el("div");
+          stl.innerHTML='Subtotal <span class="hint">— Anualmente</span>';
+          stv.id="st-"+key; stv.textContent=money(0,currency);
+          st.appendChild(stl); st.appendChild(stv); card.appendChild(st);
+
+          const ppl=el("div","line"), ppll=el("div"), pplv=el("div");
+          ppll.textContent="Precio por persona"; pplv.id="pp-"+key; pplv.textContent=money(0,currency);
+          ppl.appendChild(ppll); ppl.appendChild(pplv); card.appendChild(ppl);
+
+          const bl=el("div","subtle"); bl.textContent="Incluye:";
+          const ul=el("ul","benefits"); ul.id="b-"+key;
+          card.appendChild(bl); card.appendChild(ul);
+
+          cards.appendChild(card);
+        }else{
+          const tWrap=el("div","inline-toggle"); tWrap.style.marginTop="-4px";
+          const labels=el("div","toggle-labels"); labels.innerHTML="<span>Mensual</span><span>Anual</span>";
+          const t=el("div","toggle"); t.id="perToggle-"+key;
+          if(personalPeriod==="anual") t.classList.add("right");
+          t.setAttribute("role","switch"); t.setAttribute("aria-checked", personalPeriod==="anual"?"true":"false"); t.tabIndex=0;
+          tWrap.appendChild(labels); tWrap.appendChild(t); card.appendChild(tWrap);
+
+          const pl=el("div","line");
+          const pll=el("div"); pll.id="plabel-"+key; pll.textContent=personalPeriod==="anual" ? "Precio (Anualmente)" : "Precio (Mensualmente)";
+          const plv=el("div"); plv.id="pv-"+key; plv.textContent=money(0,currency);
+          pl.appendChild(pll); pl.appendChild(plv); card.appendChild(pl);
+
+          const note=el("span","note"); note.id="pnote-"+key; note.textContent="(Puedes pagarlo en mensualidades)";
+          if(personalPeriod!=="anual") note.classList.add("vishide");
+          card.appendChild(note);
+
+          const bl=el("div","subtle"); bl.textContent="Incluye:";
+          const ul=el("ul","benefits"); ul.id="bi-"+key;
+          card.appendChild(bl); card.appendChild(ul);
+
+          const cta=el("div","footer-actions");
+          const btn=el("button","primary"); btn.textContent="Inscríbete ahora"; btn.addEventListener("click",()=>openInterest(key));
+          cta.appendChild(btn); card.appendChild(cta);
+
+          cards.appendChild(card);
+        }
+      });
+
+      renderBenefits();
+      if(mode==="corporativo"){
+        MODS.forEach(({key})=>{
+          document.getElementById("p-"+key).addEventListener("input", ()=>{
+            recalc(true); updateURLFromDOM();
+          });
+        });
+      }
+    }
+
+    function syncPersonalToggles(){
+      MODS.forEach(({key})=>{
+        const t=document.getElementById(`perToggle-${key}`);
+        const lbl=document.getElementById(`plabel-${key}`);
+        const note=document.getElementById(`pnote-${key}`);
+        if(!t) return;
+        t.classList.toggle("right", personalPeriod==="anual");
+        t.setAttribute("aria-checked", personalPeriod==="anual"?"true":"false");
+        if(lbl) lbl.textContent = personalPeriod==="anual" ? "Precio (Anualmente)" : "Precio (Mensualmente)";
+        if(note) note.classList.toggle("vishide", personalPeriod!=="anual");
+      });
+    }
+
+    function renderBenefits(){
+      if(mode==="corporativo"){
+        const names=(DATA?.beneficios?.nombres||[]).map(x=>String(x||""));
+        const cols={ autodidacta:(DATA?.beneficios?.autodidacta||[]), yotenseno:(DATA?.beneficios?.yotenseno||[]), lohagocontigo:(DATA?.beneficios?.lohagocontigo||[]) };
+
+        MODS.forEach(({key})=>{
+          const ul=document.getElementById("b-"+key); if(!ul) return; ul.innerHTML="";
+          for(let i=0;i<names.length;i++){
+            const nm=names[i]||""; if(nm.trim()==="") continue;
+            const li=document.createElement("li");
+            if(i===inCompanyIndex){ li.id=`inc-${key}`; ul.appendChild(li); continue; }
+            const on=isIncluded(cols[key][i]);
+            const icon=document.createElement("span"); icon.className=on?"check":"cross"; icon.textContent=on?"✓":"✗";
+            if(on){ li.appendChild(icon); li.appendChild(document.createTextNode(" "+nm)); }
+            else { li.classList.add("off"); const s=document.createElement("s"); s.textContent=" "+nm; li.appendChild(icon); li.appendChild(s); }
+            ul.appendChild(li);
+          }
+        });
+        updateInCompanyLabels();
+      }else{
+        const names=(DATA?.individual?.beneficios?.nombres||[]).map(x=>String(x||""));
+        const cols={ autodidacta:(DATA?.individual?.beneficios?.autodidacta||[]), yotenseno:(DATA?.individual?.beneficios?.yotenseno||[]), lohagocontigo:(DATA?.individual?.beneficios?.lohagocontigo||[]) };
+        MODS.forEach(({key})=>{
+          const ul=document.getElementById(`bi-${key}`); if(!ul) return; ul.innerHTML="";
+          for(let i=0;i<names.length;i++){
+            const rawName=names[i]||""; if(rawName.trim()==="") continue;
+            const isCursoPresencial = norm(rawName)==="curso presencial";
+            let on = isIncluded(cols[key][i]);
+            const li=document.createElement("li"); const icon=document.createElement("span");
+            if(isCursoPresencial){
+              if(personalPeriod==="mensual"){
+                on=false; icon.className="cross"; icon.textContent="✗"; li.classList.add("off");
+                const s=document.createElement("s"); s.textContent=" "+rawName+" ";
+                const strong=document.createElement("strong"); strong.textContent="(Solo en anual)"; strong.style.color="var(--accent)"; strong.style.fontWeight="700"; strong.setAttribute("aria-hidden","true");
+                li.appendChild(icon); li.appendChild(s); li.appendChild(strong);
+              }else{
+                on=true; icon.className="check"; icon.textContent="✓"; li.appendChild(icon); li.appendChild(document.createTextNode(" "+rawName));
+              }
+            }else{
+              icon.className=on?"check":"cross"; icon.textContent=on?"✓":"✗";
+              if(on){ li.appendChild(icon); li.appendChild(document.createTextNode(" "+rawName)); }
+              else { li.classList.add("off"); const s=document.createElement("s"); s.textContent=" "+rawName; li.appendChild(icon); li.appendChild(s); }
+            }
+            ul.appendChild(li);
+          }
+        });
+      }
+    }
+
+    function updateInCompanyLabels(){
+      if(inCompanyIndex<0 || mode!=="corporativo") return;
+      const mins=DATA?.condiciones?.incompany || {};
+      MODS.forEach(({key})=>{
+        const li=document.getElementById(`inc-${key}`); if(!li) return;
+        const min=Number(mins[key]||0);
+        const cnt=Number(document.getElementById(`p-${key}`)?.value||0);
+        const qualifies = (min<=0) || (cnt>=min);
+        const baseText = "Curso in Company";
+        const suffix = document.createElement("strong");
+        suffix.textContent = min>0 ? ` (Desde ${min} px)` : "";
+        suffix.style.color = "var(--accent)";
+        suffix.style.fontWeight = "700";
+
+        li.innerHTML=""; const icon=document.createElement("span");
+        if(qualifies){
+          icon.className="check"; icon.textContent="✓";
+          li.classList.remove("off");
+          li.appendChild(icon); li.appendChild(document.createTextNode(" "+baseText)); if(min>0) li.appendChild(suffix);
+        }else{
+          icon.className="cross"; icon.textContent="✗";
+          li.classList.add("off");
+          const s=document.createElement("s"); s.textContent=" "+baseText;
+          li.appendChild(icon); li.appendChild(s); li.appendChild(suffix);
+        }
+      });
+    }
+
+    function normalizeMethodologyDiscount(x){ let v=Number(x||0); if(!isFinite(v)||v<0) v=0; if(v>1&&v<=100) v=v/100; if(v>1) v=1; return v; }
+
+    /* ===== Gantt: serialización URL (sin escape/unescape) ===== */
+    function b64urlEncode(str){
+      const bytes = new TextEncoder().encode(str);
+      let bin = ""; bytes.forEach(b => bin += String.fromCharCode(b));
+      return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+    }
+    function b64urlDecode(str){
+      const pad = str.length % 4 ? '='.repeat(4 - (str.length % 4)) : '';
+      const base = str.replace(/-/g,'+').replace(/_/g,'/') + pad;
+      const bin = atob(base);
+      const bytes = new Uint8Array([...bin].map(c => c.charCodeAt(0)));
+      return new TextDecoder().decode(bytes);
+    }
+    function encodeCG(){ try{ if(!gantt || !Array.isArray(gantt.items)) return ""; const minimal = { tz:gantt.tz||GANTT_TZ, scale:gantt.scale||"weeks", items:gantt.items.map(x=>({t:x.t||"", w:x.w||"", d:Math.max(0,parseInt(x.d||0)), phase:x.phase||"Pre"})) }; return b64urlEncode(JSON.stringify(minimal)); }catch(_){ return ""; } }
+    function decodeCG(token){ try{ const obj = JSON.parse(b64urlDecode(token||"")); if(!obj || !Array.isArray(obj.items)) return null; return obj; }catch(_){ return null; } }
+
+    /* ===== Estado <-> URL ===== */
+    function getState(){
+      return {
+        mode,currency,personalPeriod,
+        p_autodidacta:$("#p-autodidacta")?.value||"0",
+        p_yotenseno:$("#p-yotenseno")?.value||"0",
+        p_lohagocontigo:$("#p-lohagocontigo")?.value||"0",
+        coupon:($("#coupon-input")?.value||"").trim(),
+        paycard:$("#pay-card")?.checked?"1":"0",
+        gp_empresa: $("#gp-empresa")?.value||"",
+        gp_solicita: $("#gp-solicita")?.value||"",
+        gp_resp: $("#gp-resp")?.value||"",
+        gp_tel: $("#gp-tel")?.value||"",
+        gp_mail: $("#gp-mail")?.value||"",
+        gp_notas: $("#gp-notas")?.value||"",
+        gp_fecha_iso: $("#gp-fecha-picker")?.value||"",
+        gp_vigencia_iso: $("#gp-vigencia-picker")?.value||"",
+        cg: encodeCG()
+      };
+    }
+    function buildURLFromState(ro){ const p=new URLSearchParams(getState()); if(ro) p.set("ro","1"); return location.origin+location.pathname+"?"+p.toString(); }
+    function updateURLFromDOM(){ const url = buildURLFromState(false); history.replaceState(null,"",url); }
+    function applyStateFromURL(){
+      const q=new URLSearchParams(location.search);
+      if(q.get("currency")==="usd") currency="usd";
+      if(q.get("mode")==="corporativo") mode="corporativo";
+      if(q.get("personalPeriod")==="anual") personalPeriod="anual";
+      readOnly = q.get("ro")==="1";
+      const cgTok = q.get("cg");
+      if(cgTok){ const obj = decodeCG(cgTok); if(obj){ gantt = { tz: obj.tz||GANTT_TZ, scale: obj.scale||"weeks", items: Array.isArray(obj.items)?obj.items:[] }; } }
+      return q;
+    }
+
+    /* ===== ReadOnly ===== */
+    function applyReadOnly(){
+      if(!readOnly) return;
+      ["gp-empresa","gp-solicita","gp-resp","gp-tel","gp-mail","gp-notas",
+       "gp-fecha","gp-vigencia","gp-fecha-picker","gp-vigencia-picker"
+      ].forEach(id=>{ const e=$("#"+id); if(e){ e.disabled=true; e.readOnly=true; e.style.pointerEvents="none"; }});
+      $("#actions-bar")?.classList.add("hidden");
+      const modeWrap = $("#mode-toggle-wrap"); if(modeWrap){ modeWrap.style.display="none"; modeWrap.setAttribute("aria-hidden","true"); }
+      $("#gantt-editor").classList.add("hidden");
+    }
+
+    /* ===== Gantt: Editor AÑO → TRIM → SEMANA ===== */
+    function addGanttRow(item){
+      const row = el("div","gantt-row");
+
+      const t = document.createElement("input"); t.type="text"; t.value=item.t||"";
+
+      const yearSel = document.createElement("select");
+      const nowY = new Date().getFullYear();
+      for(let y=nowY-1; y<=nowY+3; y++){ const o=document.createElement("option"); o.value=String(y); o.textContent=String(y); yearSel.appendChild(o); }
+
+      const qSel = document.createElement("select");
+      [["","—"],["1","T1"],["2","T2"],["3","T3"],["4","T4"]].forEach(([v,txt])=>{ const o=document.createElement("option"); o.value=v; o.textContent=txt; qSel.appendChild(o); });
+
+      const wSel = document.createElement("select");
+
+const d = document.createElement("input");
+d.type="number";
+d.min="1";
+
+
+      const ph = document.createElement("select");
+      [["Pre","Pre-impl."],["Imp1","Impl. 1:1"],["ImpG","Impl. grupal"],["Eval","Evaluación"],["Ref","Refresh"]]
+        .forEach(([v,txt])=>{ const o=document.createElement("option"); o.value=v; o.textContent=txt; ph.appendChild(o); });
+      ph.value=item.phase||"Pre";
+
+      const del = document.createElement("button"); del.textContent="Quitar"; del.className="del"; del.setAttribute("aria-label","Quitar "+(item.t||"etapa"));
+
+      (function initFromISO(){
+        const m = /^(\d{4})-W(\d{2})$/.exec(String(item.w||""));
+        const y = m ? parseInt(m[1]) : nowY;
+        const ww = m ? parseInt(m[2]) : null;
+        yearSel.value = String(y);
+        const qGuess = ww ? getQuarterOfDate(isoWeekStart(y, ww)) : getQuarterOfDate(new Date());
+        qSel.value = String(qGuess);
+        rebuildWeekOptions();
+        if(ww){ wSel.value = String(ww); } else if(wSel.options.length){ wSel.selectedIndex=0; commitWeek(); }
+      })();
+
+      function rebuildWeekOptions(){
+        wSel.innerHTML = "";
+        if(!qSel.value){ const o=document.createElement("option"); o.value=""; o.textContent="—"; wSel.appendChild(o); return; }
+        const year = parseInt(yearSel.value); const q = parseInt(qSel.value);
+        const arr = weeksOfQuarter(year, q);
+        arr.forEach(({w, startDate})=>{
+          const o=document.createElement("option"); o.value=String(w);
+          o.textContent=`W${String(w).padStart(2,'0')} (${startDate.toLocaleDateString('es-MX',{day:'2-digit',month:'short'})})`;
+          wSel.appendChild(o);
+        });
+      }
+      function commitWeek(){
+        const y = parseInt(yearSel.value); const w = parseInt(wSel.value||"0");
+        if(y && w){ item.w = formatWeekLabel(y, w); renderGantt(); updateURLFromDOM(); }
+      }
+
+      [t,d,ph].forEach(ctrl=>{
+        ctrl.addEventListener("input", ()=>{
+          item.t = t.value; item.d = Math.max(0, parseInt(d.value||0)); item.phase = ph.value;
+          scheduleGanttRender();
+
+        });
+      });
+      yearSel.addEventListener("change", ()=>{ rebuildWeekOptions(); commitWeek(); });
+      qSel.addEventListener("change", ()=>{ rebuildWeekOptions(); if(wSel.options.length>0 && wSel.value===""){ wSel.selectedIndex=0; } commitWeek(); });
+      wSel.addEventListener("change", commitWeek);
+
+      del.addEventListener("click", ()=>{
+        gantt.items = gantt.items.filter(it => it!==item);
+        row.remove(); scheduleGanttRender();
+
+      });
+
+      row.appendChild(t);
+      row.appendChild(yearSel);
+      row.appendChild(qSel);
+      row.appendChild(wSel);
+      row.appendChild(d);
+      row.appendChild(ph);
+      row.appendChild(del);
+      $("#gantt-rows").appendChild(row);
+      if(readOnly) row.classList.add("readonly");
+    }
+    function rebuildGanttEditor(){ const rows=$("#gantt-rows"); rows.innerHTML=""; (gantt.items||[]).forEach(addGanttRow); }
+
+   /* ===== Gantt: Render, Drag & Resize & Tabla ===== */
+// ==== RAF para coalescar renders del Gantt ====
+
+let ganttRaf = null;
+function scheduleGanttRender(){
+  if (ganttRaf) return;
+  ganttRaf = requestAnimationFrame(()=>{
+    ganttRaf = null;
+    renderGantt();
+    updateURLFromDOM();
+  });
+}
+
+
+
+let weeksCache=[], leftPadCache=220, colWCache=28, topPadCache=50;
+
+// === Drag global del Gantt (nuevo) ===
+// === Drag global del Gantt (nuevo) ===
+let dragState = null; // { type:'move'|'resize', index:number, side?:'left'|'right' }
+
+function onGanttPointerMove(ev){
+  if (!dragState || readOnly) return;
+
+  const svg = document.getElementById('gantt-svg');
+  const bbox = svg.getBoundingClientRect();
+  const clientX = ev.clientX ?? (ev.touches?.[0]?.clientX);
+  const x = clientX - bbox.left;
+  const rel = x - leftPadCache;
+
+  let wIndex = Math.round(rel / colWCache);
+  if (wIndex < 0) wIndex = 0;
+  if (wIndex > weeksCache.length - 1) wIndex = weeksCache.length - 1;
+
+  const targetWeekDate = weeksCache[wIndex];
+  if (!targetWeekDate) return;
+
+  const idx = dragState.index;
+  const it = gantt.items[idx];
+  if (!it) return;
+
+  if (dragState.type === 'move'){
+    // mover solo este elemento (ya están desvinculados entre sí)
+    const ww = weeksCacheIndexToISO(targetWeekDate);
+    if (ww){
+      it.w = ww;
+      renderGantt(); updateURLFromDOM(); rebuildGanttEditor();
+    }
+  } else if (dragState.type === 'resize'){
+    const startDate = parseISOWeek(it.w);
+    if (!startDate) return;
+
+    if (dragState.side === 'right'){
+      // redimensionar por la derecha
+      const dur = Math.max(1, Math.round((targetWeekDate - startDate) / (7*86400000)));
+      it.d = dur;
+    } else if (dragState.side === 'left'){
+      // redimensionar por la izquierda
+      const endDate = addWeeks(startDate, Math.max(0, it.d||0));
+      const newStartISO = weeksCacheIndexToISO(targetWeekDate);
+      if (newStartISO){
+        const newStart = parseISOWeek(newStartISO);
+        const newDur = Math.max(1, Math.round((endDate - newStart) / (7*86400000)));
+        it.w = newStartISO;
+        it.d = newDur;
+      }
+    }
+    renderGantt(); updateURLFromDOM(); rebuildGanttEditor();
+  }
+}
+
+function onGanttPointerUp(){
+  dragState = null;
+}
+
+function attachGanttPointerHandlers(){
+  if (attachGanttPointerHandlers._done) return;
+  attachGanttPointerHandlers._done = true;
+  const svg = document.getElementById('gantt-svg');
+  svg.addEventListener('pointermove', onGanttPointerMove);
+  svg.addEventListener('pointerup', onGanttPointerUp);
+  svg.addEventListener('pointerleave', onGanttPointerUp);
+}
+
+function renderGantt(){
+  const svg=$("#gantt-svg"); const tbody=$("#gantt-table tbody");
+  const items=(gantt.items||[]).map(x=>({ ...x, d:Math.max(1,parseInt(x.d||1)) }))
+.filter(x=>x.t && x.w);
+  while(svg.firstChild) svg.removeChild(svg.firstChild); tbody.innerHTML="";
+
+  if(items.length===0){
+    svg.setAttribute("height","60"); svg.setAttribute("width","1000");
+    const t = document.createElementNS("http://www.w3.org/2000/svg","text");
+    t.setAttribute("x","20"); t.setAttribute("y","40"); t.setAttribute("fill","#64748b"); t.textContent="Agrega etapas para ver el cronograma…";
+    svg.appendChild(t);
+    return;
+  }
+
+  const starts = items.map(it=>parseISOWeek(it.w)).filter(Boolean);
+  const ends   = items.map(it=>{ const s=parseISOWeek(it.w); if(!s) return null; return addWeeks(s, Math.max(0,it.d)); }).filter(Boolean);
+  const minStart = new Date(Math.min(...starts.map(d=>d.getTime())));
+  const maxEnd   = new Date(Math.max(...ends.map(d=>d.getTime())));
+  const from = addWeeks(minStart, -1);
+  const to   = addWeeks(maxEnd,  1);
+
+  const weeks = []; let cursor = new Date(from);
+  while(cursor <= to){ weeks.push(new Date(cursor)); cursor = addWeeks(cursor, 1); }
+  weeksCache = weeks;
+
+  const rowH=28, topPad=topPadCache, leftPad=leftPadCache, colW=colWCache, h= topPad + (items.length * rowH) + 40, w= leftPad + (weeks.length * colW) + 80;
+  svg.setAttribute("width", Math.max(600,w)); svg.setAttribute("height", h);
+
+  const ns="http://www.w3.org/2000/svg";
+  const bg = document.createElementNS(ns,"rect"); bg.setAttribute("x","0"); bg.setAttribute("y","0"); bg.setAttribute("width",w); bg.setAttribute("height",h); bg.setAttribute("fill","#fff"); svg.appendChild(bg);
+
+  function monthKey(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; }
+  function quarterKey(d){ const q=Math.floor(d.getMonth()/3)+1; return `${d.getFullYear()}-Q${q}`; }
+
+  const axis = document.createElementNS(ns,"g"); svg.appendChild(axis);
+  const labels = document.createElementNS(ns,"g"); svg.appendChild(labels);
+
+  // etiquetas de filas
+  items.forEach((it,idx)=>{
+    const y = topPad + idx*rowH + 18;
+    const tx = document.createElementNS(ns,"text"); tx.setAttribute("x", 12); tx.setAttribute("y", y); tx.setAttribute("fill","#111"); tx.setAttribute("font-size","12"); tx.textContent = it.t; svg.appendChild(tx);
+  });
+
+  // grid vertical
+  weeks.forEach((wk, i)=>{
+    const x = leftPad + i*colW;
+    const l = document.createElementNS(ns,"line");
+    l.setAttribute("x1", x); l.setAttribute("x2", x); l.setAttribute("y1", topPad-24); l.setAttribute("y2", h-30);
+    l.setAttribute("stroke", i%2===0 ? "#f8fafc" : "var(--gantt-grid)");
+    svg.appendChild(l);
+  });
+
+  // cabecera según vista (con semanas ISO consistentes)
+  if((gantt.scale||"weeks")==="weeks"){
+    weeks.forEach((wkDate,i)=>{
+      let weekNo=1, y=wkDate.getFullYear();
+      for(let w=1; w<=53; w++){ const s=isoWeekStart(y,w); if(s.getTime()===wkDate.getTime()){ weekNo=w; break; } }
+      const x = leftPad + i*colW + 4;
+      const lab = document.createElementNS(ns,"text");
+      lab.setAttribute("x",x); lab.setAttribute("y", topPad-10); lab.setAttribute("fill","var(--gantt-axis)"); lab.setAttribute("font-size","10");
+      lab.textContent = `W${String(weekNo).padStart(2,'0')}`;
+      labels.appendChild(lab);
+    });
+  }else if(gantt.scale==="months"){
+    const monthSeen=new Map(weeks.map(w=>[monthKey(w), w]));
+    Array.from(monthSeen.values()).forEach(m=>{
+      const idx = weeks.findIndex(w=> w.getFullYear()===m.getFullYear() && w.getMonth()===m.getMonth());
+      const x = leftPad + idx*colW + 4;
+      const lab = document.createElementNS(ns,"text"); lab.setAttribute("x",x); lab.setAttribute("y", topPad-10); lab.setAttribute("fill","var(--gantt-axis)"); lab.setAttribute("font-size","11");
+      lab.textContent = m.toLocaleDateString('es-MX',{month:'short', year:'2-digit'});
+      labels.appendChild(lab);
+      const l = document.createElementNS(ns,"line"); l.setAttribute("x1", leftPad + idx*colW); l.setAttribute("x2", leftPad + idx*colW);
+      l.setAttribute("y1", topPad-24); l.setAttribute("y2", h-30); l.setAttribute("stroke","#cbd5e1"); l.setAttribute("stroke-dasharray","2,4"); axis.appendChild(l);
+    });
+  }else{
+    const quarterSeen=new Map(weeks.map(w=>[quarterKey(w), w]));
+    Array.from(quarterSeen.values()).forEach(qd=>{
+      const key = quarterKey(qd);
+      const idx = weeks.findIndex(w=> quarterKey(w)===key);
+      const x = leftPad + idx*colW + 4;
+      const lab = document.createElementNS(ns,"text"); lab.setAttribute("x",x); lab.setAttribute("y", topPad-10); lab.setAttribute("fill","var(--gantt-axis)"); lab.setAttribute("font-size","11"); lab.textContent = key; labels.appendChild(lab);
+      const l = document.createElementNS(ns,"line"); l.setAttribute("x1", leftPad + idx*colW); l.setAttribute("x2", leftPad + idx*colW);
+      l.setAttribute("y1", topPad-24); l.setAttribute("y2", h-30); l.setAttribute("stroke","#94a3b8"); l.setAttribute("stroke-dasharray","4,6"); axis.appendChild(l);
+    });
+  }
+
+  // línea de hoy
+  const today = new Date();
+  const idxToday = weeks.findIndex(w => addWeeks(w,1) > today);
+  if(idxToday>=0){
+    const x = leftPad + idxToday*colW;
+    const tl = document.createElementNS(ns,"line");
+    tl.setAttribute("x1", x); tl.setAttribute("x2", x); tl.setAttribute("y1", topPad-24); tl.setAttribute("y2", h-30);
+    tl.setAttribute("stroke","var(--gantt-today)"); tl.setAttribute("stroke-width","2"); tl.setAttribute("opacity","0.7"); svg.appendChild(tl);
+  }
+
+  // barras + drag + resize
+  items.forEach((it,idx)=>{
+    const s = parseISOWeek(it.w); if(!s) return;
+    const startIdx = weeks.findIndex(w=> w.getTime()=== s.getTime());
+    const dur = Math.max(0, it.d||0);
+    const y = topPad + idx*rowH + 6;
+
+if(dur===0){
+  // Hito (duración 0) — arrastrable
+  const x = leftPad + startIdx*colW + colW/2;
+  const diamond = document.createElementNS(ns,"polygon");
+  const size = 12; // un poco más grande para agarrarlo
+  diamond.setAttribute("points", `${x},${y+8} ${x+size},${y+16} ${x},${y+24} ${x-size},${y+16}`);
+  diamond.setAttribute("fill", phaseColor(it.phase));
+  diamond.dataset.index = String(idx);
+  diamond.classList.add("gantt-move");   // ← NUEVO: lo marca como movible
+  diamond.style.cursor = "grab";         // ← NUEVO: feedback visual
+  svg.appendChild(diamond);
+enableMove(diamond, idx, true);
+
+    }else{
+      const x = leftPad + startIdx*colW + 1;
+      const width = dur*colW - 2;
+
+      // Cuerpo de la barra
+      const r = document.createElementNS(ns,"rect");
+      r.setAttribute("x", x); r.setAttribute("y", y);
+      r.setAttribute("rx","6"); r.setAttribute("ry","6");
+      r.setAttribute("width", Math.max(10,width)); r.setAttribute("height","20");
+      r.setAttribute("fill", phaseColor(it.phase)); r.setAttribute("opacity","0.9");
+      r.dataset.index = String(idx);
+      svg.appendChild(r);
+
+      // Manijas de redimensión
+      const lh = document.createElementNS(ns,"rect"); // izquierda
+      lh.setAttribute("x", x-3); lh.setAttribute("y", y);
+      lh.setAttribute("width","6"); lh.setAttribute("height","20");
+      lh.setAttribute("fill","#000"); lh.setAttribute("opacity","0.15");
+      lh.classList.add("handle"); lh.dataset.index=String(idx); lh.dataset.side="left";
+      svg.appendChild(lh);
+
+      const rh = document.createElementNS(ns,"rect"); // derecha
+      rh.setAttribute("x", x + Math.max(10,width) - 3); rh.setAttribute("y", y);
+      rh.setAttribute("width","6"); rh.setAttribute("height","20");
+      rh.setAttribute("fill","#000"); rh.setAttribute("opacity","0.15");
+      rh.classList.add("handle"); rh.dataset.index=String(idx); rh.dataset.side="right";
+      svg.appendChild(rh);
+
+      enableMove(r, idx, false);
+      enableResize(lh);
+      enableResize(rh);
+    }
+
+    const tr=document.createElement("tr");
+    const startDate = s;
+const endDate = addWeeks(s, dur);
+
+    tr.innerHTML = `<td>${it.t}</td><td>${it.phase}</td><td>${formatDateLong(startDate)}</td><td>${formatDateLong(endDate)}</td><td>${dur}</td>`;
+    tbody.appendChild(tr);
+  });
+
+  function enableMove(shape, idx, isMilestone){
+    if (readOnly) return;
+    shape.addEventListener('pointerdown', (ev)=>{
+      dragState = { type:'move', index: idx, isMilestone: !!isMilestone };
+      shape.setPointerCapture?.(ev.pointerId);
+    });
+  }
+
+  function enableResize(handle){
+    if (readOnly) return;
+    const idx = parseInt(handle.dataset.index, 10);
+    const side = handle.dataset.side;
+    handle.addEventListener('pointerdown', (ev)=>{
+      dragState = { type:'resize', index: idx, side };
+      handle.setPointerCapture?.(ev.pointerId);
+    });
+  }
+} // <- cierre de renderGantt
+/* ===== Otros ===== */
+
+/* ===== Utilidades Numéricas ===== */
+function toNumber(v){
+  if (v === '' || v == null) return 0;
+  if (typeof v === 'number') return v;
+
+  const s = String(v).trim();
+
+  // Caso con coma: formato español (ej. "1.234,56")
+  if (s.includes(',')) {
+    const norm = s.replace(/\./g,'').replace(/,/g,'.');
+    const n = Number(norm);
+    return isNaN(n) ? 0 : n;
+  }
+
+  // Caso sin coma: formato inglés (ej. "1234.56")
+  const n = Number(s);
+  return isNaN(n) ? 0 : n;
+}
+
+
+    function applyCoupon(){
+      if(!DATA?.cupones){ const info=$("#coupon-info"); info.textContent="No hay cupones configurados."; info.classList.remove("ok"); return; }
+      const raw=($("#coupon-input").value||"").trim().toUpperCase();
+      const info=$("#coupon-info");
+      if(!raw){ appliedCoupon=null; info.textContent="Cupón vacío."; info.classList.remove("ok"); recalc(true); updateURLFromDOM(); return; }
+      const pct=DATA.cupones[raw];
+      if(!pct){ appliedCoupon=null; info.textContent="Cupón inválido o expirado."; info.classList.remove("ok"); recalc(true); updateURLFromDOM(); return; }
+      appliedCoupon={ code:raw, pct:Number(pct) };
+      info.textContent=`✅ Cupón aplicado: ${raw} (${Math.round(appliedCoupon.pct*100)}%)`;
+      info.classList.add("ok");
+      recalc(true); updateURLFromDOM();
+    }
+    function openInterest(modKey){
+      const subject=encodeURIComponent(`Interés en ${modKey} (${mode})`);
+      const body=encodeURIComponent(`Hola, me interesa ${modKey} en modalidad ${mode}.\n\nMoneda: ${currency.toUpperCase()}\nPeriodo (si aplica): ${personalPeriod}\n`);
+      window.location.href=`mailto:contact@leaderlix.com?subject=${subject}&body=${body}`;
+    }
+    function passesRule(total, rule){
+      if(!rule) return false; if(rule.op === 'any' || rule.n == null) return true;
+      if(rule.op === '<=') return total <= rule.n; if(rule.op === '>') return total >  rule.n; if(rule.op === '==') return total === rule.n; return false;
+    }
+    function renderRequisitos(){
+      const box=$("#req-card"); const list=$("#req-list");
+      if(mode!=="corporativo"){ box.classList.add("hidden"); list.innerHTML=""; return; }
+      if(!DATA?.requisitos?.contratacion?.length){ box.classList.add("hidden"); list.innerHTML=""; return; }
+      // Mostrar sólo si algún módulo alcanza su mínimo (In Company)
+      const mins=DATA?.condiciones?.incompany || {};
+      const cnts = { autodidacta:Number($("#p-autodidacta")?.value||0), yotenseno:Number($("#p-yotenseno")?.value||0), lohagocontigo:Number($("#p-lohagocontigo")?.value||0) };
+      const showRequisitos = (mins.autodidacta>0 && cnts.autodidacta>=mins.autodidacta) || (mins.yotenseno>0 && cnts.yotenseno>=mins.yotenseno) || (mins.lohagocontigo>0 && cnts.lohagocontigo>=mins.lohagocontigo) || (mins.autodidacta<=0 && mins.yotenseno<=0 && mins.lohagocontigo<=0);
+      if(!showRequisitos){ box.classList.add("hidden"); list.innerHTML=""; return; }
+
+      const total = cnts.autodidacta+cnts.yotenseno+cnts.lohagocontigo;
+      const reqs = DATA.requisitos.contratacion.filter(r => passesRule(total, r));
+      if(!reqs.length){ box.classList.add("hidden"); list.innerHTML=""; return; }
+      list.innerHTML=""; reqs.forEach(r=>{ const li=document.createElement("li"); li.textContent=r.text; list.appendChild(li); });
+      box.classList.remove("hidden");
+    }
+    function flash(el){ if(!el) return; el.classList.remove("anim-flash"); void el.offsetWidth; el.classList.add("anim-flash"); }
+
+    function recalc(withAnim=false){
+      if(!DATA) return;
+      if(DATA.metodologia) DATA.metodologia.descuento = normalizeMethodologyDiscount(DATA.metodologia.descuento);
+
+      const actions=$("#actions-bar"); const gp=$("#gp-card"); const nextBox=$("#next-course");
+      if(mode==="corporativo"){ actions.classList.remove("hidden"); gp.classList.remove("hidden"); nextBox.classList.add("hidden"); }
+      else { actions.classList.add("hidden"); gp.classList.add("hidden"); renderNextCourseBox(DATA); }
+
+      if(mode==="personal"){
+        $("#totales").classList.add("hidden"); $("#req-card").classList.add("hidden"); $("#corp-benefits-detail").classList.add("hidden"); $("#gantt-card").classList.add("hidden");
+        MODS.forEach(({key})=>{
+          const base=Number(DATA?.individual?.precios?.[key]?.[personalPeriod]?.[currency]||0);
+          const pv=$("#pv-"+key), lbl=$("#plabel-"+key), note=$("#pnote-"+key);
+          if(pv){ pv.textContent=money(base,currency); if(withAnim) flash(pv); }
+          if(lbl) lbl.textContent = personalPeriod==="anual" ? "Precio (Anualmente)" : "Precio (Mensualmente)";
+          if(note) note.classList.toggle("vishide", personalPeriod!=="anual");
+        });
+        renderBenefits(); return;
+      }
+
+      $("#totales").classList.remove("hidden");
+
+      let totalPart=0, subtotalInscripciones=0, anyMissing=false;
+      MODS.forEach(({key})=>{
+        const cnt=Number($("#p-"+key).value||0);
+        totalPart += cnt;
+        if(cnt>0){
+          const pr=getPrice(key,cnt,currency);
+          if(!pr.ok || !Number.isFinite(pr.price)){ anyMissing=true; $("#st-"+key).textContent="—"; $("#pp-"+key).textContent="—"; if(withAnim){ flash($("#st-"+key)); flash($("#pp-"+key)); } return; }
+          const pricePerGroup=pr.price*(1-pr.discount);
+          subtotalInscripciones += pricePerGroup;
+          $("#st-"+key).textContent = money(pricePerGroup,currency);
+          $("#pp-"+key).textContent = money(pricePerGroup/Math.max(pr.scale||1,1),currency);
+          if(withAnim){ flash($("#st-"+key)); flash($("#pp-"+key)); }
+        }else{
+          $("#st-"+key).textContent = money(0,currency);
+          $("#pp-"+key).textContent = money(0,currency);
+          if(withAnim){ flash($("#st-"+key)); flash($("#pp-"+key)); }
+        }
+      });
+
+      // Gantt visible solo si hay inscripciones
+      const hasIns = totalPart>0;
+      document.getElementById("gantt-card").classList.toggle("hidden", !hasIns);
+
+      updateInCompanyLabels();
+      renderCorpBenefitDetails();
+      renderRequisitos();
+
+      if(hasIns){ rebuildGanttEditor(); renderGantt(); }
+
+      const warn=$("#scale-warn");
+      if(anyMissing){ warn.textContent="Revisa la cantidad de participantes: no hay una escala configurada para ese número."; warn.classList.remove("hidden"); }
+      else { warn.classList.add("hidden"); warn.textContent=""; }
+
+const metBase = Number((DATA.metodologia || {})[currency] || 0);
+const metDesc = Number((DATA.metodologia || {}).descuento || 0);
+
+// hay apertura si hay al menos 1 participante en cualquier módulo
+const metodologiaCount =
+  (Number($("#p-autodidacta").value || 0) > 0) ||
+  (Number($("#p-yotenseno").value || 0) > 0) ||
+  (Number($("#p-lohagocontigo").value || 0) > 0) ? 1 : 0;
+
+const apertura = metodologiaCount > 0 ? metBase * (1 - metDesc) : 0;
+
+
+// ya calculaste: apertura y subtotalInscripciones
+
+// 1. Calcula totalAntes primero
+// Total antes de cupón
+const totalAntes = subtotalInscripciones + apertura;
+
+// Base del cupón: TOTAL (apertura + inscripciones) en corporativo
+const baseCupon = totalAntes;
+
+// Inicializa acumuladores
+let discountAmt = 0;
+let totalAntesConCupon = totalAntes;
+
+// Aplica cupón si existe
+if (appliedCoupon?.pct > 0) {
+  discountAmt = baseCupon * appliedCoupon.pct;
+  totalAntesConCupon = Math.max(0, totalAntes - discountAmt);
+
+  // Mostrar línea de cupón
+  $("#coupon-line-label").classList.remove("hidden");
+  $("#coupon-line-value").classList.remove("hidden");
+  $("#coupon-line-label").textContent = "Cupón";
+  $("#coupon-line-value").textContent = "− " + money(discountAmt, currency);
+  if (withAnim) flash($("#coupon-line-value"));
+} else {
+  // Ocultar línea de cupón
+  $("#coupon-line-label").classList.add("hidden");
+  $("#coupon-line-value").classList.add("hidden");
+}
+// IVA según moneda (MXN: 16%, USD: 0% por defecto)
+const ivaPct = (currency === 'mxn') ? 0.16 : 0;
+const iva = totalAntesConCupon * ivaPct;
+// Actualiza la etiqueta
+const ivaLbl = document.getElementById("t-iva-label");
+if (ivaLbl) ivaLbl.textContent = ivaPct > 0 ? `IVA (${Math.round(ivaPct*100)}%)` : "Impuestos";
+
+let totalDespues = totalAntesConCupon + iva;
+const payCard = $("#pay-card").checked;
+
+if (payCard) {
+  const fee = totalDespues * 0.045; // 4.5% sobre total con impuestos
+  totalDespues += fee;
+  $("#t-conimp-label").textContent = "Total con impuestos + fee tarjeta (4.5%)";
+} else {
+  $("#t-conimp-label").textContent = "Total con impuestos";
+}
+
+
+      $("#t-met-count").textContent = metodologiaCount; if(withAnim) flash($("#t-met-count"));
+      $("#t-met").textContent = money(apertura,currency); if(withAnim) flash($("#t-met"));
+      $("#t-subins-count").textContent = totalPart; if(withAnim) flash($("#t-subins-count"));
+      $("#t-subins").textContent = money(subtotalInscripciones,currency); if(withAnim) flash($("#t-subins"));
+      $("#t-corp").textContent = money(totalAntesConCupon,currency); if(withAnim) flash($("#t-corp"));
+      $("#t-iva").textContent = money(iva,currency); if(withAnim) flash($("#t-iva"));
+      $("#t-conimp").textContent = money(totalDespues,currency); if(withAnim) flash($("#t-conimp"));
+    }
+
+    /* ===== Date pickers ===== */
+    function setupDatePickers(){
+      const now=new Date(); const plus30=new Date(now.getTime()+30*24*60*60*1000);
+      const fechaDisp=$("#gp-fecha"); const fechaPick=$("#gp-fecha-picker"); const fechaPop=$("#gp-fecha-pop");
+      const vigDisp=$("#gp-vigencia"); const vigPick=$("#gp-vigencia-picker"); const vigPop=$("#gp-vigencia-pop");
+      if(!fechaPick.value){ fechaPick.value = toYMD(now); fechaDisp.value = capitalizeFecha(now.toLocaleDateString('es-MX',{weekday:'long', day:'numeric', month:'long', year:'numeric'})); }
+      if(!vigPick.value){ vigPick.value   = toYMD(plus30); vigDisp.value   = capitalizeFecha(plus30.toLocaleDateString('es-MX',{weekday:'long', day:'numeric', month:'long', year:'numeric'})); }
+      function openPop(pop){ pop.classList.remove("hidden"); }
+      function closePop(pop){ pop.classList.add("hidden"); }
+      function bindPair(displayInput, picker, pop){
+        displayInput.addEventListener("click", ()=>{ if(!readOnly) openPop(pop); });
+        picker.addEventListener("change", ()=>{
+          const d=new Date(picker.value+"T00:00:00");
+          if(isFinite(d)){ displayInput.value = capitalizeFecha(d.toLocaleDateString('es-MX',{weekday:'long', day:'numeric', month:'long', year:'numeric'})); }
+          closePop(pop); updateURLFromDOM();
+          // Si cambia la fecha de propuesta, reancla el cronograma si no hay items personalizados
+          if(gantt && (!gantt.items || gantt.items.length===0 || gantt._preloaded)){
+            buildPreloadedTimelineFromProposal();
+            recalc(true); updateURLFromDOM();
+          }
+        });
+        document.addEventListener("click",(e)=>{ if(pop.classList.contains("hidden")) return; if(!pop.contains(e.target) && e.target!==displayInput){ closePop(pop); } });
+      }
+      bindPair(fechaDisp, fechaPick, fechaPop); bindPair(vigDisp, vigPick, vigPop);
+    }
+
+    function bindGeneralesAutoSave(){ ["gp-empresa","gp-solicita","gp-resp","gp-tel","gp-mail","gp-notas"].forEach(id=>{ const el = document.getElementById(id); if(el){ el.addEventListener("input", updateURLFromDOM); } }); }
+    function bindShare(){
+      const btn=$("#share-btn"); if(!btn) return;
+      btn.onclick = async ()=>{ const shareUrl = buildURLFromState(true);
+        try{ await navigator.clipboard.writeText(shareUrl); $("#share-info").textContent="Link copiado"; }
+        catch(_){ $("#share-info").textContent=shareUrl; }
+        setTimeout(()=>{ const box=$("#share-info"); if(box) box.textContent=""; },3000);
+      };
+    }
+    function setCurrency(ccy){ currency=ccy; const tog=$("#currencyToggle"); tog.classList.toggle("right", currency==="usd"); tog.setAttribute("aria-checked", currency==="usd"?"true":"false"); recalc(true); updateURLFromDOM(); }
+    function setMode(m){ mode=m; const tog=$("#modeToggle"); tog.classList.toggle("right", mode==="corporativo"); tog.setAttribute("aria-checked", mode==="corporativo"?"true":"false"); $("#gp-card").classList.toggle("hidden", mode!=="corporativo"); buildCards(); recalc(true); updateURLFromDOM(); }
+    document.addEventListener("click",(e)=>{
+      const t=e.target.closest(".toggle"); if(!t) return;
+      if(t.id==="currencyToggle") setCurrency(currency==="mxn"?"usd":"mxn");
+      if(t.id==="modeToggle") setMode(mode==="personal"?"corporativo":"personal");
+      if(t.id && t.id.startsWith("perToggle-")){
+        personalPeriod = (personalPeriod==="mensual") ? "anual" : "mensual";
+        syncPersonalToggles(); renderBenefits(); recalc(true); updateURLFromDOM();
+      }
+    });
+    document.addEventListener("keydown",(e)=>{
+      const t=e.target.closest(".toggle"); if(!t) return;
+      if(e.key===" "||e.key==="Enter"){ e.preventDefault();
+        if(t.id==="currencyToggle") setCurrency(currency==="mxn"?"usd":"mxn");
+        if(t.id==="modeToggle") setMode(mode==="personal"?"corporativo":"personal");
+        if(t.id.startsWith("perToggle-")){
+          personalPeriod = (personalPeriod==="mensual") ? "anual" : "mensual";
+          syncPersonalToggles(); renderBenefits(); recalc(true); updateURLFromDOM();
+        }
+      }
+      if(e.key==="ArrowLeft"||e.key==="ArrowRight"){
+        if(t.id==="currencyToggle") setCurrency(e.key==="ArrowRight"?"usd":"mxn");
+        if(t.id==="modeToggle") setMode(e.key==="ArrowRight"?"corporativo":"personal");
+        if(t.id.startsWith("perToggle-")){
+          personalPeriod = (e.key==="ArrowRight") ? "anual" : "mensual";
+          syncPersonalToggles(); renderBenefits(); recalc(true); updateURLFromDOM();
+        }
+      }
+    });
+
+    // Precarga de etapas consecutivas ANCLADAS a 1 mes después de la fecha de propuesta
+    function buildPreloadedTimelineFromProposal(){
+      const fp = $("#gp-fecha-picker")?.value;
+      const base = fp ? new Date(fp+"T00:00:00") : new Date();
+      const start = new Date(base); start.setMonth(start.getMonth()+1); // un mes después
+      // Definir etapas y duraciones aproximadas (secuenciales)
+      const stages = [
+        { t:"Alineación", d:4, phase:"Pre" },
+        { t:"Speaker scouting", d:4, phase:"Pre" },
+        { t:"AB: Convocatoria", d:2, phase:"Pre" },
+        { t:"AB: Evento (hito)", d:0, phase:"Pre" },
+        { t:"AB: Procesamiento", d:1, phase:"Pre" },
+        { t:"Diseño de diapositivas", d:3, phase:"Pre" },
+        { t:"Formulario / análisis basal", d:2, phase:"Pre" },
+        { t:"Acceso a membresía (marcador)", d:0, phase:"Imp1" },
+        { t:"Coaching 1:1", d:8, phase:"Imp1" },
+        { t:"Confirmaciones", d:3, phase:"ImpG" },
+        { t:"Evento en vivo (máximo 1 semana)", d:1, phase:"ImpG" },
+        { t:"Evaluación commitment", d:2, phase:"Eval" },
+        { t:"Evaluación mastery", d:6, phase:"Eval" },
+        { t:"Mystery Listening", d:8, phase:"Eval" },
+        { t:"Evaluación performance", d:2, phase:"Eval" },
+        { t:"Evaluación resultados", d:2, phase:"Eval" },
+        { t:"Presentación de caso", d:1, phase:"Eval" },
+        { t:"Refresh (1 año después)", d:0, phase:"Ref", offsetWeeks: 52 }
+      ];
+
+      gantt.items = [];
+      let cursor = new Date(start);
+      stages.forEach((st, i) => {
+        let begin = new Date(cursor);
+        if(st.offsetWeeks){ begin = addWeeks(start, st.offsetWeeks); }
+        const wLabel = dateToISOWeekLabel(begin);
+        gantt.items.push({ t:st.t, w:wLabel, d:Math.max(0, st.d||0), phase:st.phase });
+        if(!st.offsetWeeks){
+          cursor = addWeeks(begin, Math.max(1, st.d||1)); // consecutivo
+        }
+      });
+      gantt._preloaded = true; // marca para reanclar si cambia fecha
+    }
+
+    async function loadData(){
+
+      const loader=$("#loader");
+      try{
+        const qInit=applyStateFromURL();
+       let json = await fetchJSON(ENDPOINT);
+
+
+        json.escalas=(json.escalas||[]).map(Number);
+        const toNum=a=>(a||[]).map(Number);
+        if(json.precios){
+          (json.precios.autodidacta?.mxn)&&(json.precios.autodidacta.mxn=toNum(json.precios.autodidacta.mxn));
+          (json.precios.autodidacta?.usd)&&(json.precios.autodidacta.usd=toNum(json.precios.autodidacta.usd));
+          (json.precios.yotenseno?.mxn)&&(json.precios.yotenseno.mxn=toNum(json.precios.yotenseno.mxn));
+          (json.precios.yotenseno?.usd)&&(json.precios.yotenseno.usd=toNum(json.precios.yotenseno.usd));
+          (json.precios.lohagocontigo?.mxn)&&(json.precios.lohagocontigo.mxn=toNum(json.precios.lohagocontigo.mxn));
+          (json.precios.lohagocontigo?.usd)&&(json.precios.lohagocontigo.usd=toNum(json.precios.lohagocontigo.usd));
+        }
+        if(json.descuentos){
+          json.descuentos.autodidacta=toNum(json.descuentos.autodidacta);
+          json.descuentos.yotenseno=toNum(json.descuentos.yotenseno);
+          json.descuentos.lohagocontigo=toNum(json.descuentos.lohagocontigo);
+        }
+        json.beneficios=json.beneficios||{};
+        json.beneficios.nombres=(json.beneficios.nombres||[]).map(x => String(x||""));
+        DATA=json;
+
+        $("#top-controls").classList.remove("hidden");
+        document.getElementById("modeToggle").classList.toggle("right", mode==="corporativo");
+        document.getElementById("currencyToggle").classList.toggle("right", currency==="usd");
+        document.getElementById("modeToggle").setAttribute("aria-checked", mode==="corporativo"?"true":"false");
+        document.getElementById("currencyToggle").setAttribute("aria-checked", currency==="usd"?"true":"false");
+
+buildCards();
+
+attachGanttPointerHandlers();   // ← añade esta línea una sola vez
+
+if(mode==="corporativo"){ document.getElementById("gp-card").classList.remove("hidden"); }
+else{ renderNextCourseBox(DATA); }
+
+        if(mode==="corporativo"){ document.getElementById("gp-card").classList.remove("hidden"); }
+        else{ renderNextCourseBox(DATA); }
+
+        setupDatePickers();
+        bindGeneralesAutoSave();
+        bindShare();
+
+        // Si no hay cronograma en la URL, precargamos consecutivo un mes después de la propuesta
+        const q=applyStateFromURL();
+        if(!(gantt.items && gantt.items.length)) buildPreloadedTimelineFromProposal();
+
+        // Herramientas del gantt
+        document.getElementById("gantt-scale").value = gantt.scale||"weeks";
+        document.getElementById("gantt-scale").addEventListener("change", ()=>{ gantt.scale = document.getElementById("gantt-scale").value||"weeks"; renderGantt(); updateURLFromDOM(); });
+        document.getElementById("gantt-add-empty").addEventListener("click", ()=>{
+          const base = parseISOWeek(gantt.items?.[gantt.items.length-1]?.w) || new Date();
+          const nextW = addWeeks(base, Math.max(1, gantt.items?.[gantt.items.length-1]?.d||1));
+          const it = { t:"Nueva etapa", w:dateToISOWeekLabel(nextW), d:1, phase:"Pre" };
+          gantt.items.push(it); rebuildGanttEditor(); scheduleGanttRender();
+
+        });
+        document.getElementById("gantt-toggle-editor").addEventListener("click", ()=>{
+          const ed = document.getElementById("gantt-editor");
+          ed.classList.toggle("hidden");
+          document.getElementById("gantt-toggle-editor").textContent = ed.classList.contains("hidden") ? "Mostrar editor" : "Ocultar editor";
+        });
+const pay = document.getElementById("pay-card");
+if (pay) pay.addEventListener("change", ()=>{ recalc(true); updateURLFromDOM(); });
+
+
+        // Restaurar desde URL (participantes y generales)
+        if($("#p-autodidacta") && q.get("p_autodidacta")!=null) $("#p-autodidacta").value=q.get("p_autodidacta");
+        if($("#p-yotenseno") && q.get("p_yotenseno")!=null) $("#p-yotenseno").value=q.get("p_yotenseno");
+        if($("#p-lohagocontigo") && q.get("p_lohagocontigo")!=null) $("#p-lohagocontigo").value=q.get("p_lohagocontigo");
+        if(q.get("coupon")) $("#coupon-input").value=q.get("coupon");
+        if(q.get("paycard")==="1") $("#pay-card").checked=true;
+        if(q.get("gp_empresa")) $("#gp-empresa").value=q.get("gp_empresa");
+        if(q.get("gp_solicita")) $("#gp-solicita").value=q.get("gp_solicita");
+        if(q.get("gp_resp")) $("#gp-resp").value=q.get("gp_resp");
+        if(q.get("gp_tel")) $("#gp-tel").value=q.get("gp_tel");
+        if(q.get("gp_mail")) $("#gp-mail").value=q.get("gp_mail");
+        if(q.get("gp_notas")) $("#gp-notas").value=q.get("gp_notas");
+        if(q.get("gp_fecha_iso")){ const d=new Date(q.get("gp_fecha_iso")+"T00:00:00"); if(isFinite(d)){ $("#gp-fecha-picker").value=q.get("gp_fecha_iso"); $("#gp-fecha").value=capitalizeFecha(d.toLocaleDateString('es-MX',{weekday:'long', day:'numeric', month:'long', year:'numeric'})); } }
+        if(q.get("gp_vigencia_iso")){ const d=new Date(q.get("gp_vigencia_iso")+"T00:00:00"); if(isFinite(d)){ $("#gp-vigencia-picker").value=q.get("gp_vigencia_iso"); $("#gp-vigencia").value=capitalizeFecha(d.toLocaleDateString('es-MX',{weekday:'long', day:'numeric', month:'long', year:'numeric'})); } }
+
+        recalc(true);
+        updateURLFromDOM();
+        applyReadOnly();
+
+      }catch(err){ showError(err.message||"No se pudo cargar la información."); console.error(err); }
+      finally{ const loader=$("#loader"); if(loader) loader.style.display="none"; }
+    }
+
+    document.addEventListener("DOMContentLoaded", loadData);
+  </script>
+</body>
+</html>
