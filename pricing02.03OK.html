@@ -532,7 +532,7 @@ function reorderGanttItems(){
     }
 
     /* ===== Beneficios: detalle corporativo ===== */
-    <script>
+
   function normalizeDesc(x){
     if (x == null) return "";
     if (typeof x === "string") return x;
@@ -549,7 +549,7 @@ function reorderGanttItems(){
     // número, boolean, etc.
     return String(x);
   }
-</script>
+
 
     function renderCorpBenefitDetails(){
       const box = $("#corp-benefits-detail");
@@ -592,7 +592,8 @@ const desc = normalizeDesc(rawInco);
           (sel.lohagocontigo && isIncluded(cols.lohagocontigo[i]));
         if(!applies) continue;
         const name=String(nombres[i]||"").trim(); if(!name) continue;
-        const desc=Array.isArray(det)?String(det[i]?.descripcion || det[i] || "").trim():"";
+const raw = Array.isArray(det) ? (det[i]?.descripcion ?? det[i] ?? "") : "";
+const desc = normalizeDesc(raw).trim();
         cards.push(makeBenefitCard(name, desc));
       }
       box.innerHTML=""; if(cards.length===0){ box.classList.add("hidden"); return; }
