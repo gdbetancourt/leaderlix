@@ -362,6 +362,14 @@
   <!-- Endpoint -->
   <script>
     window.LEADERLIX_ENDPOINT = "https://script.google.com/macros/s/AKfycbyt9Ny_dq9-o6x4IBih7lawmoCzH4KJAA2VxFngJ-c4y9DDAtXrOq9chm82Qv2zqSvB/exec";
+    // Función para limpiar texto y compararlo (sirve para detectar "Evento Presencial")
+function normText(s){
+  return String(s||'')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
   </script>
 
   <!-- Utilidades de red (con reintentos y timeout) -->
@@ -710,7 +718,8 @@ const desc = normalizeDesc(raw).trim();
           const ul=document.getElementById(`bi-${key}`); if(!ul) return; ul.innerHTML="";
           for(let i=0;i<names.length;i++){
             const rawName=names[i]||""; if(rawName.trim()==="") continue;
-            const isCursoPresencial = norm(rawName)==="curso presencial";
+const nameNorm = normText(rawName);
+const isCursoPresencial = nameNorm.includes("evento presencial") || nameNorm.includes("curso presencial");
             let on = isIncluded(cols[key][i]);
             const li=document.createElement("li"); const icon=document.createElement("span");
             if(isCursoPresencial){
