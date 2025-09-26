@@ -751,47 +751,50 @@ const isCursoPresencial = nameNorm.includes("evento presencial") || nameNorm.inc
       }
     }
 
-    function updateInCompanyLabels(){
-      if(inCompanyIndex<0 || mode!=="corporativo") return;
-      const mins=DATA?.condiciones?.incompany || {};
-      MODS.forEach(({key})=>{
-        const li=document.getElementById(`inc-${key}`); if(!li) return;
-        const min=Number(mins[key]||0);
-        const cnt=Number(document.getElementById(`p-${key}`)?.value||0);
-        const qualifies = (min<=0) || (cnt>=min);
-        const baseText = "Curso in Company";
-        const suffix = document.createElement("strong");
-        suffix.textContent = min>0 ? ` (Desde ${min} px)` : "";
-        suffix.style.color = "var(--accent)";
-        suffix.style.fontWeight = "700";
+function updateInCompanyLabels(){
+  if(inCompanyIndex<0 || mode!=="corporativo") return;
 
-        li.innerHTML=""; const icon=document.createElement("span");
-        if(qualifies){
-          icon.className="check"; icon.textContent="✓";
-          li.classList.remove("off");
-          li.appendChild(icon); li.appendChild(document.createTextNode(" "+baseText)); if(min>0) li.appendChild(suffix);
-        }else{
-          icon.className="cross"; icon.textContent="✗";
-          li.classList.add("off");
-          const s=document.createElement("s"); s.textContent=" "+baseText;
-          li.appendChild(icon); li.appendChild(s); li.appendChild(suffix);
-        }
-      });
+  const qualifies = qualifiesAnyInCompany();   // Se cumple si CUALQUIER módulo llega al mínimo
+  const gmin = globalInCompanyMin();           // Mínimo global (el más bajo configurado)
+  MODS.forEach(({key})=>{
+    const li=document.getElementById(`inc-${key}`); 
+    if(!li) return;
+
+    const baseText = "Evento corporativo";     // Renombrado en la lista del pricing
+    const suffix = document.createElement("strong");
+    suffix.textContent = gmin>0 ? ` (Desde ${gmin} px)` : "";
+    suffix.style.color = "var(--accent)";
+    suffix.style.fontWeight = "700";
+
+    li.innerHTML="";
+    const icon=document.createElement("span");
+    if(qualifies){
+      icon.className="check"; icon.textContent="✓";
+      li.classList.remove("off");
+      li.appendChild(icon); li.appendChild(document.createTextNode(" "+baseText));
+      if(gmin>0) li.appendChild(suffix);
+    }else{
+      icon.className="cross"; icon.textContent="✗";
+      li.classList.add("off");
+      const s=document.createElement("s"); s.textContent=" "+baseText;
+      li.appendChild(icon); li.appendChild(s);
+      li.appendChild(suffix);
     }
+  });
+}
+
 function updatePersonalizedLabels(){
   if(personalizedIndex<0 || mode!=="corporativo") return;
-  const mins = DATA?.condiciones?.incompany || {};
+
+  const qualifies = qualifiesAnyInCompany();   // Se cumple si CUALQUIER módulo llega al mínimo
+  const gmin = globalInCompanyMin();           // Mínimo global (el más bajo configurado)
   MODS.forEach(({key})=>{
     const li = document.getElementById(`pers-${key}`); 
     if(!li) return;
 
-    const min = Number(mins[key] || 0);
-    const cnt = Number(document.getElementById(`p-${key}`)?.value || 0);
-    const qualifies = (min<=0) || (cnt>=min);
-
     const baseText = "Personalizado";
     const suffix = document.createElement("strong");
-    suffix.textContent = min>0 ? ` (Desde ${min} px)` : "";
+    suffix.textContent = gmin>0 ? ` (Desde ${gmin} px)` : "";
     suffix.style.color = "var(--accent)";
     suffix.style.fontWeight = "700";
 
@@ -801,7 +804,7 @@ function updatePersonalizedLabels(){
       icon.className="check"; icon.textContent="✓";
       li.classList.remove("off");
       li.appendChild(icon); li.appendChild(document.createTextNode(" "+baseText));
-      if(min>0) li.appendChild(suffix);
+      if(gmin>0) li.appendChild(suffix);
     }else{
       icon.className="cross"; icon.textContent="✗";
       li.classList.add("off");
@@ -811,6 +814,7 @@ function updatePersonalizedLabels(){
     }
   });
 }
+
 
     function normalizeMethodologyDiscount(x){ let v=Number(x||0); if(!isFinite(v)||v<0) v=0; if(v>1&&v<=100) v=v/100; if(v>1) v=1; return v; }
 
@@ -1259,6 +1263,22 @@ function toNumber(v){
       if(!rule) return false; if(rule.op === 'any' || rule.n == null) return true;
       if(rule.op === '<=') return total <= rule.n; if(rule.op === '>') return total >  rule.n; if(rule.op === '==') return total === rule.n; return false;
     }
+    // === AUXILIARES PARA MÍNIMO GLOBAL (evento corporativo / personalizado) ===
+function qualifiesAnyInCompany(){
+  const mins = DATA?.condiciones?.incompany || {};
+  return MODS.some(({ key }) => {
+    const min = Number(mins[key] || 0);
+    const cnt = Number(document.getElementById("p-" + key)?.value || 0);
+    return (min <= 0) || (cnt >= min);
+  });
+}
+
+function globalInCompanyMin(){
+  const mins = DATA?.condiciones?.incompany || {};
+  const arr = MODS.map(({key}) => Number(mins[key] || 0)).filter(v => v > 0 && isFinite(v));
+  return arr.length ? Math.min(...arr) : 0;
+}
+
     function renderRequisitos(){
       const box=$("#req-card"); const list=$("#req-list");
       if(mode!=="corporativo"){ box.classList.add("hidden"); list.innerHTML=""; return; }
