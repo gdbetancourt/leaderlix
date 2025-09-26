@@ -167,29 +167,48 @@ function toggleCorporateBlocks(){
 /* ==================  BENEFICIOS (desde endpoint)  ================== */
 let BENEFICIOS = { inscripcion: [], activacion: [] };
 
-async function loadBeneficios(){
-  const res = await fetch(ENDPOINT);
-  const json = await res.json();
-  // El script devuelve { ok, beneficios: { items: [...] } } o solo items.
-  const items = json?.beneficios?.items || json?.beneficios || json?.items || [];
-  const norm = items.map(x => ({
-    tipo: (x.tipo||'').toLowerCase().includes('activ') ? 'activacion' : 'inscripcion',
-    nombre: x.nombre || '',
-    descripcion: x.descripcion || '',
-    min: {
-      autodidacta: Number(x.min?.autodidacta || x.minAuto || 0),
-      yotenseno: Number(x.min?.yotenseno || x.minYte || 0),
-      lohagocontigo: Number(x.min?.lohagocontigo || x.minLhc || 0),
-    },
-    cost_usd: Number(x.cost_usd || 0),
-    cost_mxn: Number(x.cost_mxn || 0)
-  }));
-  BENEFICIOS.inscripcion = norm.filter(b=>b.tipo==='inscripcion');
-  BENEFICIOS.activacion  = norm.filter(b=>b.tipo==='activacion');
-  renderBenefitsCards();
-  renderActivables();
-  renderCorpBenefitDetails();
+
+function renderActivables(){
+  const wrap = document.getElementById("activables-card");
+  const box = document.getElementById("activables-body");
+  if(!wrap || !box) return;
+
+  // Si no hay activables, ocultamos el card
+  if(!BENEFICIOS.activacion.length){
+    wrap.classList.add("hidden");
+    box.innerHTML = "";
+    return;
+  }
+  wrap.classList.remove("hidden");
+
+  box.innerHTML = "";
+  BENEFICIOS.activacion.forEach(b=>{
+    const row = document.createElement("div");
+    row.style.display="grid";
+    row.style.gridTemplateColumns="auto 1fr auto";
+    row.style.alignItems="center";
+    row.style.gap="12px";
+
+    const cb = document.createElement("input");
+    cb.type="checkbox";
+    cb.checked = !!ACTIVABLE_STATE.get(b.nombre)?.checked;
+    cb.addEventListener("change", ()=>{ 
+      const st = ACTIVABLE_STATE.get(b.nombre) || {qty:1};
+      st.checked = cb.checked; ACTIVABLE_STATE.set(b.nombre, st); recalc(true);
+    });
+
+    const label = document.createElement("div");
+    label.innerHTML = `<div style="font-weight:600">${b.nombre}</div><div class="hint">${b.descripcion||''}</div>`;
+
+    const cost = document.createElement("div");
+    const showCost = currency==="usd" ? b.cost_usd : b.cost_mxn;
+    cost.textContent = money(showCost, currency);
+
+    row.appendChild(cb); row.appendChild(label); row.appendChild(cost);
+    box.appendChild(row);
+  });
 }
+
 
 /* ==================  UI: CARDS  ================== */
 function buildCards(){
