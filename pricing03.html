@@ -270,11 +270,16 @@ function recalc(anim=false){
     const cnt=Number($("#p-"+key).value||0);
     totalPart+=cnt;
     if(cnt>0){
-      const pr=getPrice(key,cnt,currency);
-      const groupPrice=pr.price*(1-pr.discount);
-      subtotal+=groupPrice;
-      $("#st-"+key).textContent = money(groupPrice,currency);
-      $("#pp-"+key).textContent = money(groupPrice/Math.max(1,pr.scale||1),currency);
+const pr = getPrice(key, cnt, currency);
+// precio por persona al nivel de precio correspondiente a la cantidad seleccionada
+const perPerson = pr.price * (1 - pr.discount);
+// subtotal de ESTA tarjeta = per-persona * cantidad elegida
+const groupPrice = perPerson * cnt;
+
+subtotal += groupPrice;
+$("#st-"+key).textContent = money(groupPrice, currency);  // << total de la compra en esa tarjeta
+$("#pp-"+key).textContent = money(perPerson, currency);   // << precio por persona al nivel aplicado
+
     }else{
       $("#st-"+key).textContent = money(0,currency);
       $("#pp-"+key).textContent = money(0,currency);
