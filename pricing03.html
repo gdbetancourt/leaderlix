@@ -31,13 +31,14 @@
   .coupon-row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;margin-top:10px}
   .sum-grid{display:grid;grid-template-columns:1fr auto auto;gap:8px;margin-top:10px}
   #errorBox{display:none;margin:10px auto 0;max-width:780px;background:#fff0f0;color:#7f1d1d;border:1px solid #fecaca;padding:10px 12px;border-radius:8px}
+  .pill{display:inline-block;border:1px solid #cbd5e1;border-radius:999px;padding:2px 8px;font-size:12px;color:#64748b;margin-left:6px}
 </style>
 </head>
 <body>
 <div class="container">
   <h1>Opciones de Inscripción</h1>
   <div class="muted">Vista corporativa</div>
-<div id="corp-hint" class="muted">Selecciona suficientes participantes en alguna membresía para activar el proyecto corporativo.</div>
+  <div id="corp-hint" class="muted">Selecciona suficientes participantes en alguna membresía para activar el proyecto corporativo.</div>
 
   <div id="top-controls" aria-label="Preferencias">
     <div style="text-align:center">
@@ -49,7 +50,8 @@
 
   <div id="errorBox" role="alert"></div>
 
-<div id="gp-card" class="card hidden">
+  <!-- Generales del proyecto -->
+  <div id="gp-card" class="card hidden">
     <h3 style="margin:0 0 8px;font-size:22px;color:#111">Generales del Proyecto</h3>
     <div class="grid" style="grid-template-columns:1fr 1fr;gap:12px">
       <div><label class="label">Fecha de la propuesta</label><input id="gp-fecha" type="text" readonly></div>
@@ -63,10 +65,20 @@
     </div>
   </div>
 
+  <!-- Pricing cards -->
   <div id="cards" class="grid row3" aria-live="polite"></div>
-<div id="corp-benefits-detail" class="grid hidden" style="grid-template-columns:1fr;gap:12px;margin-top:12px"></div>
 
-<div id="totales" class="card hidden">
+  <!-- Detalle de beneficios (texto) para corporativo -->
+  <div id="corp-benefits-detail" class="grid hidden" style="grid-template-columns:1fr;gap:12px;margin-top:12px"></div>
+
+  <!-- Activables a nivel proyecto -->
+  <div id="activables-card" class="card hidden">
+    <h3 style="margin:0 0 8px;font-size:20px;color:#111">Beneficios que requieren activación</h3>
+    <div id="activables-body" class="grid" style="grid-template-columns:1fr;gap:8px"></div>
+  </div>
+
+  <!-- Totales -->
+  <div id="totales" class="card hidden">
     <div class="coupon-row">
       <input id="coupon-input" type="text" placeholder="Si tienes un cupón, ingrésalo aquí">
       <button id="coupon-apply">Aplicar cupón</button>
@@ -76,6 +88,7 @@
       <div>Apertura del grupo</div><div id="t-met-count">—</div><div id="t-met">—</div>
       <div>Inscripciones <span class="hint">— Renovables a los 365 días</span></div><div id="t-subins-count">—</div><div id="t-subins">—</div>
       <div id="coupon-line-label" class="hidden">Cupón</div><div></div><div id="coupon-line-value" class="hidden">—</div>
+      <div>Activables del proyecto</div><div id="t-act-count">—</div><div id="t-act">—</div>
     </div>
     <div class="grid" style="grid-template-columns:1fr auto;row-gap:8px;margin-top:12px">
       <div class="grand">Total antes de impuestos</div><div class="grand" id="t-corp">—</div>
@@ -89,10 +102,15 @@
 </div>
 
 <script>
-/* ==================  DATOS 100% LOCALES  ================== */
-const DATA = {
+/* ==================  CONFIG REMOTA  ================== */
+const ENDPOINT = "https://script.google.com/macros/s/AKfycbwOt1RHYdFe3lXBg1XpKu_aNaDWDJDUjBPmCYdFaitzpBHHY5czhtnaOyR8czuO52l2/exec";
+
+/* ==================  DATOS LOCALES (precios)  ================== */
+/* Mantengo los precios/escala en local para no depender del Sheet.
+   Puedes moverlos al mismo endpoint cuando quieras. */
+const LOCAL = {
   escalas: [1,5,10,25,50,100],
-  participantes: { autodidacta:1, yotenseno:1, lohagocontigo:1 },
+  participantes: { autodidacta:1, yotenseno:1, lohagocontigo:1 }, // ← por default 1 c/u
   precios: {
     autodidacta:{ mxn:[3990,3800,3600,3300,3000,2700], usd:[239,229,219,199,179,159] },
     yotenseno:{ mxn:[6990,6700,6400,5900,5400,4900], usd:[399,389,369,339,309,279] },
@@ -103,72 +121,77 @@ const DATA = {
     yotenseno:[0,0.03,0.05,0.10,0.15,0.20],
     lohagocontigo:[0,0.03,0.05,0.10,0.15,0.20]
   },
-  beneficios:{
-    nombres:["Curso in Company","Acceso a plataforma por 12 meses","Sesiones en vivo grupales","Coaching 1:1","Certificación por niveles","Soporte por correo","Materiales descargables","Reporte de participación"],
-    detalle:[
-      {descripcion:"Sesión exclusiva para el equipo, personalizada a sus objetivos."},
-      {descripcion:"Ingreso a la plataforma con contenidos y prácticas durante un año."},
-      {descripcion:"Calendario mensual de sesiones sin costo adicional."},
-      {descripcion:"Acompañamiento individual con coaches de Leaderlix."},
-      {descripcion:"Evaluación progresiva con 4 niveles de dominio."},
-      {descripcion:"Atención a dudas y seguimiento por email."},
-      {descripcion:"Plantillas, guías y ejemplos prácticos."},
-      {descripcion:"Reporte mensual con métricas de avance."}
-    ],
-    autodidacta:[true,true,true,false,true,true,true,true],
-    yotenseno:[true,true,true,true,true,true,true,true],
-    lohagocontigo:[true,true,true,true,true,true,true,true]
-  },
-  condiciones:{ incompany:{ autodidacta:25, yotenseno:25, lohagocontigo:10 } },
+  // Regla para considerar el proyecto como corporativo
+  incompanyMin:{ autodidacta:25, yotenseno:25, lohagocontigo:10 },
   metodologia:{ mxn:29000, usd:1690, descuento:0.15 },
   cupones:{ CORP10:0.10, CORP15:0.15 }
 };
 
-/* ===============  LÓGICA UI =============== */
+/* ==================  UTILIDADES  ================== */
 const MODS=[{key:"autodidacta",title:"Autodidacta"},{key:"yotenseno",title:"Yo Te Enseño"},{key:"lohagocontigo",title:"Lo Hago Contigo"}];
-// ----- Mostrar/ocultar bloques corporativos según mínimos In Company -----
-function qualifiesCorporate(){
-  const mins = DATA?.condiciones?.incompany || {};
-  const keys = ["autodidacta","yotenseno","lohagocontigo"];
-  const anyMinConfigured = keys.some(k => Number(mins[k]||0) > 0);
-  if(!anyMinConfigured) return false;
-  return MODS.some(({key})=>{
-    const min = Number(mins[key] || 0);
-    const cnt = Number(document.getElementById("p-"+key)?.value || 0);
-    return min > 0 && cnt >= min;
-  });
-}
+let currency="mxn", appliedCoupon=null;
 
-function toggleCorporateBlocks(){
-  const show = qualifiesCorporate();
-  ["gp-card","corp-benefits-detail","gantt-card","totales","req-card"].forEach(id=>{
-    const el = document.getElementById(id);
-    if(!el) return;
-    el.classList.toggle("hidden", !show);
-  });
-
-  // (Opcional) si quieres mostrar una pista cuando NO califica:
-  const hint = document.getElementById("corp-hint");
-  if(hint) hint.classList.toggle("hidden", show);
-}
-
-  let currency="mxn", appliedCoupon=null, inCompanyIndex = DATA.beneficios.nombres.findIndex(n => n.toLowerCase().includes("in company"));
 const $ = s => document.querySelector(s);
 const nfByCcy = c => new Intl.NumberFormat(c==="usd"?"en-US":"es-MX",{minimumFractionDigits:2,maximumFractionDigits:2});
 const money = (n,c) => (c==="usd"?"USD":"MXN")+" $"+nfByCcy(c).format(Number(n||0));
-const isIncluded = v => typeof v==="boolean" ? v : (String(v??"").trim().toLowerCase() in {si:1,"sí":1,yes:1,true:1,"1":1});
 
 function findIndexFloor(arr,count){
   const c=Number(count); const exact=arr.indexOf(c); if(exact>=0) return exact;
   let best=-1,val=-Infinity; for(let i=0;i<arr.length;i++){ const v=Number(arr[i]); if(v<=c && v>val){ val=v; best=i; } }
   return best;
 }
-function getPrice(mod,count,ccy){
-  const idx=findIndexFloor(DATA.escalas,count);
-  if(idx<0) return {ok:false,price:0,discount:0,scale:null};
-  return { ok:true, price:Number(DATA.precios[mod][ccy][idx])||0, discount:Number(DATA.descuentos[mod][idx])||0, scale:Number(DATA.escalas[idx])||0 };
+function getUnitPrice(mod,count,ccy){
+  const idx=findIndexFloor(LOCAL.escalas,count);
+  if(idx<0) return {ok:false,unit:0,discount:0,scale:1};
+  const base = LOCAL.precios[mod][ccy][idx] || 0;
+  const disc = LOCAL.descuentos[mod][idx] || 0;
+  return { ok:true, unit: base*(1-disc), discount:disc, scale: LOCAL.escalas[idx] };
+}
+function qualifiesCorporate(){
+  return MODS.some(({key})=>{
+    const min = Number(LOCAL.incompanyMin[key]||0);
+    const cnt = Number($("#p-"+key)?.value || 0);
+    return min>0 && cnt>=min;
+  });
+}
+function toggleCorporateBlocks(){
+  const show = qualifiesCorporate();
+  ["gp-card","corp-benefits-detail","activables-card","totales"].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.classList.toggle("hidden", !show);
+  });
+  const hint = document.getElementById("corp-hint");
+  if(hint) hint.classList.toggle("hidden", show);
 }
 
+/* ==================  BENEFICIOS (desde endpoint)  ================== */
+let BENEFICIOS = { inscripcion: [], activacion: [] };
+
+async function loadBeneficios(){
+  const res = await fetch(ENDPOINT);
+  const json = await res.json();
+  // El script devuelve { ok, beneficios: { items: [...] } } o solo items.
+  const items = json?.beneficios?.items || json?.beneficios || json?.items || [];
+  const norm = items.map(x => ({
+    tipo: (x.tipo||'').toLowerCase().includes('activ') ? 'activacion' : 'inscripcion',
+    nombre: x.nombre || '',
+    descripcion: x.descripcion || '',
+    min: {
+      autodidacta: Number(x.min?.autodidacta || x.minAuto || 0),
+      yotenseno: Number(x.min?.yotenseno || x.minYte || 0),
+      lohagocontigo: Number(x.min?.lohagocontigo || x.minLhc || 0),
+    },
+    cost_usd: Number(x.cost_usd || 0),
+    cost_mxn: Number(x.cost_mxn || 0)
+  }));
+  BENEFICIOS.inscripcion = norm.filter(b=>b.tipo==='inscripcion');
+  BENEFICIOS.activacion  = norm.filter(b=>b.tipo==='activacion');
+  renderBenefitsCards();
+  renderActivables();
+  renderCorpBenefitDetails();
+}
+
+/* ==================  UI: CARDS  ================== */
 function buildCards(){
   const container=$("#cards"); container.innerHTML="";
   MODS.forEach(({key,title})=>{
@@ -177,7 +200,7 @@ function buildCards(){
 
     const line=document.createElement("div"); line.className="line";
     const lbl=document.createElement("label"); lbl.className="label"; lbl.textContent="Participantes"; lbl.htmlFor="p-"+key;
-    const inp=document.createElement("input"); inp.type="number"; inp.min="0"; inp.step="1"; inp.id="p-"+key; inp.value=DATA.participantes[key]||0;
+    const inp=document.createElement("input"); inp.type="number"; inp.min="0"; inp.step="1"; inp.id="p-"+key; inp.value=LOCAL.participantes[key]||0;
     line.appendChild(lbl); line.appendChild(inp); card.appendChild(line);
 
     const st=document.createElement("div"); st.className="line";
@@ -190,111 +213,124 @@ function buildCards(){
     const ul=document.createElement("ul"); ul.className="benefits"; ul.id="b-"+key; card.appendChild(ul);
 
     container.appendChild(card);
-    inp.addEventListener("input", ()=>{ recalc(true); renderBenefits(); });
+    inp.addEventListener("input", ()=>{ recalc(true); renderBenefitsCards(); });
   });
-  renderBenefits();
+  renderBenefitsCards();
 }
 
-// Módulo de detalle de beneficios (se rellena solo cuando califica corporativo)
-function renderCorpBenefitDetails(){
-  const box = document.getElementById("corp-benefits-detail");
-  if(!box) return;
-
-  // Si aún NO califica corporativo, no mostramos nada
-  if(!qualifiesCorporate()){
-    box.innerHTML = "";
-    return;
-  }
-
-  const nombres = (DATA?.beneficios?.nombres) || [];
-  const detalle = (DATA?.beneficios?.detalle) || [];
-  box.innerHTML = "";
-
-  for (let i = 0; i < nombres.length; i++){
-    const name = String(nombres[i] || "").trim();
-    if(!name) continue;
-    const desc = String(
-      (Array.isArray(detalle) ? (detalle[i]?.descripcion ?? detalle[i]) : "")
-      || ""
-    ).trim();
-
-    const card = document.createElement("div");
-    card.className = "card";
-    const h = document.createElement("div");
-    h.style.fontWeight = "700";
-    h.style.marginBottom = "6px";
-    h.textContent = name;
-    const p = document.createElement("div");
-    p.textContent = desc || "—";
-    card.appendChild(h);
-    card.appendChild(p);
-    box.appendChild(card);
-  }
-}
-function renderBenefits(){
-  const names=DATA.beneficios.nombres.map(String);
-  const cols={ autodidacta:DATA.beneficios.autodidacta, yotenseno:DATA.beneficios.yotenseno, lohagocontigo:DATA.beneficios.lohagocontigo };
+/* Pinta los beneficios en cada card con regla de mínimos y leyenda “Mínimo X membresías” */
+function renderBenefitsCards(){
   MODS.forEach(({key})=>{
     const ul=$("#b-"+key); if(!ul) return; ul.innerHTML="";
-    names.forEach((nm,i)=>{
+    const cnt = Number($("#p-"+key)?.value || 0);
+
+    BENEFICIOS.inscripcion.forEach(b=>{
+      const need = Number(b.min[key] || 0);
+      const ok = cnt >= need && need>0 ? true : (need===0); // si mínimo 0, siempre ✓
       const li=document.createElement("li");
-      if(i===inCompanyIndex){ li.id=`inc-${key}`; ul.appendChild(li); return; }
-      const on=isIncluded(cols[key][i]); const icon=document.createElement("span");
-      if(on){ icon.className="check"; icon.textContent="✓"; li.appendChild(icon); li.appendChild(document.createTextNode(" "+nm)); }
-      else { li.className="off"; icon.textContent="✗"; li.appendChild(icon); const s=document.createElement("s"); s.textContent=" "+nm; li.appendChild(s); }
+      if(ok){
+        const icon=document.createElement("span"); icon.className="check"; icon.textContent="✓";
+        li.appendChild(icon);
+        li.appendChild(document.createTextNode(" "+b.nombre));
+      }else{
+        li.className="off";
+        const icon=document.createElement("span"); icon.textContent="✗";
+        li.appendChild(icon);
+        const s=document.createElement("s"); s.textContent=" "+b.nombre; li.appendChild(s);
+        const pill=document.createElement("span"); pill.className="pill"; pill.textContent=`Mínimo ${need} membresías`;
+        li.appendChild(pill);
+      }
       ul.appendChild(li);
     });
   });
-  updateInCompanyLabels();
-  renderCorpBenefitDetails();
 }
 
-function updateInCompanyLabels(){
-  if(inCompanyIndex<0) return;
-  const mins=DATA.condiciones.incompany;
-  MODS.forEach(({key})=>{
-    const li=$("#inc-"+key); if(!li) return;
-    const min=Number(mins[key]||0);
-    const cnt=Number($("#p-"+key)?.value||0);
-    const qualifies = (min<=0) || (cnt>=min);
-    li.innerHTML="";
-    const base="Curso in Company"; const strong=document.createElement("strong"); if(min>0) strong.textContent=` (Desde ${min} px)`;
-    if(qualifies){ const i=document.createElement("span"); i.className="check"; i.textContent="✓"; li.appendChild(i); li.appendChild(document.createTextNode(" "+base)); if(min>0) li.appendChild(strong); }
-    else{ li.className="off"; const i=document.createElement("span"); i.textContent="✗"; li.appendChild(i); const s=document.createElement("s"); s.textContent=" "+base; li.appendChild(s); if(min>0) li.appendChild(strong); }
+/* ==================  ACTIVABLES A NIVEL PROYECTO  ================== */
+const ACTIVABLE_STATE = new Map(); // nombre -> {checked, qty}
+
+function renderActivables(){
+  const box = $("#activables-body"); if(!box) return;
+  box.innerHTML = "";
+  BENEFICIOS.activacion.forEach(b=>{
+    const row = document.createElement("div");
+    row.style.display="grid"; row.style.gridTemplateColumns="auto 1fr auto"; row.style.alignItems="center"; row.style.gap="12px";
+
+    const cb = document.createElement("input"); cb.type="checkbox";
+    cb.checked = !!ACTIVABLE_STATE.get(b.nombre)?.checked;
+    cb.addEventListener("change", ()=>{ 
+      const st = ACTIVABLE_STATE.get(b.nombre) || {qty:1};
+      st.checked = cb.checked; ACTIVABLE_STATE.set(b.nombre, st); recalc(true);
+    });
+
+    const label = document.createElement("div");
+    label.innerHTML = `<div style="font-weight:600">${b.nombre}</div><div class="hint">${b.descripcion||''}</div>`;
+
+    const cost = document.createElement("div");
+    const showCost = currency==="usd" ? b.cost_usd : b.cost_mxn;
+    cost.textContent = money(showCost, currency);
+
+    row.appendChild(cb); row.appendChild(label); row.appendChild(cost);
+    box.appendChild(row);
   });
 }
 
-function recalc(anim=false){
-  let totalPart=0, subtotal=0;
+/* ==================  DETALLE DE BENEFICIOS (texto)  ================== */
+function renderCorpBenefitDetails(){
+  const box = $("#corp-benefits-detail"); if(!box) return;
+  // Sólo visible si es corporativo
+  if(!qualifiesCorporate()){ box.classList.add("hidden"); box.innerHTML=""; return; }
+  box.classList.remove("hidden");
+  box.innerHTML="";
+  BENEFICIOS.inscripcion.forEach(b=>{
+    const card=document.createElement("div"); card.className="card";
+    const h=document.createElement("div"); h.style.fontWeight="700"; h.style.marginBottom="6px"; h.textContent=b.nombre;
+    const p=document.createElement("div"); p.textContent=b.descripcion||"—";
+    card.appendChild(h); card.appendChild(p); box.appendChild(card);
+  });
+}
+
+/* ==================  CÁLCULOS TOTALES  ================== */
+function recalc(){
+  let totalPart=0, subtotalIns=0;
+
   MODS.forEach(({key})=>{
     const cnt=Number($("#p-"+key).value||0);
     totalPart+=cnt;
     if(cnt>0){
-const pr = getPrice(key, cnt, currency);
-// precio por persona al nivel de precio correspondiente a la cantidad seleccionada
-const perPerson = pr.price * (1 - pr.discount);
-// subtotal de ESTA tarjeta = per-persona * cantidad elegida
-const groupPrice = perPerson * cnt;
-
-subtotal += groupPrice;
-$("#st-"+key).textContent = money(groupPrice, currency);  // << total de la compra en esa tarjeta
-$("#pp-"+key).textContent = money(perPerson, currency);   // << precio por persona al nivel aplicado
-
+      const pr=getUnitPrice(key,cnt,currency);
+      const groupPrice = pr.unit * cnt;     // subtotal por tarjeta: precio-persona * cantidad
+      subtotalIns += groupPrice;
+      $("#st-"+key).textContent = money(groupPrice,currency);
+      $("#pp-"+key).textContent = money(pr.unit,currency);
     }else{
       $("#st-"+key).textContent = money(0,currency);
       $("#pp-"+key).textContent = money(0,currency);
     }
   });
 
-  // apertura (metodología) solo si hay al menos un paquete seleccionado
-  const metBase = Number(DATA.metodologia[currency]||0);
-  const metDesc = Number(DATA.metodologia.descuento||0);
+  // apertura metodología si hay al menos una selección
   const hasAny = MODS.some(({key}) => Number($("#p-"+key).value||0) > 0);
-  const apertura = hasAny ? metBase * (1 - metDesc) : 0;
+  const apertura = hasAny ? LOCAL.metodologia[currency] * (1 - LOCAL.metodologia.descuento) : 0;
 
-  let totalAntes = subtotal + apertura;
+  // activables (sólo si corporativo)
+  let actCount=0, actTotal=0;
+  if(qualifiesCorporate()){
+    BENEFICIOS.activacion.forEach(b=>{
+      const st = ACTIVABLE_STATE.get(b.nombre);
+      if(st?.checked){
+        actCount += 1;
+        actTotal += currency==="usd" ? Number(b.cost_usd||0) : Number(b.cost_mxn||0);
+      }
+    });
+  } else {
+    // si deja de calificar, desmarcamos visualmente
+    ACTIVABLE_STATE.clear();
+    renderActivables();
+  }
 
-  // cupón (si hubiera)
+  let totalAntes = subtotalIns + apertura + actTotal;
+
+  // cupón
   let discountAmt = 0;
   if(appliedCoupon?.pct>0){
     discountAmt = totalAntes * appliedCoupon.pct;
@@ -309,9 +345,7 @@ $("#pp-"+key).textContent = money(perPerson, currency);   // << precio por perso
 
   const ivaPct = currency==="mxn" ? 0.16 : 0;
   const iva = totalAntes * ivaPct;
-  $("#t-iva-label").textContent = ivaPct>0 ? `IVA (${Math.round(ivaPct*100)}%)` : "Impuestos";
   let totalDespues = totalAntes + iva;
-
   if($("#pay-card").checked){
     totalDespues += totalDespues * 0.045;
     $("#t-conimp-label").textContent = "Total con impuestos + fee tarjeta (4.5%)";
@@ -322,61 +356,55 @@ $("#pp-"+key).textContent = money(perPerson, currency);   // << precio por perso
   $("#t-met-count").textContent = hasAny ? 1 : 0;
   $("#t-met").textContent = money(apertura,currency);
   $("#t-subins-count").textContent = totalPart;
-  $("#t-subins").textContent = money(subtotal,currency);
+  $("#t-subins").textContent = money(subtotalIns,currency);
+  $("#t-act-count").textContent = actCount;
+  $("#t-act").textContent = money(actTotal,currency);
   $("#t-corp").textContent = money(totalAntes,currency);
   $("#t-iva").textContent = money(iva,currency);
   $("#t-conimp").textContent = money(totalDespues,currency);
 
-  renderBenefits(); // actualiza “In Company” según mínimos
-  toggleCorporateBlocks(); // <<--- NUEVO: muestra/oculta módulos corporativos
+  // visibilidad de módulos corporativos
+  toggleCorporateBlocks();
+  // refrescar leyendas de beneficios (por si cambió el conteo)
+  renderBenefitsCards();
 }
 
-
-/* Eventos */
+/* ==================  ARRANQUE ================== */
 document.addEventListener("DOMContentLoaded", ()=>{
-  // Fechas de pantalla
+  // fechas
   const now=new Date(); const plus30=new Date(now.getTime()+30*24*60*60*1000);
   const cap = d => d.toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).replace(/\b(de|del)\b/g,'$&');
   $("#gp-fecha").value = cap(now);
   $("#gp-vigencia").value = cap(plus30);
 
-  // Toggle moneda
+  // moneda
   const tog=$("#currencyToggle");
-  const setCcy = c => { currency=c; tog.classList.toggle("right", currency==="usd"); tog.setAttribute("aria-checked", currency==="usd"?"true":"false"); recalc(true); };
+  const setCcy = c => { currency=c; tog.classList.toggle("right", currency==="usd"); tog.setAttribute("aria-checked", currency==="usd"?"true":"false"); renderActivables(); recalc(); };
   tog.addEventListener("click", ()=> setCcy(currency==="mxn"?"usd":"mxn"));
   tog.addEventListener("keydown", e => { if(e.key===" "||e.key==="Enter"){ e.preventDefault(); setCcy(currency==="mxn"?"usd":"mxn"); }});
 
-  // Cupón
+  // cupón
   $("#coupon-apply").addEventListener("click", ()=>{
     const raw = ($("#coupon-input").value||"").trim().toUpperCase();
     const info=$("#coupon-info");
-    if(!raw){ appliedCoupon=null; info.textContent=""; recalc(true); return; }
-    const pct = DATA.cupones[raw];
-    if(!pct){ appliedCoupon=null; info.textContent="Cupón inválido o expirado."; recalc(true); return; }
+    if(!raw){ appliedCoupon=null; info.textContent=""; recalc(); return; }
+    const pct = LOCAL.cupones[raw];
+    if(!pct){ appliedCoupon=null; info.textContent="Cupón inválido o expirado."; recalc(); return; }
     appliedCoupon = { code:raw, pct:Number(pct) };
     info.textContent = "✅ Cupón aplicado: " + Math.round(pct*100) + "%";
-    recalc(true);
+    recalc();
+  });
+  $("#pay-card").addEventListener("change", ()=>recalc());
+
+  // construir UI
+  buildCards();
+  // cargar beneficios desde Apps Script
+  loadBeneficios().catch(err=>{
+    const b=$("#errorBox"); b.style.display="block";
+    b.textContent="No se pudieron cargar los beneficios del servidor. Se mostrarán cuando vuelva a haber conexión.";
   });
 
-  $("#pay-card").addEventListener("change", ()=>recalc(true));
-
-  // Construir UI y calcular
-  buildCards();
-  recalc(true);
-  toggleCorporateBlocks(); // <<--- NUEVO: aplica el estado inicial (oculto si no califica)
-
-  // Aviso si hay extensiones ruidosas
-  setTimeout(()=>{
-
-    const noisy = /lastpass|1password|bitwarden|background-redux/i;
-    // Si hay errores de esas extensiones, solo mostramos un aviso suave (no bloquea nada)
-    window.addEventListener("error", e=>{
-      if(noisy.test(String(e?.filename||""))) {
-        const b=$("#errorBox"); b.style.display="block";
-        b.textContent="Nota: Tu gestor de contraseñas está registrando errores en la consola, pero la vista corporativa funciona.";
-      }
-    });
-  },0);
+  recalc();
 });
 </script>
 </body>
