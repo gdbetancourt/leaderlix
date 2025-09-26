@@ -126,7 +126,6 @@ const DATA = {
 
 /* ===============  LÓGICA UI =============== */
 const MODS=[{key:"autodidacta",title:"Autodidacta"},{key:"yotenseno",title:"Yo Te Enseño"},{key:"lohagocontigo",title:"Lo Hago Contigo"}];
-const MODS=[{key:"autodidacta",title:"Autodidacta"},{key:"yotenseno",title:"Yo Te Enseño"},{key:"lohagocontigo",title:"Lo Hago Contigo"}];
 // ----- Mostrar/ocultar bloques corporativos según mínimos In Company -----
 function qualifiesCorporate(){
   const mins = DATA?.condiciones?.incompany || {};
@@ -196,6 +195,42 @@ function buildCards(){
   renderBenefits();
 }
 
+// Módulo de detalle de beneficios (se rellena solo cuando califica corporativo)
+function renderCorpBenefitDetails(){
+  const box = document.getElementById("corp-benefits-detail");
+  if(!box) return;
+
+  // Si aún NO califica corporativo, no mostramos nada
+  if(!qualifiesCorporate()){
+    box.innerHTML = "";
+    return;
+  }
+
+  const nombres = (DATA?.beneficios?.nombres) || [];
+  const detalle = (DATA?.beneficios?.detalle) || [];
+  box.innerHTML = "";
+
+  for (let i = 0; i < nombres.length; i++){
+    const name = String(nombres[i] || "").trim();
+    if(!name) continue;
+    const desc = String(
+      (Array.isArray(detalle) ? (detalle[i]?.descripcion ?? detalle[i]) : "")
+      || ""
+    ).trim();
+
+    const card = document.createElement("div");
+    card.className = "card";
+    const h = document.createElement("div");
+    h.style.fontWeight = "700";
+    h.style.marginBottom = "6px";
+    h.textContent = name;
+    const p = document.createElement("div");
+    p.textContent = desc || "—";
+    card.appendChild(h);
+    card.appendChild(p);
+    box.appendChild(card);
+  }
+}
 function renderBenefits(){
   const names=DATA.beneficios.nombres.map(String);
   const cols={ autodidacta:DATA.beneficios.autodidacta, yotenseno:DATA.beneficios.yotenseno, lohagocontigo:DATA.beneficios.lohagocontigo };
