@@ -472,7 +472,8 @@ function weeksCacheIndexToISO(d){
     /* ===== Estado general ===== */
     const ENDPOINT=window.LEADERLIX_ENDPOINT;
     const MODS=[{key:"autodidacta",title:"Autodidacta"},{key:"yotenseno",title:"Yo Te Enseño"},{key:"lohagocontigo",title:"Lo Hago Contigo"}];
-let DATA=null, currency="mxn", mode="personal", personalPeriod="mensual", appliedCoupon=null, inCompanyIndex=-1, personalizedIndex=-1, readOnly=false;
+let DATA=null, currency="mxn", mode="corporativo", personalPeriod="mensual",
+    appliedCoupon=null, inCompanyIndex=-1, personalizedIndex=-1, readOnly=false;
 
     /* ===== Estado Gantt ===== */
     const GANTT_TZ = "America/Mexico_City";
@@ -627,12 +628,23 @@ personalizedIndex = (idxPersByName >= 0 ? idxPersByName : -1);
           const lbl=el("label","label"); lbl.textContent="Participantes"; lbl.htmlFor="p-"+key;
           // Cambiamos a input numérico (mejor rendimiento)
           const sel=document.createElement("input"); sel.id="p-"+key; sel.type="number"; sel.min="0"; sel.step="1";
-          sel.value=String(Math.max(0,Number(DATA.participantes[key]||0)));
+sel.value="1"; // siempre arranca en 1
           iw.appendChild(lbl); iw.appendChild(sel); card.appendChild(iw);
 
           const st=el("div","line"), stl=el("div"), stv=el("div");
           stl.innerHTML='Subtotal <span class="hint">— Anualmente</span>';
           stv.id="st-"+key; stv.textContent=money(0,currency);
+          // Línea de descuento (empieza oculta)
+const dl = el("div","line"), dll = el("div"), dlv = el("div");
+dll.textContent = "Descuento aplicado";
+dl.id = "disc-"+key;              // id único por card, ej. disc-autodidacta
+dl.classList.add("hidden");       // oculta por defecto
+dl.appendChild(dll);
+dl.appendChild(dlv);
+card.appendChild(dl);
+
+
+
           st.appendChild(stl); st.appendChild(stv); card.appendChild(st);
 
           const ppl=el("div","line"), ppll=el("div"), pplv=el("div");
@@ -696,60 +708,80 @@ personalizedIndex = (idxPersByName >= 0 ? idxPersByName : -1);
       });
     }
 
-    function renderBenefits(){
-      if(mode==="corporativo"){
-        const names=(DATA?.beneficios?.nombres||[]).map(x=>String(x||""));
-        const cols={ autodidacta:(DATA?.beneficios?.autodidacta||[]), yotenseno:(DATA?.beneficios?.yotenseno||[]), lohagocontigo:(DATA?.beneficios?.lohagocontigo||[]) };
+   function renderBenefits(){
+  if(mode==="corporativo"){
+    const names=(DATA?.beneficios?.nombres||[]).map(x=>String(x||""));
+    const cols={
+      autodidacta:(DATA?.beneficios?.autodidacta||[]),
+      yotenseno:(DATA?.beneficios?.yotenseno||[]),
+      lohagocontigo:(DATA?.beneficios?.lohagocontigo||[])
+    };
 
-        MODS.forEach(({key})=>{
-          const ul=document.getElementById("b-"+key); if(!ul) return; ul.innerHTML="";
-          for(let i=0;i<names.length;i++){
-            const nm=names[i]||""; if(nm.trim()==="") continue;
-            const li=document.createElement("li");
-            if(i===inCompanyIndex){ li.id=`inc-${key}`; ul.appendChild(li); continue; }
-            // Placeholder para "Personalizado"
-if(i===personalizedIndex){ li.id=`pers-${key}`; ul.appendChild(li); continue; }
+    MODS.forEach(({key})=>{
+      const ul=document.getElementById("b-"+key); if(!ul) return; ul.innerHTML="";
+      for(let i=0;i<names.length;i++){
+        const nm=names[i]||""; if(nm.trim()==="") continue;
+        const li=document.createElement("li");
+        if(i===inCompanyIndex){ li.id=`inc-${key}`; ul.appendChild(li); continue; }
+        if(i===personalizedIndex){ li.id=`pers-${key}`; ul.appendChild(li); continue; }
 
-            const on=isIncluded(cols[key][i]);
-            const icon=document.createElement("span"); icon.className=on?"check":"cross"; icon.textContent=on?"✓":"✗";
-            if(on){ li.appendChild(icon); li.appendChild(document.createTextNode(" "+nm)); }
-            else { li.classList.add("off"); const s=document.createElement("s"); s.textContent=" "+nm; li.appendChild(icon); li.appendChild(s); }
-            ul.appendChild(li);
-          }
-        });
-        updateInCompanyLabels();
-        updatePersonalizedLabels();
-
-      }else{
-        const names=(DATA?.individual?.beneficios?.nombres||[]).map(x=>String(x||""));
-        const cols={ autodidacta:(DATA?.individual?.beneficios?.autodidacta||[]), yotenseno:(DATA?.individual?.beneficios?.yotenseno||[]), lohagocontigo:(DATA?.individual?.beneficios?.lohagocontigo||[]) };
-        MODS.forEach(({key})=>{
-          const ul=document.getElementById(`bi-${key}`); if(!ul) return; ul.innerHTML="";
-          for(let i=0;i<names.length;i++){
-            const rawName=names[i]||""; if(rawName.trim()==="") continue;
-const nameNorm = normText(rawName);
-const isCursoPresencial = nameNorm.includes("evento presencial") || nameNorm.includes("curso presencial");
-            let on = isIncluded(cols[key][i]);
-            const li=document.createElement("li"); const icon=document.createElement("span");
-            if(isCursoPresencial){
-              if(personalPeriod==="mensual"){
-                on=false; icon.className="cross"; icon.textContent="✗"; li.classList.add("off");
-                const s=document.createElement("s"); s.textContent=" "+rawName+" ";
-                const strong=document.createElement("strong"); strong.textContent="(Solo en anual)"; strong.style.color="var(--accent)"; strong.style.fontWeight="700"; strong.setAttribute("aria-hidden","true");
-                li.appendChild(icon); li.appendChild(s); li.appendChild(strong);
-              }else{
-                on=true; icon.className="check"; icon.textContent="✓"; li.appendChild(icon); li.appendChild(document.createTextNode(" "+rawName));
-              }
-            }else{
-              icon.className=on?"check":"cross"; icon.textContent=on?"✓":"✗";
-              if(on){ li.appendChild(icon); li.appendChild(document.createTextNode(" "+rawName)); }
-              else { li.classList.add("off"); const s=document.createElement("s"); s.textContent=" "+rawName; li.appendChild(icon); li.appendChild(s); }
-            }
-            ul.appendChild(li);
-          }
-        });
+        const on=isIncluded(cols[key][i]);
+        const icon=document.createElement("span");
+        icon.className=on?"check":"cross";
+        icon.textContent=on?"✓":"✗";
+        if(on){
+          li.appendChild(icon); li.appendChild(document.createTextNode(" "+nm));
+        }else{
+          li.classList.add("off");
+          const s=document.createElement("s"); s.textContent=" "+nm;
+          li.appendChild(icon); li.appendChild(s);
+        }
+        ul.appendChild(li);
       }
-    }
+    }); // ← cierre del forEach
+
+    updateInCompanyLabels();
+    updatePersonalizedLabels();
+
+  } else {
+    const names=(DATA?.individual?.beneficios?.nombres||[]).map(x=>String(x||""));
+    const cols={
+      autodidacta:(DATA?.individual?.beneficios?.autodidacta||[]),
+      yotenseno:(DATA?.individual?.beneficios?.yotenseno||[]),
+      lohagocontigo:(DATA?.individual?.beneficios?.lohagocontigo||[])
+    };
+    MODS.forEach(({key})=>{
+      const ul=document.getElementById(`bi-${key}`); if(!ul) return; ul.innerHTML="";
+      for(let i=0;i<names.length;i++){
+        const rawName=names[i]||""; if(rawName.trim()==="") continue;
+        const nameNorm = normText(rawName);
+        const isCursoPresencial = nameNorm.includes("evento presencial") || nameNorm.includes("curso presencial");
+        let on = isIncluded(cols[key][i]);
+        const li=document.createElement("li"); const icon=document.createElement("span");
+        if(isCursoPresencial){
+          if(personalPeriod==="mensual"){
+            on=false; icon.className="cross"; icon.textContent="✗"; li.classList.add("off");
+            const s=document.createElement("s"); s.textContent=" "+rawName+" ";
+            const strong=document.createElement("strong"); strong.textContent="(Solo en anual)";
+            strong.style.color="var(--accent)"; strong.style.fontWeight="700"; strong.setAttribute("aria-hidden","true");
+            li.appendChild(icon); li.appendChild(s); li.appendChild(strong);
+          }else{
+            on=true; icon.className="check"; icon.textContent="✓";
+            li.appendChild(icon); li.appendChild(document.createTextNode(" "+rawName));
+          }
+        }else{
+          icon.className=on?"check":"cross"; icon.textContent=on?"✓":"✗";
+          if(on){ li.appendChild(icon); li.appendChild(document.createTextNode(" "+rawName)); }
+          else { li.classList.add("off"); const s=document.createElement("s"); s.textContent=" "+rawName; li.appendChild(icon); li.appendChild(s); }
+        }
+        ul.appendChild(li);
+      }
+    });
+  }
+}
+
+
+     
 
 function updateInCompanyLabels(){
   if(inCompanyIndex<0 || mode!=="corporativo") return;
@@ -897,7 +929,7 @@ function updatePersonalizedLabels(){
 
 const d = document.createElement("input");
 d.type="number";
-d.min="1";
+d.min="0";
 
 
       const ph = document.createElement("select");
@@ -1049,7 +1081,7 @@ function attachGanttPointerHandlers(){
 
 function renderGantt(){
   const svg=$("#gantt-svg"); const tbody=$("#gantt-table tbody");
-  const items=(gantt.items||[]).map(x=>({ ...x, d:Math.max(1,parseInt(x.d||1)) }))
+const items=(gantt.items||[]).map(x=>({ ...x, d:Math.max(0,parseInt(x.d||0)) }))
 .filter(x=>x.t && x.w);
   while(svg.firstChild) svg.removeChild(svg.firstChild); tbody.innerHTML="";
 
@@ -1225,6 +1257,15 @@ const endDate = addWeeks(s, dur);
 /* ===== Otros ===== */
 
 /* ===== Utilidades Numéricas ===== */
+    function qtyToMultiplier(q){
+  q = Math.max(0, parseInt(q||0));
+  if (q <= 0) return { mult: 0, label: "" };
+  if (q === 1) return { mult: 1, label: "" };
+  if (q === 2) return { mult: 1.5, label: "2ª al 50%" };
+  if (q === 3) return { mult: 2, label: "3ª gratis" };
+  return { mult: (2 + (q - 3)), label: "Promo 2× en las primeras 3" };
+}
+
 function toNumber(v){
   if (v === '' || v == null) return 0;
   if (typeof v === 'number') return v;
@@ -1281,21 +1322,9 @@ function globalInCompanyMin(){
   return arr.length ? Math.min(...arr) : 0;
 }
 
-    // === AUXILIARES PARA MÍNIMO GLOBAL (evento corporativo / personalizado) ===
-function qualifiesAnyInCompany(){
-  const mins = DATA?.condiciones?.incompany || {};
-  return MODS.some(({ key }) => {
-    const min = Number(mins[key] || 0);
-    const cnt = Number(document.getElementById("p-" + key)?.value || 0);
-    return (min <= 0) || (cnt >= min);
-  });
-}
 
-function globalInCompanyMin(){
-  const mins = DATA?.condiciones?.incompany || {};
-  const arr = MODS.map(({key}) => Number(mins[key] || 0)).filter(v => v > 0 && isFinite(v));
-  return arr.length ? Math.min(...arr) : 0;
-}
+
+
 
     function renderRequisitos(){
       const box=$("#req-card"); const list=$("#req-list");
@@ -1315,131 +1344,149 @@ function globalInCompanyMin(){
     }
     function flash(el){ if(!el) return; el.classList.remove("anim-flash"); void el.offsetWidth; el.classList.add("anim-flash"); }
 
-    function recalc(withAnim=false){
-      if(!DATA) return;
-      if(DATA.metodologia) DATA.metodologia.descuento = normalizeMethodologyDiscount(DATA.metodologia.descuento);
+function recalc(withAnim=false){
+  if(!DATA) return;
 
-      const actions=$("#actions-bar"); const gp=$("#gp-card"); const nextBox=$("#next-course");
-      if(mode==="corporativo"){ actions.classList.remove("hidden"); gp.classList.remove("hidden"); nextBox.classList.add("hidden"); }
-      else { actions.classList.add("hidden"); gp.classList.add("hidden"); renderNextCourseBox(DATA); }
+  if(DATA.metodologia)
+    DATA.metodologia.descuento = normalizeMethodologyDiscount(DATA.metodologia.descuento);
 
-      if(mode==="personal"){
-        $("#totales").classList.add("hidden"); $("#req-card").classList.add("hidden"); $("#corp-benefits-detail").classList.add("hidden"); $("#gantt-card").classList.add("hidden");
-        MODS.forEach(({key})=>{
-          const base=Number(DATA?.individual?.precios?.[key]?.[personalPeriod]?.[currency]||0);
-          const pv=$("#pv-"+key), lbl=$("#plabel-"+key), note=$("#pnote-"+key);
-          if(pv){ pv.textContent=money(base,currency); if(withAnim) flash(pv); }
-          if(lbl) lbl.textContent = personalPeriod==="anual" ? "Precio (Anualmente)" : "Precio (Mensualmente)";
-          if(note) note.classList.toggle("vishide", personalPeriod!=="anual");
-        });
-        renderBenefits(); return;
+  // Cambia visibilidad de secciones principales
+  const actions=$("#actions-bar");
+  const gp=$("#gp-card");
+  const nextBox=$("#next-course");
+  if(mode==="corporativo"){ actions.classList.remove("hidden"); gp.classList.remove("hidden"); nextBox.classList.add("hidden"); }
+  else { actions.classList.add("hidden"); gp.classList.add("hidden"); renderNextCourseBox(DATA); }
+
+  $("#totales").classList.remove("hidden");
+
+  let totalPart=0;
+  let subtotalInscripciones=0;
+  let anyMissing=false;
+
+  // Precio anual unitario por módulo (usas el anual como base)
+  function unitPrice(modKey){
+    const base = Number(DATA?.individual?.precios?.[modKey]?.anual?.[currency] || 0);
+    return isFinite(base) ? base : 0;
+  }
+
+  // Recalcular por módulo
+  MODS.forEach(({key})=>{
+    const cnt = Number(document.querySelector(`#p-${key}`)?.value || 0);
+    totalPart += cnt;
+
+    const u = unitPrice(key);
+
+    if (cnt > 0){
+      const promo = qtyToMultiplier(cnt);
+      const subtotal = u * promo.mult;
+      subtotalInscripciones += subtotal;
+
+      // Subtotales UI
+      document.getElementById(`st-${key}`).textContent = money(subtotal, currency);
+      document.getElementById(`pp-${key}`).textContent = money(u, currency);
+
+      // Línea de descuento por card
+      const dline = document.getElementById(`disc-${key}`);
+      if (promo.label && subtotal > 0){
+        const sinDesc = u * cnt;
+        const descuento = Math.max(0, sinDesc - subtotal);
+        dline.classList.remove("hidden");
+        dline.querySelector("div:last-child").textContent =
+          "− " + money(descuento, currency) + " · " + promo.label;
+        if (withAnim) flash(dline);
+      } else {
+        dline.classList.add("hidden");
+        dline.querySelector("div:last-child").textContent = "";
       }
-
-      $("#totales").classList.remove("hidden");
-
-      let totalPart=0, subtotalInscripciones=0, anyMissing=false;
-      MODS.forEach(({key})=>{
-        const cnt=Number($("#p-"+key).value||0);
-        totalPart += cnt;
-        if(cnt>0){
-          const pr=getPrice(key,cnt,currency);
-          if(!pr.ok || !Number.isFinite(pr.price)){ anyMissing=true; $("#st-"+key).textContent="—"; $("#pp-"+key).textContent="—"; if(withAnim){ flash($("#st-"+key)); flash($("#pp-"+key)); } return; }
-          const pricePerGroup=pr.price*(1-pr.discount);
-          subtotalInscripciones += pricePerGroup;
-          $("#st-"+key).textContent = money(pricePerGroup,currency);
-          $("#pp-"+key).textContent = money(pricePerGroup/Math.max(pr.scale||1,1),currency);
-          if(withAnim){ flash($("#st-"+key)); flash($("#pp-"+key)); }
-        }else{
-          $("#st-"+key).textContent = money(0,currency);
-          $("#pp-"+key).textContent = money(0,currency);
-          if(withAnim){ flash($("#st-"+key)); flash($("#pp-"+key)); }
-        }
-      });
-
-      // Gantt visible solo si hay inscripciones
-      const hasIns = totalPart>0;
-      document.getElementById("gantt-card").classList.toggle("hidden", !hasIns);
-
-updateInCompanyLabels();
-updatePersonalizedLabels();
-renderCorpBenefitDetails();
-renderRequisitos();
-
-
-      if(hasIns){ rebuildGanttEditor(); renderGantt(); }
-
-      const warn=$("#scale-warn");
-      if(anyMissing){ warn.textContent="Revisa la cantidad de participantes: no hay una escala configurada para ese número."; warn.classList.remove("hidden"); }
-      else { warn.classList.add("hidden"); warn.textContent=""; }
-
-const metBase = Number((DATA.metodologia || {})[currency] || 0);
-const metDesc = Number((DATA.metodologia || {}).descuento || 0);
-
-// hay apertura si hay al menos 1 participante en cualquier módulo
-const metodologiaCount =
-  (Number($("#p-autodidacta").value || 0) > 0) ||
-  (Number($("#p-yotenseno").value || 0) > 0) ||
-  (Number($("#p-lohagocontigo").value || 0) > 0) ? 1 : 0;
-
-const apertura = metodologiaCount > 0 ? metBase * (1 - metDesc) : 0;
-
-
-// ya calculaste: apertura y subtotalInscripciones
-
-// 1. Calcula totalAntes primero
-// Total antes de cupón
-const totalAntes = subtotalInscripciones + apertura;
-
-// Base del cupón: TOTAL (apertura + inscripciones) en corporativo
-const baseCupon = totalAntes;
-
-// Inicializa acumuladores
-let discountAmt = 0;
-let totalAntesConCupon = totalAntes;
-
-// Aplica cupón si existe
-if (appliedCoupon?.pct > 0) {
-  discountAmt = baseCupon * appliedCoupon.pct;
-  totalAntesConCupon = Math.max(0, totalAntes - discountAmt);
-
-  // Mostrar línea de cupón
-  $("#coupon-line-label").classList.remove("hidden");
-  $("#coupon-line-value").classList.remove("hidden");
-  $("#coupon-line-label").textContent = "Cupón";
-  $("#coupon-line-value").textContent = "− " + money(discountAmt, currency);
-  if (withAnim) flash($("#coupon-line-value"));
-} else {
-  // Ocultar línea de cupón
-  $("#coupon-line-label").classList.add("hidden");
-  $("#coupon-line-value").classList.add("hidden");
-}
-// IVA según moneda (MXN: 16%, USD: 0% por defecto)
-const ivaPct = (currency === 'mxn') ? 0.16 : 0;
-const iva = totalAntesConCupon * ivaPct;
-// Actualiza la etiqueta
-const ivaLbl = document.getElementById("t-iva-label");
-if (ivaLbl) ivaLbl.textContent = ivaPct > 0 ? `IVA (${Math.round(ivaPct*100)}%)` : "Impuestos";
-
-let totalDespues = totalAntesConCupon + iva;
-const payCard = $("#pay-card").checked;
-
-if (payCard) {
-  const fee = totalDespues * 0.045; // 4.5% sobre total con impuestos
-  totalDespues += fee;
-  $("#t-conimp-label").textContent = "Total con impuestos + fee tarjeta (4.5%)";
-} else {
-  $("#t-conimp-label").textContent = "Total con impuestos";
-}
-
-
-      $("#t-met-count").textContent = metodologiaCount; if(withAnim) flash($("#t-met-count"));
-      $("#t-met").textContent = money(apertura,currency); if(withAnim) flash($("#t-met"));
-      $("#t-subins-count").textContent = totalPart; if(withAnim) flash($("#t-subins-count"));
-      $("#t-subins").textContent = money(subtotalInscripciones,currency); if(withAnim) flash($("#t-subins"));
-      $("#t-corp").textContent = money(totalAntesConCupon,currency); if(withAnim) flash($("#t-corp"));
-      $("#t-iva").textContent = money(iva,currency); if(withAnim) flash($("#t-iva"));
-      $("#t-conimp").textContent = money(totalDespues,currency); if(withAnim) flash($("#t-conimp"));
+    } else {
+      // Cantidad 0: muestra unitario, oculta descuento y subtotal = 0
+      document.getElementById(`st-${key}`).textContent = money(0, currency);
+      document.getElementById(`pp-${key}`).textContent = money(u, currency);
+      const dline = document.getElementById(`disc-${key}`);
+      dline.classList.add("hidden");
+      dline.querySelector("div:last-child").textContent = "";
     }
+  });
+
+  // Mostrar/ocultar Gantt si hay inscripciones
+  const hasIns = totalPart > 0;
+  document.getElementById("gantt-card").classList.toggle("hidden", !hasIns);
+
+  // Beneficios/Requisitos que dependen de cantidades
+  updateInCompanyLabels();
+  updatePersonalizedLabels();
+  renderCorpBenefitDetails();
+  renderRequisitos();
+
+  if(hasIns){ rebuildGanttEditor(); renderGantt(); }
+
+  // Warning por escalas faltantes (si aplicara)
+  const warn=$("#scale-warn");
+  if(anyMissing){
+    warn.textContent="Revisa la cantidad de participantes: no hay una escala configurada para ese número.";
+    warn.classList.remove("hidden");
+  } else {
+    warn.classList.add("hidden");
+    warn.textContent="";
+  }
+
+  // Apertura de metodología (una sola vez si hay participantes)
+  const metBase = Number((DATA.metodologia || {})[currency] || 0);
+  const metDesc = Number((DATA.metodologia || {}).descuento || 0);
+
+  const metodologiaCount =
+    (Number($("#p-autodidacta").value || 0) > 0) ||
+    (Number($("#p-yotenseno").value || 0) > 0) ||
+    (Number($("#p-lohagocontigo").value || 0) > 0) ? 1 : 0;
+
+  const apertura = metodologiaCount > 0 ? metBase * (1 - metDesc) : 0;
+
+  // Totales antes de cupón
+  const totalAntes = subtotalInscripciones + apertura;
+
+  // Cupón (aplica al total)
+  let discountAmt = 0;
+  let totalAntesConCupon = totalAntes;
+  if (appliedCoupon?.pct > 0) {
+    discountAmt = totalAntes * appliedCoupon.pct;
+    totalAntesConCupon = Math.max(0, totalAntes - discountAmt);
+
+    $("#coupon-line-label").classList.remove("hidden");
+    $("#coupon-line-value").classList.remove("hidden");
+    $("#coupon-line-label").textContent = "Cupón";
+    $("#coupon-line-value").textContent = "− " + money(discountAmt, currency);
+    if (withAnim) flash($("#coupon-line-value"));
+  } else {
+    $("#coupon-line-label").classList.add("hidden");
+    $("#coupon-line-value").classList.add("hidden");
+  }
+
+  // IVA por moneda (MXN 16%, USD 0%)
+  const ivaPct = (currency === 'mxn') ? 0.16 : 0;
+  const iva = totalAntesConCupon * ivaPct;
+  const ivaLbl = document.getElementById("t-iva-label");
+  if (ivaLbl) ivaLbl.textContent = ivaPct > 0 ? `IVA (${Math.round(ivaPct*100)}%)` : "Impuestos";
+
+  // Fee por tarjeta si se marca
+  let totalDespues = totalAntesConCupon + iva;
+  const payCard = $("#pay-card").checked;
+  if (payCard) {
+    const fee = totalDespues * 0.045;
+    totalDespues += fee;
+    $("#t-conimp-label").textContent = "Total con impuestos + fee tarjeta (4.5%)";
+  } else {
+    $("#t-conimp-label").textContent = "Total con impuestos";
+  }
+
+  // Pintar totales
+  $("#t-met-count").textContent = metodologiaCount; if(withAnim) flash($("#t-met-count"));
+  $("#t-met").textContent = money(apertura,currency); if(withAnim) flash($("#t-met"));
+  $("#t-subins-count").textContent = totalPart; if(withAnim) flash($("#t-subins-count"));
+  $("#t-subins").textContent = money(subtotalInscripciones,currency); if(withAnim) flash($("#t-subins"));
+  $("#t-corp").textContent = money(totalAntesConCupon,currency); if(withAnim) flash($("#t-corp"));
+  $("#t-iva").textContent = money(iva,currency); if(withAnim) flash($("#t-iva"));
+  $("#t-conimp").textContent = money(totalDespues,currency); if(withAnim) flash($("#t-conimp"));
+}
 
     /* ===== Date pickers ===== */
     function setupDatePickers(){
@@ -1550,6 +1597,10 @@ if (payCard) {
 
     async function loadData(){
 
+      const cup = document.getElementById("coupon-apply");
+if (cup) cup.addEventListener("click", applyCoupon);
+
+
       const loader=$("#loader");
       try{
         const qInit=applyStateFromURL();
@@ -1588,8 +1639,6 @@ attachGanttPointerHandlers();   // ← añade esta línea una sola vez
 if(mode==="corporativo"){ document.getElementById("gp-card").classList.remove("hidden"); }
 else{ renderNextCourseBox(DATA); }
 
-        if(mode==="corporativo"){ document.getElementById("gp-card").classList.remove("hidden"); }
-        else{ renderNextCourseBox(DATA); }
 
         setupDatePickers();
         bindGeneralesAutoSave();
