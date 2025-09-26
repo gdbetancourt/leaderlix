@@ -37,6 +37,7 @@
 <div class="container">
   <h1>Opciones de Inscripción</h1>
   <div class="muted">Vista corporativa</div>
+<div id="corp-hint" class="muted">Selecciona suficientes participantes en alguna membresía para activar el proyecto corporativo.</div>
 
   <div id="top-controls" aria-label="Preferencias">
     <div style="text-align:center">
@@ -48,7 +49,7 @@
 
   <div id="errorBox" role="alert"></div>
 
-  <div id="gp-card" class="card">
+<div id="gp-card" class="card hidden">
     <h3 style="margin:0 0 8px;font-size:22px;color:#111">Generales del Proyecto</h3>
     <div class="grid" style="grid-template-columns:1fr 1fr;gap:12px">
       <div><label class="label">Fecha de la propuesta</label><input id="gp-fecha" type="text" readonly></div>
@@ -63,9 +64,9 @@
   </div>
 
   <div id="cards" class="grid row3" aria-live="polite"></div>
-  <div id="corp-benefits-detail" class="grid" style="grid-template-columns:1fr;gap:12px;margin-top:12px"></div>
+<div id="corp-benefits-detail" class="grid hidden" style="grid-template-columns:1fr;gap:12px;margin-top:12px"></div>
 
-  <div id="totales" class="card">
+<div id="totales" class="card hidden">
     <div class="coupon-row">
       <input id="coupon-input" type="text" placeholder="Si tienes un cupón, ingrésalo aquí">
       <button id="coupon-apply">Aplicar cupón</button>
@@ -125,7 +126,34 @@ const DATA = {
 
 /* ===============  LÓGICA UI =============== */
 const MODS=[{key:"autodidacta",title:"Autodidacta"},{key:"yotenseno",title:"Yo Te Enseño"},{key:"lohagocontigo",title:"Lo Hago Contigo"}];
-let currency="mxn", appliedCoupon=null, inCompanyIndex = DATA.beneficios.nombres.findIndex(n => n.toLowerCase().includes("in company"));
+const MODS=[{key:"autodidacta",title:"Autodidacta"},{key:"yotenseno",title:"Yo Te Enseño"},{key:"lohagocontigo",title:"Lo Hago Contigo"}];
+// ----- Mostrar/ocultar bloques corporativos según mínimos In Company -----
+function qualifiesCorporate(){
+  const mins = DATA?.condiciones?.incompany || {};
+  const keys = ["autodidacta","yotenseno","lohagocontigo"];
+  const anyMinConfigured = keys.some(k => Number(mins[k]||0) > 0);
+  if(!anyMinConfigured) return false;
+  return MODS.some(({key})=>{
+    const min = Number(mins[key] || 0);
+    const cnt = Number(document.getElementById("p-"+key)?.value || 0);
+    return min > 0 && cnt >= min;
+  });
+}
+
+function toggleCorporateBlocks(){
+  const show = qualifiesCorporate();
+  ["gp-card","corp-benefits-detail","gantt-card","totales","req-card"].forEach(id=>{
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.classList.toggle("hidden", !show);
+  });
+
+  // (Opcional) si quieres mostrar una pista cuando NO califica:
+  const hint = document.getElementById("corp-hint");
+  if(hint) hint.classList.toggle("hidden", show);
+}
+
+  let currency="mxn", appliedCoupon=null, inCompanyIndex = DATA.beneficios.nombres.findIndex(n => n.toLowerCase().includes("in company"));
 const $ = s => document.querySelector(s);
 const nfByCcy = c => new Intl.NumberFormat(c==="usd"?"en-US":"es-MX",{minimumFractionDigits:2,maximumFractionDigits:2});
 const money = (n,c) => (c==="usd"?"USD":"MXN")+" $"+nfByCcy(c).format(Number(n||0));
@@ -260,7 +288,9 @@ function recalc(anim=false){
   $("#t-conimp").textContent = money(totalDespues,currency);
 
   renderBenefits(); // actualiza “In Company” según mínimos
+  toggleCorporateBlocks(); // <<--- NUEVO: muestra/oculta módulos corporativos
 }
+
 
 /* Eventos */
 document.addEventListener("DOMContentLoaded", ()=>{
@@ -293,9 +323,11 @@ document.addEventListener("DOMContentLoaded", ()=>{
   // Construir UI y calcular
   buildCards();
   recalc(true);
+  toggleCorporateBlocks(); // <<--- NUEVO: aplica el estado inicial (oculto si no califica)
 
   // Aviso si hay extensiones ruidosas
   setTimeout(()=>{
+
     const noisy = /lastpass|1password|bitwarden|background-redux/i;
     // Si hay errores de esas extensiones, solo mostramos un aviso suave (no bloquea nada)
     window.addEventListener("error", e=>{
