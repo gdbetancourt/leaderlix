@@ -472,7 +472,7 @@ function weeksCacheIndexToISO(d){
     /* ===== Estado general ===== */
     const ENDPOINT=window.LEADERLIX_ENDPOINT;
     const MODS=[{key:"autodidacta",title:"Autodidacta"},{key:"yotenseno",title:"Yo Te Enseño"},{key:"lohagocontigo",title:"Lo Hago Contigo"}];
-    let DATA=null, currency="mxn", mode="personal", personalPeriod="mensual", appliedCoupon=null, inCompanyIndex=-1, readOnly=false;
+let DATA=null, currency="mxn", mode="personal", personalPeriod="mensual", appliedCoupon=null, inCompanyIndex=-1, personalizedIndex=-1, readOnly=false;
 
     /* ===== Estado Gantt ===== */
     const GANTT_TZ = "America/Mexico_City";
@@ -615,6 +615,10 @@ const desc = normalizeDesc(raw).trim();
       const corpNames=(DATA?.beneficios?.nombres)||[];
       const idxByName=corpNames.findIndex(n=>norm(n).includes("curso in company"));
       inCompanyIndex = (idxByName>=0 ? idxByName : -1);
+      // Índice del beneficio "Personalizado"
+const idxPersByName = corpNames.findIndex(n => norm(n).includes("personalizado"));
+personalizedIndex = (idxPersByName >= 0 ? idxPersByName : -1);
+
 
       MODS.forEach(({key,title})=>{
         const card=el("div","card pricing"); const h=el("div","title"); h.textContent=title; card.appendChild(h);
@@ -703,6 +707,9 @@ const desc = normalizeDesc(raw).trim();
             const nm=names[i]||""; if(nm.trim()==="") continue;
             const li=document.createElement("li");
             if(i===inCompanyIndex){ li.id=`inc-${key}`; ul.appendChild(li); continue; }
+            // Placeholder para "Personalizado"
+if(i===personalizedIndex){ li.id=`pers-${key}`; ul.appendChild(li); continue; }
+
             const on=isIncluded(cols[key][i]);
             const icon=document.createElement("span"); icon.className=on?"check":"cross"; icon.textContent=on?"✓":"✗";
             if(on){ li.appendChild(icon); li.appendChild(document.createTextNode(" "+nm)); }
@@ -711,6 +718,8 @@ const desc = normalizeDesc(raw).trim();
           }
         });
         updateInCompanyLabels();
+        updatePersonalizedLabels();
+
       }else{
         const names=(DATA?.individual?.beneficios?.nombres||[]).map(x=>String(x||""));
         const cols={ autodidacta:(DATA?.individual?.beneficios?.autodidacta||[]), yotenseno:(DATA?.individual?.beneficios?.yotenseno||[]), lohagocontigo:(DATA?.individual?.beneficios?.lohagocontigo||[]) };
@@ -769,6 +778,39 @@ const isCursoPresencial = nameNorm.includes("evento presencial") || nameNorm.inc
         }
       });
     }
+function updatePersonalizedLabels(){
+  if(personalizedIndex<0 || mode!=="corporativo") return;
+  const mins = DATA?.condiciones?.incompany || {};
+  MODS.forEach(({key})=>{
+    const li = document.getElementById(`pers-${key}`); 
+    if(!li) return;
+
+    const min = Number(mins[key] || 0);
+    const cnt = Number(document.getElementById(`p-${key}`)?.value || 0);
+    const qualifies = (min<=0) || (cnt>=min);
+
+    const baseText = "Personalizado";
+    const suffix = document.createElement("strong");
+    suffix.textContent = min>0 ? ` (Desde ${min} px)` : "";
+    suffix.style.color = "var(--accent)";
+    suffix.style.fontWeight = "700";
+
+    li.innerHTML=""; 
+    const icon=document.createElement("span");
+    if(qualifies){
+      icon.className="check"; icon.textContent="✓";
+      li.classList.remove("off");
+      li.appendChild(icon); li.appendChild(document.createTextNode(" "+baseText));
+      if(min>0) li.appendChild(suffix);
+    }else{
+      icon.className="cross"; icon.textContent="✗";
+      li.classList.add("off");
+      const s=document.createElement("s"); s.textContent=" "+baseText;
+      li.appendChild(icon); li.appendChild(s); 
+      li.appendChild(suffix);
+    }
+  });
+}
 
     function normalizeMethodologyDiscount(x){ let v=Number(x||0); if(!isFinite(v)||v<0) v=0; if(v>1&&v<=100) v=v/100; if(v>1) v=1; return v; }
 
@@ -1280,9 +1322,11 @@ function toNumber(v){
       const hasIns = totalPart>0;
       document.getElementById("gantt-card").classList.toggle("hidden", !hasIns);
 
-      updateInCompanyLabels();
-      renderCorpBenefitDetails();
-      renderRequisitos();
+updateInCompanyLabels();
+updatePersonalizedLabels();
+renderCorpBenefitDetails();
+renderRequisitos();
+
 
       if(hasIns){ rebuildGanttEditor(); renderGantt(); }
 
