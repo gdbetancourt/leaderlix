@@ -1,0 +1,541 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Opciones de Inscripción — Vista Corporativa</title>
+  <link href="https://fonts.googleapis.com/css2?family=Gochi+Hand&display=swap" rel="stylesheet">
+  <style>
+    :root{ --gap:16px; --radius:16px; --bg:#ffffff; --card:#ffffff; --bord:#e6e6e6; --muted:#49566a; --accent:#ff3300; --text:#111111; --ok:#16a34a; --warn:#c2410c; --error:#7f1d1d; --shadow:0 6px 24px rgba(0,0,0,.06); --gantt-grid:#eef2f7; --gantt-axis:#64748b; --gantt-today:#ff3300; --pre:#286ef0; --imp1:#22a06b; --impG:#a855f7; --eval:#fb923c; --refresh:#0ea5e9; }
+    *{ box-sizing:border-box } body{ margin:0; font-family: Arial, Helvetica, sans-serif; background:var(--bg); color:var(--text) }
+    .container{ max-width:1100px; margin:0 auto; padding:28px 20px 64px }
+    h1{ margin:0 0 8px; font-size:36px; text-align:center; font-family:"Gochi Hand", Arial, Helvetica, sans-serif; color:var(--accent) }
+    .muted{ color:var(--muted); text-align:center; margin-bottom:18px }
+    .grid{ display:grid; gap:var(--gap) } .row3{ grid-template-columns: repeat(3, 1fr) } @media (max-width: 980px){ .row3{ grid-template-columns: 1fr } }
+    .card{ background:var(--card); border:1px solid #e5e7eb; border-radius:var(--radius); padding:20px; box-shadow:var(--shadow); }
+    .pricing{ display:flex; flex-direction:column; gap:14px }
+    .title{ font-weight:800; font-size:26px; text-align:center; margin-bottom:6px; font-family:"Gochi Hand", Arial, Helvetica, sans-serif; color:var(--accent) }
+    .subtle{ color:var(--muted); font-size:13px } .label{ color:#334155; font-size:14px }
+    .line{ display:flex; justify-content:space-between; align-items:center; gap:12px; padding-top:6px }
+    select, input[type="text"], input[type="tel"], input[type="email"], textarea, input[type="number"]{ width:100%; background:#fff; color:#111; border:1px solid #c9d1db; border-radius:12px; padding:10px 12px; outline:none; font-size:15px }
+    textarea{ min-height:88px; resize:vertical } button{ background:var(--accent); color:#fff; border:none; border-radius:10px; padding:10px 14px; cursor:pointer; font-weight:700 }
+    button:disabled{ opacity:.6; cursor:not-allowed } .primary{ background:var(--accent); color:#fff } .muted-btn{ background:#f3f4f6; color:#111; }
+    ul.benefits{ list-style:none; padding:0; margin:6px 0 0; display:flex; flex-direction:column; gap:6px }
+    ul.benefits li{ display:flex; gap:8px; align-items:flex-start; font-size:15px } .check,.cross{ font-weight:700; color:currentColor } .off{ color:#94a3b8 } .off s{ color:inherit }
+    .note{ color:#64748b; font-size:12px; min-height:18px; display:block } .hidden{ display:none }
+    .total-block{ margin-top:18px; border-top:1px dashed #d4dbe4; padding-top:12px } .grand{ font-weight:800; font-size:22px; color:var(--accent) }
+    .warn{ color:var(--warn); font-size:13px; margin-top:8px } .ok{ color:var(--ok) }
+    #top-controls{ display:flex; gap:24px; justify-content:center; align-items:flex-start; margin:8px 0 22px; flex-wrap:wrap; pointer-events:auto; position:relative; z-index:2 }
+    .inline-toggle{ display:flex; flex-direction:column; align-items:center; gap:6px; position:relative }
+    .toggle-labels{ display:flex; justify-content:space-between; width:160px; white-space:nowrap; height:18px; line-height:18px; }
+    .toggle-labels .flag{ font-size:18px; line-height:18px }
+    .toggle{ position:relative; width:160px; height:40px; background:#ffffff; border:1px solid #c9d1db; border-radius:999px; cursor:pointer; outline:none }
+    .toggle::after{ content:""; position:absolute; top:4px; left:4px; width:32px; height:32px; background:var(--accent); border-radius:50%; transition:left .18s ease }
+    .toggle.right::after{ left:124px }
+    .spinner{ width:28px; height:28px; border:3px solid rgba(0,0,0,.1); border-top-color:var(--accent); border-radius:50%; animation:spin .8s linear infinite; margin:18px auto }
+    @keyframes spin{ to{ transform:rotate(360deg) } }
+    .coupon-row{ display:grid; grid-template-columns: 1fr auto; gap:10px; align-items:center; margin-top:10px } .coupon-info{ font-size:13px; color:#475569 }
+    .sum-grid{ display:grid; grid-template-columns: 1fr auto auto; gap:8px; margin-top:10px }
+    .footer-actions{ display:flex; justify-content:flex-end; margin-top:16px; gap:10px } .hint{ color:#64748b; font-size:12px }
+    #errorBox{ display:none; margin:10px auto 0; max-width:780px; background:#fff0f0; color:#7f1d1d; border:1px solid #fecaca; padding:10px 12px; border-radius:8px }
+    #actions-bar{ display:flex; justify-content:flex-end; gap:10px; margin-bottom:12px; align-items:center } #share-info{ font-size:12px; color:#64748b }
+    #gp-card{ margin-bottom:18px } #gp-grid{ display:grid; grid-template-columns: 1fr 1fr; gap:12px } #gp-grid .full{ grid-column: 1 / -1 }
+    #gp-card h3{ margin:0 0 8px; font-size:24px; color:var(--accent); font-family:"Gochi Hand", Arial, Helvetica, sans-serif; }
+    .date-wrap{ position:relative }
+    .date-popover{ position:absolute; top:100%; left:0; margin-top:6px; background:#fff; border:1px solid #c9d1db; border-radius:12px; padding:6px; box-shadow:var(--shadow); z-index:10; }
+    .date-popover input[type="date"]{ border:0; padding:6px; }
+    #corp-benefits-detail{ display:grid; grid-template-columns: 1fr; gap:12px; margin:12px 0 }
+    #corp-benefits-detail .benef-card{ border:1px solid var(--bord); border-radius:16px; padding:18px; background:#fff; box-shadow:var(--shadow); }
+    #corp-benefits-detail .benef-title{ font-weight:700; margin:0 0 6px; color:#111; font-size:19px }
+    #corp-benefits-detail .benef-desc{ color:#334155; font-size:16px; line-height:1.5 }
+    #gantt-card h3{ margin:0 0 10px; font-size:22px; color:#111; font-family:"Gochi Hand", Arial, Helvetica, sans-serif; }
+    .gantt-tools{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:8px }
+    .gantt-tools .seg{ display:flex; gap:8px; align-items:center } .badge{ display:inline-block; padding:4px 8px; border-radius:999px; font-size:12px; color:#fff; background:#94a3b8 }
+    .b-pre{ background:var(--pre) } .b-imp1{ background:var(--imp1) } .b-impG{ background:var(--impG) } .b-eval{ background:var(--eval) } .b-ref{ background:var(--refresh) }
+    #gantt-wrap{ border:1px solid var(--bord); border-radius:16px; padding:12px; background:#fff; box-shadow:var(--shadow); margin-bottom:12px }
+    #gantt-canvas{ width:100%; overflow:auto } #gantt-svg{ display:block; height:auto }
+    #gantt-editor{ display:grid; grid-template-columns: 1fr; gap:10px; margin-top:12px }
+    .gantt-row{ display:grid; grid-template-columns: 1.2fr 0.6fr 0.6fr 0.6fr 0.6fr 0.6fr auto; gap:8px; align-items:center }
+    .gantt-row .del{ background:#fef2f2; color:#991b1b }
+    .gantt-legend{ display:flex; gap:8px; flex-wrap:wrap; margin-top:6px; color:#334155; font-size:12px }
+    .gantt-table{ width:100%; border-collapse:collapse; margin-top:10px; font-size:14px }
+    .gantt-table th, .gantt-table td{ border-top:1px solid #e5e7eb; padding:8px 6px; text-align:left }
+    #cards{ margin-top:18px } #totales{ margin-top:18px; margin-bottom:18px } #req-card{ margin-top:18px }
+    #req-card h3{ margin:0 0 8px; font-size:20px; color:#111 } #req-list{ margin:8px 0 0; padding-left:18px } #req-list li{ margin-bottom:6px }
+    .anim-flash{ animation: flash .35s ease; } @keyframes flash{ 0%{ background:rgba(255,90,42,.15) } 100%{ background:transparent } }
+    .handle{ cursor:ew-resize }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Opciones de Inscripción</h1>
+    <div class="muted">Vista corporativa</div>
+
+    <div id="top-controls" role="group" aria-label="Preferencias de visualización">
+      <div id="currency-toggle-wrap" class="inline-toggle">
+        <div class="toggle-labels"><span class="flag" aria-hidden>🇲🇽</span><span class="flag" aria-hidden>🇺🇸</span></div>
+        <div id="currencyToggle" class="toggle" role="switch" aria-checked="false" tabindex="0" aria-label="Cambiar moneda" title="Cambiar entre MXN y USD"></div>
+      </div>
+    </div>
+
+    <div id="actions-bar">
+      <button id="share-btn" title="Copiar enlace con esta vista">Compartir esta vista</button>
+      <div id="share-info" aria-live="polite"></div>
+    </div>
+
+    <div id="loader" class="spinner" role="status" aria-live="polite" aria-label="Cargando"></div>
+    <div id="errorBox" role="alert"></div>
+
+    <div id="gp-card" class="card" aria-live="polite">
+      <h3>Generales del Proyecto</h3>
+      <div id="gp-grid">
+        <div class="date-wrap">
+          <label class="label" for="gp-fecha">Fecha de la propuesta</label>
+          <input id="gp-fecha" type="text" readonly />
+          <div id="gp-fecha-pop" class="date-popover hidden"><input id="gp-fecha-picker" type="date" aria-label="Seleccionar fecha de la propuesta" /></div>
+        </div>
+        <div class="date-wrap">
+          <label class="label" for="gp-vigencia">Vigencia de la propuesta</label>
+          <input id="gp-vigencia" type="text" readonly />
+          <div id="gp-vigencia-pop" class="date-popover hidden"><input id="gp-vigencia-picker" type="date" aria-label="Seleccionar vigencia de la propuesta" /></div>
+        </div>
+        <div><label class="label" for="gp-empresa">Nombre de la empresa</label><input id="gp-empresa" type="text" placeholder="Ej. ACME S.A. de C.V." /></div>
+        <div><label class="label" for="gp-solicita">Nombre de quien solicita</label><input id="gp-solicita" type="text" placeholder="Ej. Ana Pérez" /></div>
+        <div><label class="label" for="gp-resp">Responsable en Leaderlix</label><input id="gp-resp" type="text" placeholder="Ej. Gerardo Betancourt" /></div>
+        <div><label class="label" for="gp-tel">Teléfono</label><input id="gp-tel" type="tel" placeholder="Ej. +52 55 1234 5678" /></div>
+        <div><label class="label" for="gp-mail">Correo</label><input id="gp-mail" type="email" placeholder="Ej. contacto@empresa.com" /></div>
+        <div class="full"><label class="label" for="gp-notas">Generales del proyecto</label><textarea id="gp-notas" placeholder="Describe brevemente el contexto, objetivos, sede(s), fechas tentativas y consideraciones."></textarea></div>
+      </div>
+    </div>
+
+    <div id="cards" class="grid row3" aria-live="polite"></div>
+    <div id="corp-benefits-detail" aria-live="polite"></div>
+
+    <div id="gantt-card" class="card" aria-live="polite">
+      <h3>Cronograma (Gantt)</h3>
+      <div class="gantt-tools">
+        <div class="seg"><label class="label">Vista</label>
+          <select id="gantt-scale"><option value="weeks">Semanas</option><option value="months">Meses</option><option value="quarters">Trimestres</option></select>
+        </div>
+        <div class="seg"><button id="gantt-add-empty" class="muted-btn">Agregar etapa personalizada</button></div>
+        <div class="seg"><button id="gantt-toggle-editor" class="muted-btn">Ocultar editor</button></div>
+      </div>
+      <div id="gantt-wrap">
+        <div id="gantt-canvas"><svg id="gantt-svg" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Diagrama de Gantt"></svg></div>
+        <div class="gantt-legend">
+          <span class="badge b-pre">Pre-implementación</span><span class="badge b-imp1">Implementación 1:1</span><span class="badge b-impG">Implementación grupal</span><span class="badge b-eval">Evaluación / Certificación</span><span class="badge b-ref">Refresh</span>
+        </div>
+        <table class="gantt-table" id="gantt-table"><thead><tr><th>Etapa</th><th>Fase</th><th>Inicio</th><th>Fin</th><th>Duración (sem)</th></tr></thead><tbody></tbody></table>
+      </div>
+      <div id="gantt-editor">
+        <div class="gantt-row" aria-hidden="true" style="font-weight:700; color:#334155"><div>Título</div><div>Año</div><div>Trimestre</div><div>Semana</div><div>Duración (sem)</div><div>Fase</div><div></div></div>
+        <div id="gantt-rows"></div>
+      </div>
+    </div>
+
+    <div id="totales" class="card" aria-live="polite">
+      <div class="coupon-row">
+        <input id="coupon-input" type="text" placeholder="Si tienes un cupón puedes ingresarlo aquí" />
+        <button id="coupon-apply">Aplicar cupón</button>
+      </div>
+      <div id="coupon-info" class="coupon-info"></div>
+
+      <div class="sum-grid">
+        <div>Apertura del grupo</div><div id="t-met-count">—</div><div id="t-met">—</div>
+        <div>Inscripciones <span class="hint">— Renovables a los 365 días de forma opcional</span></div><div id="t-subins-count">—</div><div id="t-subins">—</div>
+        <div id="coupon-line-label" class="hidden">Cupón</div><div></div><div id="coupon-line-value" class="hidden">—</div>
+      </div>
+
+      <div class="total-block grid" style="grid-template-columns: 1fr auto; row-gap:8px; margin-top:12px">
+        <div class="grand">Total antes de impuestos</div><div class="grand" id="t-corp">—</div>
+        <div id="t-iva-label">IVA (16%)</div><div id="t-iva">—</div>
+        <div id="t-conimp-label">Total con impuestos</div><div id="t-conimp">—</div>
+      </div>
+
+      <div class="line" style="justify-content:flex-start; gap:10px">
+        <input id="pay-card" type="checkbox" /><label for="pay-card" class="label">Pagar con tarjeta (se agrega 4.5%)</label>
+      </div>
+
+      <div id="scale-warn" class="warn hidden"></div>
+      <div class="footer-actions"><button id="btn-interesado" class="primary">Estoy interesado</button></div>
+    </div>
+
+    <div id="req-card" class="card" aria-live="polite">
+      <h3>Requisitos para Eventos In Company u Off Site</h3>
+      <ul id="req-list"></ul>
+      <div class="footer-actions"><button id="btn-interesado-req" class="primary">Estoy interesado</button></div>
+    </div>
+  </div>
+
+  <!-- Endpoint (si falla, usa el fallback de abajo) -->
+  <script>window.LEADERLIX_ENDPOINT = "https://script.google.com/macros/s/AKfycbyt9Ny_dq9-o6x4IBih7lawmoCzH4KJAA2VxFngJ-c4y9DDAtXrOq9chm82Qv2zqSvB/exec";</script>
+
+  <!-- Fallback local para que los cards siempre se muestren -->
+  <script id="fallback-data" type="application/json">{
+    "escalas": [1, 5, 10, 25, 50, 100],
+    "participantes": {"autodidacta": 0, "yotenseno": 0, "lohagocontigo": 0},
+    "precios": {
+      "autodidacta": {"mxn": [3990, 3800, 3600, 3300, 3000, 2700], "usd": [239, 229, 219, 199, 179, 159]},
+      "yotenseno": {"mxn": [6990, 6700, 6400, 5900, 5400, 4900], "usd": [399, 389, 369, 339, 309, 279]},
+      "lohagocontigo": {"mxn": [14990, 14500, 13900, 12900, 11900, 10900], "usd": [899, 869, 839, 779, 719, 659]}
+    },
+    "descuentos": {
+      "autodidacta": [0, 0.03, 0.05, 0.1, 0.15, 0.2],
+      "yotenseno": [0, 0.03, 0.05, 0.1, 0.15, 0.2],
+      "lohagocontigo": [0, 0.03, 0.05, 0.1, 0.15, 0.2]
+    },
+    "beneficios": {
+      "nombres": [
+        "Curso in Company",
+        "Acceso a plataforma por 12 meses",
+        "Sesiones en vivo grupales",
+        "Coaching 1:1",
+        "Certificación por niveles",
+        "Soporte por correo",
+        "Materiales descargables",
+        "Reporte de participación"
+      ],
+      "detalle": [
+        {"descripcion": "Sesión exclusiva para el equipo, personalizada a sus objetivos."},
+        {"descripcion": "Ingreso a la plataforma con contenidos y prácticas durante un año."},
+        {"descripcion": "Calendario mensual de sesiones sin costo adicional."},
+        {"descripcion": "Acompañamiento individual con coaches de Leaderlix."},
+        {"descripcion": "Evaluación progresiva con 4 niveles de dominio."},
+        {"descripcion": "Atención a dudas y seguimiento por email."},
+        {"descripcion": "Plantillas, guías y ejemplos prácticos."},
+        {"descripcion": "Reporte mensual con métricas de avance."}
+      ],
+      "autodidacta":      [true, true, true, false, true, true, true, true],
+      "yotenseno":        [true, true, true, true,  true, true, true, true],
+      "lohagocontigo":    [true, true, true, true,  true, true, true, true]
+    },
+    "condiciones": {"incompany": {"autodidacta": 25, "yotenseno": 25, "lohagocontigo": 10}},
+    "metodologia": {"mxn": 29000, "usd": 1690, "descuento": 0.15},
+    "cupones": {"CORP10": 0.10, "CORP15": 0.15},
+    "requisitos": {
+      "contratacion": [
+        {"text": "Reservar con 15 días de anticipación.", "rule": {"op": "any"}},
+        {"text": "Grupo mínimo de 25 participantes para modalidad grupal.", "rule": {"op": ">=", "n": 25}},
+        {"text": "Confirmar lista de participantes 72 horas antes de inicio.", "rule": {"op": "any"}},
+        {"text": "Espacio físico con proyector y audio (para modalidad presencial).", "rule": {"op": "any"}}
+      ]
+    }
+  }</script>
+
+  <script>
+    const REQUEST_TIMEOUT_MS = 12000;
+    const MAX_RETRIES = 1;
+    function showError(msg){ const b=document.getElementById("errorBox"); b.style.display="block"; b.textContent=msg||"No se pudo cargar la información."; }
+    function fetchJSON(url, attempt=0){
+      return new Promise((res, rej)=>{
+        const ctrl = new AbortController(); const to = setTimeout(()=>ctrl.abort(), REQUEST_TIMEOUT_MS);
+        const sep = url.includes("?") ? "&" : "?";
+        fetch(`${url}${sep}_=${Date.now()}`, { headers:{Accept:"application/json"}, signal: ctrl.signal })
+          .then(r=>r.text())
+          .then(t=>{ clearTimeout(to); try{ res(JSON.parse(t)); }catch(_){ (attempt<MAX_RETRIES)?setTimeout(()=>fetchJSON(url,attempt+1).then(res).catch(rej),500):rej(new Error("Respuesta no JSON")); } })
+          .catch(e=>{ clearTimeout(to); (attempt<MAX_RETRIES)?setTimeout(()=>fetchJSON(url,attempt+1).then(res).catch(rej),500):rej(e); });
+      });
+    }
+  </script>
+
+  <script>
+    function toYMD(d){ const y=d.getFullYear(); const m=String(d.getMonth()+1).padStart(2,'0'); const day=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${day}`; }
+    function capitalizeFecha(s){ const skip=new Set(['de','del']); return s.split(' ').map(w=>skip.has(w)?w:(w.charAt(0).toUpperCase()+w.slice(1))).join(' '); }
+    function formatDateLong(d){ try{ return capitalizeFecha(d.toLocaleDateString('es-MX',{weekday:'long', day:'numeric', month:'long', year:'numeric'})); }catch(_){ return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`; } }
+
+    const ENDPOINT=window.LEADERLIX_ENDPOINT;
+    const MODS=[{key:"autodidacta",title:"Autodidacta"},{key:"yotenseno",title:"Yo Te Enseño"},{key:"lohagocontigo",title:"Lo Hago Contigo"}];
+    let DATA=null, currency="mxn", appliedCoupon=null, inCompanyIndex=-1;
+
+    const nfByCcy=ccy=>new Intl.NumberFormat(ccy==="usd"?"en-US":"es-MX",{minimumFractionDigits:2,maximumFractionDigits:2});
+    const money=(n,ccy)=>(ccy==="usd"?"USD":"MXN")+" $"+nfByCcy(ccy).format(Number(n||0));
+    const $=s=>document.querySelector(s); const el=(t,c)=>{const n=document.createElement(t); if(c) n.className=c; return n;};
+    const norm=s=>String(s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+
+    function isIncluded(v){ if(typeof v==="boolean") return v; if(typeof v==="number") return v!==0;
+      const s=String(v??"").trim().toLowerCase(); return ["si","sí","yes","true","1","✓","✔","✅"].includes(s); }
+    function findIndexFloor(arr,count){
+      const c=Number(count); const exact=arr.indexOf(c); if(exact>=0) return exact;
+      let best=-1,val=-Infinity; for(let i=0;i<arr.length;i++){ const v=Number(arr[i]); if(v<=c && v>val){ val=v; best=i; } } return best;
+    }
+    function getPrice(mod,count,ccy){
+      const idx=findIndexFloor(DATA.escalas,count);
+      if(idx<0) return {ok:false,price:0,discount:0,scale:null};
+      return { ok:true, price:Number(DATA.precios[mod][ccy][idx])||0, discount:Number(DATA.descuentos[mod][idx])||0, scale:Number(DATA.escalas[idx])||0 };
+    }
+
+    function buildCards(){
+      const cards=$("#cards"); cards.innerHTML="";
+      const corpNames=(DATA?.beneficios?.nombres)||[];
+      const idxByName=corpNames.findIndex(n=>norm(n).includes("curso in company"));
+      inCompanyIndex = (idxByName>=0 ? idxByName : -1);
+
+      MODS.forEach(({key,title})=>{
+        const card=el("div","card pricing"); const h=el("div","title"); h.textContent=title; card.appendChild(h);
+        const iw=el("div","line"); const lbl=el("label","label"); lbl.textContent="Participantes"; lbl.htmlFor="p-"+key;
+        const sel=document.createElement("input"); sel.id="p-"+key; sel.type="number"; sel.min="0"; sel.step="1"; sel.value=String(Math.max(0,Number(DATA.participantes?.[key]||0)));
+        iw.appendChild(lbl); iw.appendChild(sel); card.appendChild(iw);
+        const st=el("div","line"), stl=el("div"), stv=el("div"); stl.innerHTML='Subtotal <span class="hint">— Anualmente</span>'; stv.id="st-"+key; stv.textContent=money(0,currency); st.appendChild(stl); st.appendChild(stv); card.appendChild(st);
+        const ppl=el("div","line"), ppll=el("div"), pplv=el("div"); ppll.textContent="Precio por persona"; pplv.id="pp-"+key; pplv.textContent=money(0,currency); ppl.appendChild(ppll); ppl.appendChild(pplv); card.appendChild(ppl);
+        const bl=el("div","subtle"); bl.textContent="Incluye:"; const ul=el("ul","benefits"); ul.id="b-"+key; card.appendChild(bl); card.appendChild(ul);
+        cards.appendChild(card);
+      });
+
+      renderBenefits();
+      MODS.forEach(({key})=>{
+        document.getElementById("p-"+key).addEventListener("input", ()=>{ recalc(true); updateURLFromDOM(); });
+      });
+    }
+
+    function renderBenefits(){
+      const names=(DATA?.beneficios?.nombres||[]).map(x=>String(x||""));
+      const cols={ autodidacta:(DATA?.beneficios?.autodidacta||[]), yotenseno:(DATA?.beneficios?.yotenseno||[]), lohagocontigo:(DATA?.beneficios?.lohagocontigo||[]) };
+      MODS.forEach(({key})=>{
+        const ul=document.getElementById("b-"+key); if(!ul) return; ul.innerHTML="";
+        for(let i=0;i<names.length;i++){
+          const nm=names[i]||""; if(nm.trim()==="") continue;
+          const li=document.createElement("li");
+          if(i===inCompanyIndex){ li.id=`inc-${key}`; ul.appendChild(li); continue; }
+          const on=isIncluded(cols[key][i]);
+          const icon=document.createElement("span"); icon.className=on?"check":"cross"; icon.textContent=on?"✓":"✗";
+          if(on){ li.appendChild(icon); li.appendChild(document.createTextNode(" "+nm)); }
+          else { li.classList.add("off"); const s=document.createElement("s"); s.textContent=" "+nm; li.appendChild(icon); li.appendChild(s); }
+          ul.appendChild(li);
+        }
+      });
+      updateInCompanyLabels();
+    }
+
+    function updateInCompanyLabels(){
+      if(inCompanyIndex<0) return;
+      const mins=DATA?.condiciones?.incompany || {};
+      MODS.forEach(({key})=>{
+        const li=document.getElementById(`inc-${key}`); if(!li) return;
+        const min=Number(mins[key]||0);
+        const cnt=Number(document.getElementById(`p-${key}`)?.value||0);
+        const qualifies = (min<=0) || (cnt>=min);
+        const baseText = "Curso in Company";
+        const suffix = document.createElement("strong");
+        suffix.textContent = min>0 ? ` (Desde ${min} px)` : "";
+        suffix.style.color = "var(--accent)"; suffix.style.fontWeight = "700";
+
+        li.innerHTML=""; const icon=document.createElement("span");
+        if(qualifies){
+          icon.className="check"; icon.textContent="✓";
+          li.classList.remove("off");
+          li.appendChild(icon); li.appendChild(document.createTextNode(" "+baseText)); if(min>0) li.appendChild(suffix);
+        }else{
+          icon.className="cross"; icon.textContent="✗";
+          li.classList.add("off");
+          const s=document.createElement("s"); s.textContent=" "+baseText;
+          li.appendChild(icon); li.appendChild(s); li.appendChild(suffix);
+        }
+      });
+    }
+
+    function normalizeMethodologyDiscount(x){ let v=Number(x||0); if(!isFinite(v)||v<0) v=0; if(v>1&&v<=100) v=v/100; if(v>1) v=1; return v; }
+
+    function applyCoupon(){
+      if(!DATA?.cupones){ const info=$("#coupon-info"); info.textContent="No hay cupones configurados."; info.classList.remove("ok"); return; }
+      const raw=($("#coupon-input").value||"").trim().toUpperCase();
+      const info=$("#coupon-info");
+      if(!raw){ appliedCoupon=null; info.textContent="Cupón vacío."; info.classList.remove("ok"); recalc(true); updateURLFromDOM(); return; }
+      const pct=DATA.cupones[raw];
+      if(!pct){ appliedCoupon=null; info.textContent="Cupón inválido o expirado."; info.classList.remove("ok"); recalc(true); updateURLFromDOM(); return; }
+      appliedCoupon={ code:raw, pct:Number(pct) };
+      info.textContent=`✅ Cupón aplicado: ${Math.round(appliedCoupon.pct*100)}%`;
+      info.classList.add("ok");
+      recalc(true); updateURLFromDOM();
+    }
+
+    function renderCorpBenefitDetails(){
+      const box = $("#corp-benefits-detail");
+      const nombres = (DATA?.beneficios?.nombres)||[];
+      const det = (DATA?.beneficios?.detalle)||[];
+      const cols = { autodidacta:(DATA?.beneficios?.autodidacta||[]), yotenseno:(DATA?.beneficios?.yotenseno||[]), lohagocontigo:(DATA?.beneficios?.lohagocontigo||[]) };
+      const sel = { autodidacta: Number($("#p-autodidacta")?.value||0)>0, yotenseno: Number($("#p-yotenseno")?.value||0)>0, lohagocontigo: Number($("#p-lohagocontigo")?.value||0)>0 };
+      const cards=[]; const idxInco=(DATA?.beneficios?.nombres||[]).findIndex(n=>norm(String(n||"")).includes("curso in company"));
+
+      if (idxInco >= 0) {
+        const mins = DATA?.condiciones?.incompany || {};
+        const qualifiesAny = MODS.some(({ key }) => {
+          const min = Number(mins[key] || 0);
+          const cnt = Number(document.getElementById("p-" + key)?.value || 0);
+          return (min <= 0) || (cnt >= min);
+        });
+        if (qualifiesAny) {
+          const name = String(nombres[idxInco] || "Curso in Company");
+          const rawInco = Array.isArray(det) ? (det[idxInco]?.descripcion ?? det[idxInco] ?? "") : "";
+          const desc = String(rawInco||"");
+          cards.push(makeBenefitCard(name, desc));
+        }
+      }
+      for(let i=0;i<nombres.length;i++){
+        if(i===idxInco) continue;
+        const applies=
+          (sel.autodidacta && isIncluded(cols.autodidacta[i])) ||
+          (sel.yotenseno && isIncluded(cols.yotenseno[i])) ||
+          (sel.lohagocontigo && isIncluded(cols.lohagocontigo[i]));
+        if(!applies) continue;
+        const name=String(nombres[i]||"").trim(); if(!name) continue;
+        const raw = Array.isArray(det) ? (det[i]?.descripcion ?? det[i] ?? "") : "";
+        const desc = String(raw||"").trim();
+        cards.push(makeBenefitCard(name, desc));
+      }
+      box.innerHTML=""; if(cards.length===0){ return; }
+      cards.forEach(c=>box.appendChild(c));
+    }
+    function makeBenefitCard(title, desc){ const c=el("div","benef-card"); const h=el("div","benef-title"); h.textContent=title||"Beneficio"; const p=el("div","benef-desc"); p.textContent=desc||"—"; c.appendChild(h); c.appendChild(p); return c; }
+
+    function renderRequisitos(){
+      const box=$("#req-card"); const list=$("#req-list");
+      if(!DATA?.requisitos?.contratacion?.length){ box.classList.add("hidden"); list.innerHTML=""; return; }
+      const mins=DATA?.condiciones?.incompany || {};
+      const cnts = { autodidacta:Number($("#p-autodidacta")?.value||0), yotenseno:Number($("#p-yotenseno")?.value||0), lohagocontigo:Number($("#p-lohagocontigo")?.value||0) };
+      const showRequisitos = (mins.autodidacta>0 && cnts.autodidacta>=mins.autodidacta) || (mins.yotenseno>0 && cnts.yotenseno>=mins.yotenseno) || (mins.lohagocontigo>0 && cnts.lohagocontigo>=mins.lohagocontigo) || (mins.autodidacta<=0 && mins.yotenseno<=0 && mins.lohagocontigo<=0);
+      if(!showRequisitos){ box.classList.add("hidden"); list.innerHTML=""; return; }
+
+      const reqs = DATA.requisitos.contratacion;
+      list.innerHTML=""; reqs.forEach(r=>{ const li=document.createElement("li"); li.textContent=r.text; list.appendChild(li); });
+      box.classList.remove("hidden");
+    }
+
+    function flash(el){ if(!el) return; el.classList.remove("anim-flash"); void el.offsetWidth; el.classList.add("anim-flash"); }
+
+    function recalc(withAnim=false){
+      if(!DATA) return;
+      if(DATA.metodologia) DATA.metodologia.descuento = (function(x){ let v=Number(x||0); if(!isFinite(v)||v<0) v=0; if(v>1&&v<=100) v=v/100; if(v>1) v=1; return v; })(DATA.metodologia.descuento);
+
+      let totalPart=0, subtotalInscripciones=0, anyMissing=false;
+      MODS.forEach(({key})=>{
+        const cnt=Number($("#p-"+key).value||0);
+        totalPart += cnt;
+        if(cnt>0){
+          const pr=getPrice(key,cnt,currency);
+          if(!pr.ok || !Number.isFinite(pr.price)){ anyMissing=true; $("#st-"+key).textContent="—"; $("#pp-"+key).textContent="—"; if(withAnim){ flash($("#st-"+key)); flash($("#pp-"+key)); } return; }
+          const pricePerGroup=pr.price*(1-pr.discount);
+          subtotalInscripciones += pricePerGroup;
+          $("#st-"+key).textContent = money(pricePerGroup,currency);
+          $("#pp-"+key).textContent = money(pricePerGroup/Math.max(pr.scale||1,1),currency);
+          if(withAnim){ flash($("#st-"+key)); flash($("#pp-"+key)); }
+        }else{
+          $("#st-"+key).textContent = money(0,currency);
+          $("#pp-"+key).textContent = money(0,currency);
+          if(withAnim){ flash($("#st-"+key)); flash($("#pp-"+key)); }
+        }
+      });
+
+      updateInCompanyLabels();
+      renderCorpBenefitDetails();
+      renderRequisitos();
+
+      const metBase = Number((DATA.metodologia || {})[currency] || 0);
+      const metDesc = Number((DATA.metodologia || {}).descuento || 0);
+      const metodologiaCount =
+        (Number($("#p-autodidacta").value || 0) > 0) ||
+        (Number($("#p-yotenseno").value || 0) > 0) ||
+        (Number($("#p-lohagocontigo").value || 0) > 0) ? 1 : 0;
+      const apertura = metodologiaCount > 0 ? metBase * (1 - metDesc) : 0;
+
+      const totalAntes = subtotalInscripciones + apertura;
+
+      const ivaPct = (currency === 'mxn') ? 0.16 : 0;
+      const iva = totalAntes * ivaPct;
+      const ivaLbl = document.getElementById("t-iva-label");
+      if (ivaLbl) ivaLbl.textContent = ivaPct > 0 ? `IVA (${Math.round(ivaPct*100)}%)` : "Impuestos";
+
+      let totalDespues = totalAntes + iva;
+      const payCard = document.getElementById("pay-card").checked;
+      if (payCard) {
+        totalDespues += totalDespues * 0.045;
+        document.getElementById("t-conimp-label").textContent = "Total con impuestos + fee tarjeta (4.5%)";
+      } else {
+        document.getElementById("t-conimp-label").textContent = "Total con impuestos";
+      }
+
+      document.getElementById("t-met-count").textContent = metodologiaCount; if(withAnim) flash(document.getElementById("t-met-count"));
+      document.getElementById("t-met").textContent = money(apertura,currency); if(withAnim) flash(document.getElementById("t-met"));
+      document.getElementById("t-subins-count").textContent = totalPart; if(withAnim) flash(document.getElementById("t-subins-count"));
+      document.getElementById("t-subins").textContent = money(subtotalInscripciones,currency); if(withAnim) flash(document.getElementById("t-subins"));
+      document.getElementById("t-corp").textContent = money(totalAntes,currency); if(withAnim) flash(document.getElementById("t-corp"));
+      document.getElementById("t-iva").textContent = money(iva,currency); if(withAnim) flash(document.getElementById("t-iva"));
+      document.getElementById("t-conimp").textContent = money(totalDespues,currency); if(withAnim) flash(document.getElementById("t-conimp"));
+    }
+
+    function setupDatePickers(){
+      const now=new Date(); const plus30=new Date(now.getTime()+30*24*60*60*1000);
+      const fechaDisp=$("#gp-fecha"); const fechaPick=$("#gp-fecha-picker"); const fechaPop=$("#gp-fecha-pop");
+      const vigDisp=$("#gp-vigencia"); const vigPick=$("#gp-vigencia-picker"); const vigPop=$("#gp-vigencia-pop");
+      if(!fechaPick.value){ fechaPick.value = toYMD(now); fechaDisp.value = capitalizeFecha(now.toLocaleDateString('es-MX',{weekday:'long', day:'numeric', month:'long', year:'numeric'})); }
+      if(!vigPick.value){ vigPick.value   = toYMD(plus30); vigDisp.value   = capitalizeFecha(plus30.toLocaleDateString('es-MX',{weekday:'long', day:'numeric', month:'long', year:'numeric'})); }
+      function openPop(pop){ pop.classList.remove("hidden"); } function closePop(pop){ pop.classList.add("hidden"); }
+      function bindPair(displayInput, picker, pop){
+        displayInput.addEventListener("click", ()=>{ openPop(pop); });
+        picker.addEventListener("change", ()=>{
+          const d=new Date(picker.value+"T00:00:00");
+          if(isFinite(d)){ displayInput.value = capitalizeFecha(d.toLocaleDateString('es-MX',{weekday:'long', day:'numeric', month:'long', year:'numeric'})); }
+          closePop(pop);
+          updateURLFromDOM();
+        });
+        document.addEventListener("click",(e)=>{ if(pop.classList.contains("hidden")) return; if(!pop.contains(e.target) && e.target!==displayInput){ closePop(pop); } });
+      }
+      bindPair(fechaDisp, fechaPick, fechaPop); bindPair(vigDisp, vigPick, vigPop);
+    }
+
+    function bindShare(){
+      const btn=$("#share-btn"); if(!btn) return;
+      btn.onclick = async ()=>{ const shareUrl = document.location.href; try{ await navigator.clipboard.writeText(shareUrl); $("#share-info").textContent="Link copiado"; } catch(_){ $("#share-info").textContent=shareUrl; } setTimeout(()=>{ const box=$("#share-info"); if(box) box.textContent=""; },3000); };
+    }
+    function setCurrency(ccy){ currency=ccy; const tog=$("#currencyToggle"); tog.classList.toggle("right", currency==="usd"); tog.setAttribute("aria-checked", currency==="usd"?"true":"false"); recalc(true); }
+
+    function updateURLFromDOM(){ /* estado ligero en URL si lo necesitas; por simplicidad no serializamos todo */ }
+
+    document.addEventListener("click",(e)=>{
+      const t=e.target.closest(".toggle"); if(!t) return;
+      if(t.id==="currencyToggle") setCurrency(currency==="mxn"?"usd":"mxn");
+    });
+    document.addEventListener("keydown",(e)=>{
+      const t=e.target.closest(".toggle"); if(!t) return;
+      if(e.key===" "||e.key==="Enter"){ e.preventDefault(); if(t.id==="currencyToggle") setCurrency(currency==="mxn"?"usd":"mxn"); }
+      if(e.key==="ArrowLeft"||e.key==="ArrowRight"){ if(t.id==="currencyToggle") setCurrency(e.key==="ArrowRight"?"usd":"mxn"); }
+    });
+
+    async function loadData(){
+      const loader=document.getElementById("loader");
+      try{
+        const remote = await fetchJSON(ENDPOINT);
+        const toNum=a=>(a||[]).map(Number);
+        remote.escalas=(remote.escalas||[]).map(Number);
+        if(remote.precios){
+          (remote.precios.autodidacta?.mxn)&&(remote.precios.autodidacta.mxn=toNum(remote.precios.autodidacta.mxn));
+          (remote.precios.autodidacta?.usd)&&(remote.precios.autodidacta.usd=toNum(remote.precios.autodidacta.usd));
+          (remote.precios.yotenseno?.mxn)&&(remote.precios.yotenseno.mxn=toNum(remote.precios.yotenseno.mxn));
+          (remote.precios.yotenseno?.usd)&&(remote.precios.yotenseno.usd=toNum(remote.precios.yotenseno.usd));
+          (remote.precios.lohagocontigo?.mxn)&&(remote.precios.lohagocontigo.mxn=toNum(remote.precios.lohagocontigo.mxn));
+          (remote.precios.lohagocontigo?.usd)&&(remote.precios.lohagocontigo.usd=toNum(remote.precios.lohagocontigo.usd));
+        }
+        if(remote.descuentos){
+          remote.descuentos.autodidacta=toNum(remote.descuentos.autodidacta);
+          remote.descuentos.yotenseno=toNum(remote.descuentos.yotenseno);
+          remote.descuentos.lohagocontigo=toNum(remote.descuentos.lohagocontigo);
+        }
+        remote.beneficios=remote.beneficios||{}; remote.beneficios.nombres=(remote.beneficios.nombres||[]).map(x => String(x||""));
+        DATA=remote;
+      } catch(err){
+        const raw = document.getElementById("fallback-data")?.textContent || "{}";
+        try{ DATA = JSON.parse(raw); } catch(_){ DATA = null; }
+        showError("Usando datos locales de respaldo (no se pudo contactar al endpoint).");
+      } finally{ if(loader) loader.style.display="none"; }
+
+      if(!DATA){ DATA = JSON.parse(document.getElementById("fallback-data").textContent); }
+      document.getElementById("currencyToggle").classList.toggle("right", currency==="usd");
+      document.getElementById("currencyToggle").setAttribute("aria-checked", currency==="usd"?"true":"false");
+
+      buildCards(); setupDatePickers(); bindShare();
+      recalc(true);
+    }
+
+    document.addEventListener("DOMContentLoaded", loadData);
+  </script>
+</body>
+</html>
