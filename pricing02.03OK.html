@@ -783,6 +783,7 @@ function updateInCompanyLabels(){
   });
 }
 
+
 function updatePersonalizedLabels(){
   if(personalizedIndex<0 || mode!=="corporativo") return;
 
@@ -814,6 +815,7 @@ function updatePersonalizedLabels(){
     }
   });
 }
+
 
 
     function normalizeMethodologyDiscount(x){ let v=Number(x||0); if(!isFinite(v)||v<0) v=0; if(v>1&&v<=100) v=v/100; if(v>1) v=1; return v; }
@@ -1263,6 +1265,22 @@ function toNumber(v){
       if(!rule) return false; if(rule.op === 'any' || rule.n == null) return true;
       if(rule.op === '<=') return total <= rule.n; if(rule.op === '>') return total >  rule.n; if(rule.op === '==') return total === rule.n; return false;
     }
+    // === AUXILIARES PARA MÍNIMO GLOBAL (evento corporativo / personalizado) ===
+function qualifiesAnyInCompany(){
+  const mins = DATA?.condiciones?.incompany || {};
+  return MODS.some(({ key }) => {
+    const min = Number(mins[key] || 0);
+    const cnt = Number(document.getElementById("p-" + key)?.value || 0);
+    return (min <= 0) || (cnt >= min);
+  });
+}
+
+function globalInCompanyMin(){
+  const mins = DATA?.condiciones?.incompany || {};
+  const arr = MODS.map(({key}) => Number(mins[key] || 0)).filter(v => v > 0 && isFinite(v));
+  return arr.length ? Math.min(...arr) : 0;
+}
+
     // === AUXILIARES PARA MÍNIMO GLOBAL (evento corporativo / personalizado) ===
 function qualifiesAnyInCompany(){
   const mins = DATA?.condiciones?.incompany || {};
