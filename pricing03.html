@@ -166,15 +166,61 @@ function toggleCorporateBlocks(){
 
 /* ==================  BENEFICIOS (desde endpoint)  ================== */
 let BENEFICIOS = { inscripcion: [], activacion: [] };
+/* Lee beneficios desde el ENDPOINT según el esquema nombres/detalle/minimos */
+async function loadBeneficios(){
+  const res = await fetch(ENDPOINT);
+  const j = await res.json();
+
+  const b = j?.beneficios || {};
+  const nombres  = Array.isArray(b.nombres) ? b.nombres : [];
+  const detalle  = Array.isArray(b.detalle) ? b.detalle : [];
+  const minimos  = Array.isArray(b.minimos) ? b.minimos : [];
+
+  // nombre -> descripción
+  const descMap = new Map(
+    detalle.map(d => [String(d?.nombre || '').trim(), String(d?.descripcion || '')])
+  );
+
+  // nombre -> mínimos por membresía
+  const minMap = new Map(
+    minimos.map(m => [String(m?.nombre || '').trim(), {
+      autodidacta:   Number(m?.autodidacta   || 0),
+      yotenseno:     Number(m?.yotenseno     || 0),
+      lohagocontigo: Number(m?.lohagocontigo || 0)
+    }])
+  );
+
+  // Beneficios para las pricing cards (por inscripción)
+  BENEFICIOS.inscripcion = nombres.map(n => {
+    const name = String(n || '').trim();
+    const mins = minMap.get(name) || {autodidacta:0, yotenseno:0, lohagocontigo:0};
+    return {
+      tipo: 'inscripcion',
+      nombre: name,
+      descripcion: descMap.get(name) || '',
+      min: mins,
+      cost_usd: 0,
+      cost_mxn: 0
+    };
+  });
+
+  // Aún no traemos “requieren activación” del backend (queda vacío)
+  BENEFICIOS.activacion = [];
+
+  // Repinta UI dependiente
+  renderBenefitsCards();
+  renderActivables();
+  renderCorpBenefitDetails();
+}
 
 
 function renderActivables(){
   const wrap = document.getElementById("activables-card");
-  const box = document.getElementById("activables-body");
+  const box  = document.getElementById("activables-body");
   if(!wrap || !box) return;
 
-  // Si no hay activables, ocultamos el card
-  if(!BENEFICIOS.activacion.length){
+  // Si no hay activables o no califica como corporativo, ocultamos el card
+  if(!BENEFICIOS.activacion.length || !qualifiesCorporate()){
     wrap.classList.add("hidden");
     box.innerHTML = "";
     return;
@@ -184,17 +230,19 @@ function renderActivables(){
   box.innerHTML = "";
   BENEFICIOS.activacion.forEach(b=>{
     const row = document.createElement("div");
-    row.style.display="grid";
-    row.style.gridTemplateColumns="auto 1fr auto";
-    row.style.alignItems="center";
-    row.style.gap="12px";
+    row.style.display = "grid";
+    row.style.gridTemplateColumns = "auto 1fr auto";
+    row.style.alignItems = "center";
+    row.style.gap = "12px";
 
     const cb = document.createElement("input");
-    cb.type="checkbox";
+    cb.type = "checkbox";
     cb.checked = !!ACTIVABLE_STATE.get(b.nombre)?.checked;
-    cb.addEventListener("change", ()=>{ 
-      const st = ACTIVABLE_STATE.get(b.nombre) || {qty:1};
-      st.checked = cb.checked; ACTIVABLE_STATE.set(b.nombre, st); recalc(true);
+    cb.addEventListener("change", ()=>{
+      const st = ACTIVABLE_STATE.get(b.nombre) || { qty:1 };
+      st.checked = cb.checked;
+      ACTIVABLE_STATE.set(b.nombre, st);
+      recalc(true);
     });
 
     const label = document.createElement("div");
@@ -204,10 +252,15 @@ function renderActivables(){
     const showCost = currency==="usd" ? b.cost_usd : b.cost_mxn;
     cost.textContent = money(showCost, currency);
 
-    row.appendChild(cb); row.appendChild(label); row.appendChild(cost);
+    row.appendChild(cb);
+    row.appendChild(label);
+    row.appendChild(cost);
     box.appendChild(row);
   });
 }
+
+
+
 
 
 /* ==================  UI: CARDS  ================== */
@@ -267,31 +320,7 @@ function renderBenefitsCards(){
 /* ==================  ACTIVABLES A NIVEL PROYECTO  ================== */
 const ACTIVABLE_STATE = new Map(); // nombre -> {checked, qty}
 
-function renderActivables(){
-  const box = $("#activables-body"); if(!box) return;
-  box.innerHTML = "";
-  BENEFICIOS.activacion.forEach(b=>{
-    const row = document.createElement("div");
-    row.style.display="grid"; row.style.gridTemplateColumns="auto 1fr auto"; row.style.alignItems="center"; row.style.gap="12px";
 
-    const cb = document.createElement("input"); cb.type="checkbox";
-    cb.checked = !!ACTIVABLE_STATE.get(b.nombre)?.checked;
-    cb.addEventListener("change", ()=>{ 
-      const st = ACTIVABLE_STATE.get(b.nombre) || {qty:1};
-      st.checked = cb.checked; ACTIVABLE_STATE.set(b.nombre, st); recalc(true);
-    });
-
-    const label = document.createElement("div");
-    label.innerHTML = `<div style="font-weight:600">${b.nombre}</div><div class="hint">${b.descripcion||''}</div>`;
-
-    const cost = document.createElement("div");
-    const showCost = currency==="usd" ? b.cost_usd : b.cost_mxn;
-    cost.textContent = money(showCost, currency);
-
-    row.appendChild(cb); row.appendChild(label); row.appendChild(cost);
-    box.appendChild(row);
-  });
-}
 
 /* ==================  DETALLE DE BENEFICIOS (texto)  ================== */
 function renderCorpBenefitDetails(){
