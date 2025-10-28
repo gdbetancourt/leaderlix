@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Evaluación de Presentaciones – Radar D / P</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root{
+      --dispo:#1c1e2c;
+      --persu:#ff3300;
+      --obj:#00FFFF;
+      --ok:#18a957;
+      --warn:#f0ad4e;
+    }
+    *{box-sizing:border-box}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:0;background:#fafafa;color:#222}
+    header{padding:16px 24px;background:#fff;border-bottom:1px solid #e9e9e9;position:sticky;top:0;z-index:5}
+    header h1{margin:0;font-size:20px}
+
+    .container{display:none;flex-direction:column;align-items:center;gap:20px;padding:20px}
+
+    #timer{font-variant-numeric:tabular-nums;font-size:44px;font-weight:800;text-align:right;width:100%;max-width:720px}
+    .controls{display:grid;grid-template-columns:1fr auto auto auto;gap:10px;width:100%;max-width:720px}
+    .controls input{padding:10px;font-size:16px;border:1px solid #ccc;border-radius:8px}
+    .controls button{padding:10px 14px;font-size:16px;border:none;border-radius:8px;color:#fff;cursor:pointer}
+
+    #startStopButton,#pauseResumeButton{background:var(--dispo)}
+    #resetButton{background:#666}
+    #exportButton{background:var(--persu)}
+    .controls button[disabled]{opacity:.45;cursor:default}
+
+    .radial-board{position:relative;width:min(520px,90vw);height:min(520px,90vw)}
+    .circle-btn{position:absolute;width:70px;height:70px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;border:none;color:#fff;cursor:pointer;transform:translate(-50%,-50%);transition:transform .08s ease, box-shadow .08s ease}
+    .circle-btn:active{transform:translate(-50%,-50%) scale(.98)}
+    .btn-D{background:var(--dispo);z-index:1}
+    .btn-P{background:var(--persu);z-index:2}
+    .active-ring{box-shadow:0 0 0 6px rgba(28,30,44,.18)}
+    .active-ring-p{box-shadow:0 0 0 6px rgba(255,51,0,.18)}
+
+    .label{position:absolute;transform:translate(-50%,-50%);font-size:16px;color:#444;font-weight:700;pointer-events:none}
+
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;max-width:900px;width:100%}
+    @media (max-width:900px){.grid{grid-template-columns:1fr 1fr}}
+    @media (max-width:640px){.grid{grid-template-columns:1fr}}
+
+    .summary-item{background:#fff;border:1px solid #e1e1e1;border-radius:10px;padding:10px;font-size:15px;line-height:1.35;display:flex;flex-direction:column;gap:6px}
+    .summary-item .row{display:flex;justify-content:space-between}
+    .summary-item .time{font-weight:800;font-variant-numeric:tabular-nums}
+    .summary-item .pct{color:#777}
+
+    .badges{display:flex;gap:8px;flex-wrap:wrap}
+    .badge{font-size:12px;border-radius:999px;padding:4px 8px;border:1px solid #ddd;background:#f7f7f7}
+    .badge.ok{border-color:var(--ok);background:color-mix(in srgb, var(--ok) 12%, white);color:#0f6b39}
+    .badge.warn{border-color:var(--warn);background:color-mix(in srgb, var(--warn) 14%, white);color:#7a560a}
+
+    .panel{width:min(960px,94vw);background:#fff;border:1px solid #e5e5e5;border-radius:12px;box-shadow:0 2px 6px rgba(0,0,0,.06);padding:16px}
+    .panel h3{margin:6px 0 12px 0}
+
+    .chart-box{width:min(760px,94vw);border:2px solid #222;padding:16px;background:#fff;border-radius:10px;box-shadow:0 2px 6px rgba(0,0,0,.08)}
+    canvas{width:100%!important;height:100%!important}
+
+    /* Pantalla de objetivos */
+    #goalSetting{max-width:700px;margin:24px auto;padding:20px;background:#fff;border-radius:12px;box-shadow:0 2px 6px rgba(0,0,0,.08);border:1px solid #ececec}
+    #goalSetting h2{text-align:center;margin-top:6px}
+    #goalSetting p{text-align:center}
+    #goalSetting .sliders{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    #goalSetting .sliders>div{background:#fafafa;border:1px solid #eee;border-radius:10px;padding:10px}
+    #goalSetting button{display:block;margin:10px auto 0 auto;padding:10px 18px;background:#0077cc;color:#fff;border:none;border-radius:10px}
+    .mini{font-size:12px;color:#666;margin-top:-6px;text-align:center}
+  </style>
+</head>
+<body>
+<header>
+  <h1 aria-live="polite">Evaluación de Presentaciones – Radar D / P</h1>
+</header>
+
+<!-- Pantalla 1: objetivos con sliders -->
+<div id="goalSetting" aria-labelledby="titleGoals">
+  <h2 id="titleGoals">Define tus Objetivos (Opcional)</h2>
+  <p>Ajusta el porcentaje para cada categoría. No es necesario llegar a 100%.</p>
+  <div id="sliders" class="sliders" role="group" aria-label="Sliders de objetivos"></div>
+  <p style="font-weight:bold">Total asignado: <span id="totalPercent">0%</span></p>
+  <p class="mini">Tip: Presiona las teclas 1–6 para registrar D y Shift+1–6 para P una vez que inicie el cronómetro.</p>
+  <button id="btnProceed" onclick="proceedToMain()">Siguiente</button>
+</div>
+
+<!-- Pantalla 2: cronómetro y resultados -->
+<div class="container" id="mainContainer">
+  <div id="timer" aria-live="polite">00:00:00</div>
+  <div class="controls">
+    <input id="personName" type="text" placeholder="Nombre" aria-label="Nombre de la persona"/>
+    <button id="startStopButton" onclick="startStopTimer()" disabled title="Iniciar o detener">Comenzar</button>
+    <button id="pauseResumeButton" onclick="pauseResumeTimer()" disabled title="Pausar o reanudar">Pausa</button>
+    <button id="resetButton" onclick="hardReset()" disabled title="Reiniciar todo">Reiniciar</button>
+    <button id="exportButton" onclick="exportSession()" disabled title="Exportar resultados">Exportar</button>
+  </div>
+
+  <div class="panel" style="display:none" id="hotkeysPanel">
+    <h3>Atajos de teclado</h3>
+    <div class="badges" id="hotkeysBadges"></div>
+  </div>
+
+  <div class="radial-board" aria-label="Tablero radial D/P" role="group"></div>
+
+  <div class="grid" id="summaryGrid" aria-live="polite"></div>
+  <div class="chart-box" aria-hidden="true"><canvas id="radarChart"></canvas></div>
+</div>
+
+<script>
+// ====== Modelo de categorías ======
+const categoryList=['Atención','Credibilidad','Inspiración','Aplicabilidad','Apertura','Asombro'];
+const dispo=Object.fromEntries(categoryList.map(c=>[c,0]));
+const persu=Object.fromEntries(categoryList.map(c=>[c,0]));
+const goals=Object.fromEntries(categoryList.map(c=>[c,0]));
+
+// ====== Estado de cronómetro ======
+let running=false, paused=false, startTime=0, pauseStart=0, totalElapsed=0, lastStamp=0, timerInterval, statsInterval, radarInstance;
+let lastHit={cat:null,type:null};
+
+// ====== Inicialización UI ======
+const slidersEl=document.getElementById('sliders');
+const totalPercentEl=document.getElementById('totalPercent');
+const nameInput=document.getElementById('personName');
+const startBtn=document.getElementById('startStopButton');
+const pauseBtn=document.getElementById('pauseResumeButton');
+const resetBtn=document.getElementById('resetButton');
+const exportBtn=document.getElementById('exportButton');
+
+// Sliders
+categoryList.forEach(cat=>{
+  const wrap=document.createElement('div');
+  const label=document.createElement('label');
+  label.id=`lbl-${cat}`;label.textContent=`${cat}: 0%`;
+  label.style.display='block'; label.style.fontWeight='700'; label.style.marginBottom='6px';
+  const input=document.createElement('input');
+  input.type='range'; input.min=0; input.max=100; input.value=0; input.step=1; input.ariaLabel=`Objetivo para ${cat}`;
+  input.oninput=e=>{goals[cat]=+e.target.value; label.textContent=`${cat}: ${goals[cat]}%`; updateTotalPercent(); saveDraft();};
+  wrap.append(label,input);
+  slidersEl.appendChild(wrap);
+});
+function updateTotalPercent(){ totalPercentEl.textContent=`${Object.values(goals).reduce((a,b)=>a+b,0)}%`; }
+
+// Hotkeys helper
+const hkPanel=document.getElementById('hotkeysPanel');
+const hkBadges=document.getElementById('hotkeysBadges');
+categoryList.forEach((cat,i)=>{
+  const k=i+1; // 1..6
+  const bd=document.createElement('span'); bd.className='badge'; bd.textContent=`${k}=D ${cat}`; hkBadges.appendChild(bd);
+  const bp=document.createElement('span'); bp.className='badge'; bp.textContent=`Shift+${k}=P ${cat}`; hkBadges.appendChild(bp);
+});
+
+// Pantalla principal
+function proceedToMain(){
+  document.getElementById('goalSetting').style.display='none';
+  document.getElementById('mainContainer').style.display='flex';
+  hkPanel.style.display='block';
+  buildRadial();
+  buildSummary();
+  restoreDraft();
+}
+
+// Validación de nombre
+nameInput.addEventListener('input',()=>{ startBtn.disabled=nameInput.value.trim()===''; });
+
+// ====== Tablero radial ======
+function buildRadial(){
+  const board=document.querySelector('.radial-board');
+  board.innerHTML='';
+  const size=board.clientWidth; const cx=size/2; const cy=size/2;
+  const angles=[270,330,30,90,150,210];
+  const rD=Math.min(90,size*0.17); const rP=Math.min(160,size*0.31); const rL=Math.min(220,size*0.42);
+
+  categoryList.forEach((cat,i)=>{
+    const a=angles[i]*(Math.PI/180);
+
+    const xD=cx+rD*Math.cos(a), yD=cy+rD*Math.sin(a);
+    const btnD=document.createElement('button');
+    btnD.className='circle-btn btn-D'; btnD.style.left=`${xD}px`; btnD.style.top=`${yD}px`; btnD.textContent='D';
+    btnD.onclick=()=> press(cat,'D',btnD);
+    btnD.title=`Registrar D: ${cat}`;
+    board.appendChild(btnD);
+
+    const xP=cx+rP*Math.cos(a), yP=cy+rP*Math.sin(a);
+    const btnP=document.createElement('button');
+    btnP.className='circle-btn btn-P'; btnP.style.left=`${xP}px`; btnP.style.top=`${yP}px`; btnP.textContent='P';
+    btnP.onclick=()=> press(cat,'P',btnP);
+    btnP.title=`Registrar P: ${cat}`;
+    board.appendChild(btnP);
+
+    const xL=cx+rL*Math.cos(a), yL=cy+rL*Math.sin(a);
+    const label=document.createElement('span');
+    label.className='label'; label.style.left=`${xL}px`; label.style.top=`${yL}px`; label.textContent=cat;
+    board.appendChild(label);
+  });
+}
+
+// ====== Resumen ======
+function buildSummary(){
+  const grid=document.getElementById('summaryGrid');
+  grid.innerHTML='';
+  categoryList.forEach(cat=>{
+    const div=document.createElement('div');
+    div.className='summary-item';
+    div.innerHTML=`<div class="row"><strong>${cat}</strong><span class="badges" id="badge-${cat}"></span></div>
+      <div class="row">D <span id="${cat}-D-time" class="time">00:00:00</span> <span id="${cat}-D-pct" class="pct">(0%)</span>
+      <span></span>
+      P <span id="${cat}-P-time" class="time">00:00:00</span> <span id="${cat}-P-pct" class="pct">(0%)</span></div>`;
+    grid.appendChild(div);
+  });
+}
+
+// ====== Cronómetro ======
+const pad=n=>n<10?`0${n}`:n;
+const fmt=ms=>{ms=Math.max(0,Math.floor(ms));const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;return `${pad(h)}:${pad(m)}:${pad(sec)}`};
+
+function startStopTimer(){
+  if(!running){
+    softReset();
+    startTime=performance.now();
+    lastStamp=startTime;
+    timerInterval=setInterval(()=>updateTimer(),1000);
+    statsInterval=setInterval(updateStats,1000);
+    running=true; paused=false;
+    startBtn.textContent='Detener';
+    pauseBtn.disabled=false; resetBtn.disabled=false; exportBtn.disabled=false; nameInput.disabled=true;
+    window.addEventListener('keydown',onKey);
+  }else{
+    clearInterval(timerInterval); clearInterval(statsInterval);
+    running=false;
+    startBtn.textContent='Comenzar';
+    pauseBtn.disabled=true; nameInput.disabled=false;
+    drawRadar();
+    window.removeEventListener('keydown',onKey);
+  }
+}
+
+function pauseResumeTimer(){
+  if(!paused){
+    clearInterval(timerInterval); clearInterval(statsInterval);
+    pauseStart=performance.now(); paused=true; pauseBtn.textContent='Reanudar';
+  }else{
+    const delta=performance.now()-pauseStart;
+    startTime+=delta; lastStamp+=delta; paused=false; pauseBtn.textContent='Pausa';
+    timerInterval=setInterval(()=>updateTimer(),1000);
+    statsInterval=setInterval(updateStats,1000);
+  }
+}
+
+function updateTimer(){
+  const now=performance.now();
+  totalElapsed=now-startTime;
+  document.getElementById('timer').textContent=fmt(totalElapsed);
+}
+
+function softReset(){
+  paused=false; totalElapsed=0; startTime=pauseStart=0; lastStamp=0; lastHit={cat:null,type:null};
+  categoryList.forEach(c=>{dispo[c]=0; persu[c]=0;});
+  document.getElementById('timer').textContent='00:00:00';
+  updateStats();
+  if(radarInstance) radarInstance.destroy();
+  clearActiveRings();
+}
+function hardReset(){
+  if(confirm('¿Reiniciar todo? Se borrarán los tiempos actuales.')){ softReset(); nameInput.value=''; startBtn.disabled=true; exportBtn.disabled=true; pauseBtn.disabled=true; resetBtn.disabled=true; nameInput.disabled=false; }
+}
+
+function press(cat,type,el){
+  if(!running||paused) return;
+  const now=performance.now(); const elapsed=now-lastStamp; if(elapsed<0) return; // seguridad
+  if(lastHit.cat){ // acumula el tramo anterior a la última categoría registrada
+    if(lastHit.type==='D') dispo[lastHit.cat]+=elapsed; else persu[lastHit.cat]+=elapsed;
+  }
+  lastStamp=now; lastHit={cat,type};
+  flash(el,type);
+  updateStats();
+}
+
+function flash(el,type){
+  clearActiveRings();
+  el.classList.add(type==='D'?'active-ring':'active-ring-p');
+}
+function clearActiveRings(){
+  document.querySelectorAll('.circle-btn').forEach(b=>{b.classList.remove('active-ring','active-ring-p');});
+}
+
+function updateStats(){
+  const t=Math.max(1,totalElapsed); // evita NaN/Inf
+  categoryList.forEach(c=>{
+    const d=dispo[c], p=persu[c];
+    const dPct=(d/t*100)||0, pPct=(p/t*100)||0;
+    document.getElementById(`${c}-D-time`).textContent=fmt(d);
+    document.getElementById(`${c}-P-time`).textContent=fmt(p);
+    document.getElementById(`${c}-D-pct`).textContent=`(${dPct.toFixed(1)}%)`;
+    document.getElementById(`${c}-P-pct`).textContent=`(${pPct.toFixed(1)}%)`;
+
+    // Badges de desviación vs objetivo (suma D+P)
+    const target=goals[c];
+    const pct=(d+p)/t*100;
+    const cont=document.getElementById(`badge-${c}`);
+    cont.innerHTML='';
+    if(target>0){
+      const diff=pct-target;
+      const b=document.createElement('span'); b.className='badge ' + (Math.abs(diff)<=7? 'ok':'warn');
+      b.textContent=`${diff>=0?'+':''}${diff.toFixed(1)} pts vs obj.`;
+      cont.appendChild(b);
+    }
+  });
+  saveDraft();
+}
+
+// ====== Radar ======
+function drawRadar(){
+  const ctx=document.getElementById('radarChart').getContext('2d');
+  const dRaw=categoryList.map(c=>dispo[c]);
+  const pRaw=categoryList.map(c=>persu[c]);
+  const oRaw=categoryList.map(c=>goals[c]);
+
+  // Normalización relativa a su propio máximo
+  const nrm=(arr)=>{
+    const mx=Math.max(1,...arr); return arr.map(v=>+(v/mx*100).toFixed(2));
+  };
+  const dData=nrm(dRaw), pData=nrm(pRaw), oData=nrm(oRaw);
+
+  if(radarInstance) radarInstance.destroy();
+  radarInstance=new Chart(ctx,{
+    type:'radar',
+    data:{labels:categoryList,datasets:[
+      {label:'Objetivos',data:oData,backgroundColor:'rgba(0,255,255,0.25)',borderColor:'#00FFFF',borderWidth:2,tension:.25},
+      {label:'Persuasión',data:pData,backgroundColor:'rgba(255,51,0,0.25)',borderColor:'#ff3300',borderWidth:2,tension:.25},
+      {label:'Disponibilización',data:dData,backgroundColor:'rgba(28,30,44,0.25)',borderColor:'#1c1e2c',borderWidth:2,tension:.25}
+    ]},
+    options:{
+      responsive:true, maintainAspectRatio:true,
+      scales:{ r:{ beginAtZero:true, max:100, ticks:{display:false}, grid:{color:'#ddd'}, pointLabels:{ font:{size:13}, color:'#333' } } },
+      plugins:{ legend:{ position:'top' } }
+    }
+  });
+}
+
+// ====== Exportación ======
+function exportSession(){
+  const name=nameInput.value.trim()||'SinNombre';
+  const summary={
+    nombre:name,
+    fecha:new Date().toISOString(),
+    total_ms:Math.round(totalElapsed),
+    objetivos:{...goals},
+    disponibilizacion:{...dispo},
+    persuacion:{...persu}
+  };
+  // JSON
+  const blob=new Blob([JSON.stringify(summary,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download=`RadarDP_${name}_${Date.now()}.json`; a.click(); URL.revokeObjectURL(url);
+
+  // PNG de la gráfica si existe
+  if(radarInstance){
+    const link=document.createElement('a'); link.download=`RadarDP_${name}_radar.png`; link.href=radarInstance.toBase64Image(); link.click();
+  }
+}
+
+// ====== Persistencia local ======
+function saveDraft(){
+  const draft={goals,dispo,persu,name: nameInput.value};
+  localStorage.setItem('radar-dp-draft', JSON.stringify(draft));
+}
+function restoreDraft(){
+  try{
+    const raw=localStorage.getItem('radar-dp-draft'); if(!raw) return;
+    const d=JSON.parse(raw);
+    if(d.name){ nameInput.value=d.name; startBtn.disabled=nameInput.value.trim()===''; }
+    if(d.goals){ Object.assign(goals,d.goals); categoryList.forEach(cat=>{ const v=goals[cat]||0; const lbl=document.getElementById(`lbl-${cat}`); const rng=lbl?.nextElementSibling; if(rng){ rng.value=v; lbl.textContent=`${cat}: ${v}%`; } }); updateTotalPercent(); }
+    if(d.dispo) Object.assign(dispo,d.dispo);
+    if(d.persu) Object.assign(persu,d.persu);
+    updateStats();
+  }catch(e){ console.warn('No se pudo restaurar borrador',e); }
+}
+
+// ====== Atajos de teclado ======
+function onKey(e){
+  if(!running||paused) return;
+  // 1..6 para D, Shift+1..6 para P
+  const n=parseInt(e.key,10);
+  if(n>=1 && n<=6){ const cat=categoryList[n-1]; press(cat, e.shiftKey?'P':'D', findButton(cat, e.shiftKey?'P':'D')); }
+}
+function findButton(cat,type){
+  const board=document.querySelector('.radial-board');
+  const btns=[...board.querySelectorAll('.circle-btn')];
+  return btns.find(b=> b.textContent===type && b.title.includes(cat));
+}
+
+// Prevenir pérdida accidental
+window.addEventListener('beforeunload', (e)=>{
+  if(running){ e.preventDefault(); e.returnValue=''; }
+});
+</script>
+</body>
+</html>
