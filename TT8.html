@@ -3,13 +3,12 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Evaluación de Presentaciones – Radar D / P</title>
+  <title>Evaluación de Presentaciones – Radar por Categoría</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root{
-      --dispo:#1c1e2c;
-      --persu:#ff3300;
-      --obj:#00FFFF;
+      --res:#1c1e2c;   /* Resultados */
+      --obj:#00FFFF;   /* Objetivos */
       --ok:#18a957;
       --warn:#f0ad4e;
     }
@@ -21,22 +20,17 @@
     .container{display:none;flex-direction:column;align-items:center;gap:20px;padding:20px}
 
     #timer{font-variant-numeric:tabular-nums;font-size:44px;font-weight:800;text-align:right;width:100%;max-width:720px}
-    .controls{display:grid;grid-template-columns:1fr auto auto auto;gap:10px;width:100%;max-width:720px}
+    .controls{display:grid;grid-template-columns:1fr auto auto auto auto;gap:10px;width:100%;max-width:720px}
     .controls input{padding:10px;font-size:16px;border:1px solid #ccc;border-radius:8px}
     .controls button{padding:10px 14px;font-size:16px;border:none;border-radius:8px;color:#fff;cursor:pointer}
 
-    #startStopButton,#pauseResumeButton{background:var(--dispo)}
-    #resetButton{background:#666}
-    #exportButton{background:var(--persu)}
+    #startStopButton,#pauseResumeButton,#resetButton,#exportButton{background:var(--res)}
     .controls button[disabled]{opacity:.45;cursor:default}
 
     .radial-board{position:relative;width:min(520px,90vw);height:min(520px,90vw)}
-    .circle-btn{position:absolute;width:70px;height:70px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;border:none;color:#fff;cursor:pointer;transform:translate(-50%,-50%);transition:transform .08s ease, box-shadow .08s ease}
+    .circle-btn{position:absolute;width:84px;height:84px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;border:none;color:#fff;cursor:pointer;transform:translate(-50%,-50%);transition:transform .08s ease, box-shadow .08s ease;background:var(--res)}
     .circle-btn:active{transform:translate(-50%,-50%) scale(.98)}
-    .btn-D{background:var(--dispo);z-index:1}
-    .btn-P{background:var(--persu);z-index:2}
-    .active-ring{box-shadow:0 0 0 6px rgba(28,30,44,.18)}
-    .active-ring-p{box-shadow:0 0 0 6px rgba(255,51,0,.18)}
+    .active-ring{box-shadow:0 0 0 8px rgba(28,30,44,.18)}
 
     .label{position:absolute;transform:translate(-50%,-50%);font-size:16px;color:#444;font-weight:700;pointer-events:none}
 
@@ -45,7 +39,7 @@
     @media (max-width:640px){.grid{grid-template-columns:1fr}}
 
     .summary-item{background:#fff;border:1px solid #e1e1e1;border-radius:10px;padding:10px;font-size:15px;line-height:1.35;display:flex;flex-direction:column;gap:6px}
-    .summary-item .row{display:flex;justify-content:space-between}
+    .summary-item .row{display:flex;justify-content:space-between;gap:10px}
     .summary-item .time{font-weight:800;font-variant-numeric:tabular-nums}
     .summary-item .pct{color:#777}
 
@@ -66,13 +60,13 @@
     #goalSetting p{text-align:center}
     #goalSetting .sliders{display:grid;grid-template-columns:1fr 1fr;gap:14px}
     #goalSetting .sliders>div{background:#fafafa;border:1px solid #eee;border-radius:10px;padding:10px}
-    #goalSetting button{display:block;margin:10px auto 0 auto;padding:10px 18px;background:#0077cc;color:#fff;border:none;border-radius:10px}
+    #goalSetting button{display:block;margin:10px auto 0 auto;padding:10px 18px;background:var(--res);color:#fff;border:none;border-radius:10px}
     .mini{font-size:12px;color:#666;margin-top:-6px;text-align:center}
   </style>
 </head>
 <body>
 <header>
-  <h1 aria-live="polite">Evaluación de Presentaciones – Radar D / P</h1>
+  <h1 aria-live="polite">Evaluación de Presentaciones – Radar por Categoría</h1>
 </header>
 
 <!-- Pantalla 1: objetivos con sliders -->
@@ -81,7 +75,7 @@
   <p>Ajusta el porcentaje para cada categoría. No es necesario llegar a 100%.</p>
   <div id="sliders" class="sliders" role="group" aria-label="Sliders de objetivos"></div>
   <p style="font-weight:bold">Total asignado: <span id="totalPercent">0%</span></p>
-  <p class="mini">Tip: Presiona las teclas 1–6 para registrar D y Shift+1–6 para P una vez que inicie el cronómetro.</p>
+  <p class="mini">Tip: Presiona las teclas 1–6 para activar la categoría correspondiente una vez iniciado el cronómetro.</p>
   <button id="btnProceed" onclick="proceedToMain()">Siguiente</button>
 </div>
 
@@ -96,29 +90,28 @@
     <button id="exportButton" onclick="exportSession()" disabled title="Exportar resultados">Exportar</button>
   </div>
 
-  <div class="panel" style="display:none" id="hotkeysPanel">
+  <div class="panel" id="hotkeysPanel" style="display:none">
     <h3>Atajos de teclado</h3>
     <div class="badges" id="hotkeysBadges"></div>
   </div>
 
-  <div class="radial-board" aria-label="Tablero radial D/P" role="group"></div>
+  <div class="radial-board" aria-label="Tablero radial" role="group"></div>
 
   <div class="grid" id="summaryGrid" aria-live="polite"></div>
   <div class="chart-box" aria-hidden="true"><canvas id="radarChart"></canvas></div>
 </div>
 
 <script>
-// ====== Modelo de categorías ======
+// ====== Categorías ======
 const categoryList=['Atención','Credibilidad','Inspiración','Aplicabilidad','Apertura','Asombro'];
-const dispo=Object.fromEntries(categoryList.map(c=>[c,0]));
-const persu=Object.fromEntries(categoryList.map(c=>[c,0]));
+const tiempos=Object.fromEntries(categoryList.map(c=>[c,0]));
 const goals=Object.fromEntries(categoryList.map(c=>[c,0]));
 
-// ====== Estado de cronómetro ======
+// ====== Estado ======
 let running=false, paused=false, startTime=0, pauseStart=0, totalElapsed=0, lastStamp=0, timerInterval, statsInterval, radarInstance;
-let lastHit={cat:null,type:null};
+let lastCat=null;
 
-// ====== Inicialización UI ======
+// ====== UI refs ======
 const slidersEl=document.getElementById('sliders');
 const totalPercentEl=document.getElementById('totalPercent');
 const nameInput=document.getElementById('personName');
@@ -141,16 +134,11 @@ categoryList.forEach(cat=>{
 });
 function updateTotalPercent(){ totalPercentEl.textContent=`${Object.values(goals).reduce((a,b)=>a+b,0)}%`; }
 
-// Hotkeys helper
+// Hotkeys
 const hkPanel=document.getElementById('hotkeysPanel');
 const hkBadges=document.getElementById('hotkeysBadges');
-categoryList.forEach((cat,i)=>{
-  const k=i+1; // 1..6
-  const bd=document.createElement('span'); bd.className='badge'; bd.textContent=`${k}=D ${cat}`; hkBadges.appendChild(bd);
-  const bp=document.createElement('span'); bp.className='badge'; bp.textContent=`Shift+${k}=P ${cat}`; hkBadges.appendChild(bp);
-});
+categoryList.forEach((cat,i)=>{ const k=i+1; const b=document.createElement('span'); b.className='badge'; b.textContent=`${k} = ${cat}`; hkBadges.appendChild(b); });
 
-// Pantalla principal
 function proceedToMain(){
   document.getElementById('goalSetting').style.display='none';
   document.getElementById('mainContainer').style.display='flex';
@@ -160,35 +148,26 @@ function proceedToMain(){
   restoreDraft();
 }
 
-// Validación de nombre
 nameInput.addEventListener('input',()=>{ startBtn.disabled=nameInput.value.trim()===''; });
 
-// ====== Tablero radial ======
+// ====== Radial ======
 function buildRadial(){
   const board=document.querySelector('.radial-board');
   board.innerHTML='';
   const size=board.clientWidth; const cx=size/2; const cy=size/2;
   const angles=[270,330,30,90,150,210];
-  const rD=Math.min(90,size*0.17); const rP=Math.min(160,size*0.31); const rL=Math.min(220,size*0.42);
+  const rBtn=Math.min(160,size*0.31); const rLbl=Math.min(220,size*0.42);
 
   categoryList.forEach((cat,i)=>{
     const a=angles[i]*(Math.PI/180);
+    const xB=cx+rBtn*Math.cos(a), yB=cy+rBtn*Math.sin(a);
+    const btn=document.createElement('button');
+    btn.className='circle-btn'; btn.style.left=`${xB}px`; btn.style.top=`${yB}px`; btn.textContent=cat.split(' ')[0];
+    btn.onclick=()=> press(cat,btn);
+    btn.title=`Activar ${cat}`;
+    board.appendChild(btn);
 
-    const xD=cx+rD*Math.cos(a), yD=cy+rD*Math.sin(a);
-    const btnD=document.createElement('button');
-    btnD.className='circle-btn btn-D'; btnD.style.left=`${xD}px`; btnD.style.top=`${yD}px`; btnD.textContent='D';
-    btnD.onclick=()=> press(cat,'D',btnD);
-    btnD.title=`Registrar D: ${cat}`;
-    board.appendChild(btnD);
-
-    const xP=cx+rP*Math.cos(a), yP=cy+rP*Math.sin(a);
-    const btnP=document.createElement('button');
-    btnP.className='circle-btn btn-P'; btnP.style.left=`${xP}px`; btnP.style.top=`${yP}px`; btnP.textContent='P';
-    btnP.onclick=()=> press(cat,'P',btnP);
-    btnP.title=`Registrar P: ${cat}`;
-    board.appendChild(btnP);
-
-    const xL=cx+rL*Math.cos(a), yL=cy+rL*Math.sin(a);
+    const xL=cx+rLbl*Math.cos(a), yL=cy+rLbl*Math.sin(a);
     const label=document.createElement('span');
     label.className='label'; label.style.left=`${xL}px`; label.style.top=`${yL}px`; label.textContent=cat;
     board.appendChild(label);
@@ -203,9 +182,8 @@ function buildSummary(){
     const div=document.createElement('div');
     div.className='summary-item';
     div.innerHTML=`<div class="row"><strong>${cat}</strong><span class="badges" id="badge-${cat}"></span></div>
-      <div class="row">D <span id="${cat}-D-time" class="time">00:00:00</span> <span id="${cat}-D-pct" class="pct">(0%)</span>
-      <span></span>
-      P <span id="${cat}-P-time" class="time">00:00:00</span> <span id="${cat}-P-pct" class="pct">(0%)</span></div>`;
+      <div class="row">Tiempo <span id="${cat}-time" class="time">00:00:00</span>
+      <span class="pct" id="${cat}-pct">(0%)</span></div>`;
     grid.appendChild(div);
   });
 }
@@ -219,13 +197,15 @@ function startStopTimer(){
     softReset();
     startTime=performance.now();
     lastStamp=startTime;
+    running=true; paused=false;
     timerInterval=setInterval(()=>updateTimer(),1000);
     statsInterval=setInterval(updateStats,1000);
-    running=true; paused=false;
     startBtn.textContent='Detener';
     pauseBtn.disabled=false; resetBtn.disabled=false; exportBtn.disabled=false; nameInput.disabled=true;
     window.addEventListener('keydown',onKey);
   }else{
+    // Al detener, asigna el último tramo a la categoría activa
+    settleSegment();
     clearInterval(timerInterval); clearInterval(statsInterval);
     running=false;
     startBtn.textContent='Comenzar';
@@ -236,7 +216,9 @@ function startStopTimer(){
 }
 
 function pauseResumeTimer(){
+  if(!running) return;
   if(!paused){
+    settleSegment();
     clearInterval(timerInterval); clearInterval(statsInterval);
     pauseStart=performance.now(); paused=true; pauseBtn.textContent='Reanudar';
   }else{
@@ -253,9 +235,17 @@ function updateTimer(){
   document.getElementById('timer').textContent=fmt(totalElapsed);
 }
 
+function settleSegment(){
+  if(!lastCat) return;
+  const now=performance.now();
+  const elapsed=now-lastStamp;
+  if(elapsed>0) tiempos[lastCat]+=elapsed;
+  lastStamp=now;
+}
+
 function softReset(){
-  paused=false; totalElapsed=0; startTime=pauseStart=0; lastStamp=0; lastHit={cat:null,type:null};
-  categoryList.forEach(c=>{dispo[c]=0; persu[c]=0;});
+  paused=false; totalElapsed=0; startTime=pauseStart=0; lastStamp=0; lastCat=null;
+  categoryList.forEach(c=>{tiempos[c]=0;});
   document.getElementById('timer').textContent='00:00:00';
   updateStats();
   if(radarInstance) radarInstance.destroy();
@@ -265,38 +255,34 @@ function hardReset(){
   if(confirm('¿Reiniciar todo? Se borrarán los tiempos actuales.')){ softReset(); nameInput.value=''; startBtn.disabled=true; exportBtn.disabled=true; pauseBtn.disabled=true; resetBtn.disabled=true; nameInput.disabled=false; }
 }
 
-function press(cat,type,el){
+function press(cat,el){
   if(!running||paused) return;
-  const now=performance.now(); const elapsed=now-lastStamp; if(elapsed<0) return; // seguridad
-  if(lastHit.cat){ // acumula el tramo anterior a la última categoría registrada
-    if(lastHit.type==='D') dispo[lastHit.cat]+=elapsed; else persu[lastHit.cat]+=elapsed;
-  }
-  lastStamp=now; lastHit={cat,type};
-  flash(el,type);
+  // cierra segmento anterior
+  settleSegment();
+  // activa nueva categoría
+  lastCat=cat; lastStamp=performance.now();
+  flash(el);
   updateStats();
 }
 
-function flash(el,type){
+function flash(el){
   clearActiveRings();
-  el.classList.add(type==='D'?'active-ring':'active-ring-p');
+  el.classList.add('active-ring');
 }
 function clearActiveRings(){
-  document.querySelectorAll('.circle-btn').forEach(b=>{b.classList.remove('active-ring','active-ring-p');});
+  document.querySelectorAll('.circle-btn').forEach(b=>b.classList.remove('active-ring'));
 }
 
 function updateStats(){
   const t=Math.max(1,totalElapsed); // evita NaN/Inf
   categoryList.forEach(c=>{
-    const d=dispo[c], p=persu[c];
-    const dPct=(d/t*100)||0, pPct=(p/t*100)||0;
-    document.getElementById(`${c}-D-time`).textContent=fmt(d);
-    document.getElementById(`${c}-P-time`).textContent=fmt(p);
-    document.getElementById(`${c}-D-pct`).textContent=`(${dPct.toFixed(1)}%)`;
-    document.getElementById(`${c}-P-pct`).textContent=`(${pPct.toFixed(1)}%)`;
+    const v=tiempos[c];
+    const pct=(v/t*100)||0;
+    document.getElementById(`${c}-time`).textContent=fmt(v);
+    document.getElementById(`${c}-pct`).textContent=`(${pct.toFixed(1)}%)`;
 
-    // Badges de desviación vs objetivo (suma D+P)
+    // Badges de desviación vs objetivo
     const target=goals[c];
-    const pct=(d+p)/t*100;
     const cont=document.getElementById(`badge-${c}`);
     cont.innerHTML='';
     if(target>0){
@@ -309,26 +295,21 @@ function updateStats(){
   saveDraft();
 }
 
-// ====== Radar ======
+// ====== Radar (Objetivos vs Resultados) ======
 function drawRadar(){
   const ctx=document.getElementById('radarChart').getContext('2d');
-  const dRaw=categoryList.map(c=>dispo[c]);
-  const pRaw=categoryList.map(c=>persu[c]);
-  const oRaw=categoryList.map(c=>goals[c]);
+  const resRaw=categoryList.map(c=>tiempos[c]);
+  const objRaw=categoryList.map(c=>goals[c]);
 
-  // Normalización relativa a su propio máximo
-  const nrm=(arr)=>{
-    const mx=Math.max(1,...arr); return arr.map(v=>+(v/mx*100).toFixed(2));
-  };
-  const dData=nrm(dRaw), pData=nrm(pRaw), oData=nrm(oRaw);
+  const nrm=(arr)=>{ const mx=Math.max(1,...arr); return arr.map(v=>+(v/mx*100).toFixed(2)); };
+  const resData=nrm(resRaw), objData=nrm(objRaw);
 
   if(radarInstance) radarInstance.destroy();
   radarInstance=new Chart(ctx,{
     type:'radar',
     data:{labels:categoryList,datasets:[
-      {label:'Objetivos',data:oData,backgroundColor:'rgba(0,255,255,0.25)',borderColor:'#00FFFF',borderWidth:2,tension:.25},
-      {label:'Persuasión',data:pData,backgroundColor:'rgba(255,51,0,0.25)',borderColor:'#ff3300',borderWidth:2,tension:.25},
-      {label:'Disponibilización',data:dData,backgroundColor:'rgba(28,30,44,0.25)',borderColor:'#1c1e2c',borderWidth:2,tension:.25}
+      {label:'Objetivos',data:objData,backgroundColor:'rgba(0,255,255,0.25)',borderColor:'#00FFFF',borderWidth:2,tension:.25},
+      {label:'Resultados',data:resData,backgroundColor:'rgba(28,30,44,0.25)',borderColor:'var(--res)',borderWidth:2,tension:.25}
     ]},
     options:{
       responsive:true, maintainAspectRatio:true,
@@ -340,39 +321,41 @@ function drawRadar(){
 
 // ====== Exportación ======
 function exportSession(){
+  // asegura que el último tramo quede asentado
+  if(running && !paused) settleSegment();
   const name=nameInput.value.trim()||'SinNombre';
+  const porcentajes=Object.fromEntries(categoryList.map(c=>[c, totalElapsed? +(tiempos[c]/totalElapsed*100).toFixed(2):0 ]));
   const summary={
     nombre:name,
     fecha:new Date().toISOString(),
     total_ms:Math.round(totalElapsed),
     objetivos:{...goals},
-    disponibilizacion:{...dispo},
-    persuacion:{...persu}
+    tiempos_ms:{...tiempos},
+    porcentajes
   };
   // JSON
   const blob=new Blob([JSON.stringify(summary,null,2)],{type:'application/json'});
   const url=URL.createObjectURL(blob);
-  const a=document.createElement('a'); a.href=url; a.download=`RadarDP_${name}_${Date.now()}.json`; a.click(); URL.revokeObjectURL(url);
+  const a=document.createElement('a'); a.href=url; a.download=`Radar_${name}_${Date.now()}.json`; a.click(); URL.revokeObjectURL(url);
 
   // PNG de la gráfica si existe
   if(radarInstance){
-    const link=document.createElement('a'); link.download=`RadarDP_${name}_radar.png`; link.href=radarInstance.toBase64Image(); link.click();
+    const link=document.createElement('a'); link.download=`Radar_${name}_grafica.png`; link.href=radarInstance.toBase64Image(); link.click();
   }
 }
 
 // ====== Persistencia local ======
 function saveDraft(){
-  const draft={goals,dispo,persu,name: nameInput.value};
-  localStorage.setItem('radar-dp-draft', JSON.stringify(draft));
+  const draft={goals,tiempos,name: nameInput.value};
+  localStorage.setItem('radar-categorias-draft', JSON.stringify(draft));
 }
 function restoreDraft(){
   try{
-    const raw=localStorage.getItem('radar-dp-draft'); if(!raw) return;
+    const raw=localStorage.getItem('radar-categorias-draft'); if(!raw) return;
     const d=JSON.parse(raw);
     if(d.name){ nameInput.value=d.name; startBtn.disabled=nameInput.value.trim()===''; }
     if(d.goals){ Object.assign(goals,d.goals); categoryList.forEach(cat=>{ const v=goals[cat]||0; const lbl=document.getElementById(`lbl-${cat}`); const rng=lbl?.nextElementSibling; if(rng){ rng.value=v; lbl.textContent=`${cat}: ${v}%`; } }); updateTotalPercent(); }
-    if(d.dispo) Object.assign(dispo,d.dispo);
-    if(d.persu) Object.assign(persu,d.persu);
+    if(d.tiempos) Object.assign(tiempos,d.tiempos);
     updateStats();
   }catch(e){ console.warn('No se pudo restaurar borrador',e); }
 }
@@ -380,20 +363,17 @@ function restoreDraft(){
 // ====== Atajos de teclado ======
 function onKey(e){
   if(!running||paused) return;
-  // 1..6 para D, Shift+1..6 para P
   const n=parseInt(e.key,10);
-  if(n>=1 && n<=6){ const cat=categoryList[n-1]; press(cat, e.shiftKey?'P':'D', findButton(cat, e.shiftKey?'P':'D')); }
+  if(n>=1 && n<=6){ const cat=categoryList[n-1]; const btn=findButton(cat); press(cat, btn); }
 }
-function findButton(cat,type){
+function findButton(cat){
   const board=document.querySelector('.radial-board');
   const btns=[...board.querySelectorAll('.circle-btn')];
-  return btns.find(b=> b.textContent===type && b.title.includes(cat));
+  return btns.find(b=> b.title.includes(cat));
 }
 
 // Prevenir pérdida accidental
-window.addEventListener('beforeunload', (e)=>{
-  if(running){ e.preventDefault(); e.returnValue=''; }
-});
+window.addEventListener('beforeunload', (e)=>{ if(running){ e.preventDefault(); e.returnValue=''; } });
 </script>
 </body>
 </html>
