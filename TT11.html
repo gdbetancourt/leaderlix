@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Evaluación de Presentaciones – Radar + Cuadrantes</title>
+  <title>Evaluación de Presentaciones – Radar + Cuadrantes + Ruido/Señal</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root{
@@ -12,8 +12,8 @@
       --ok:#18a957;
       --warn:#f0ad4e;
       --border:#1c1e2c;
-      --accent:#ff3d2e;   /* borde rojo de tu screenshot */
-      --cyan:#2ee9ff;     /* cian de tu screenshot */
+      --accent:#ff3d2e;   /* borde rojo del screenshot */
+      --cyan:#2ee9ff;     /* cian del screenshot */
     }
     *{box-sizing:border-box}
     body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:0;background:#fafafa;color:#222}
@@ -34,8 +34,8 @@
     @media (max-width:840px){ .workspace{grid-template-columns:1fr} }
 
     .radial-board{position:relative;width:min(520px,90vw);height:min(520px,90vw)}
-    .circle-btn{position:absolute;width:84px;height:84px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;border:none;color:#fff;cursor:pointer;transform:translate(-50%,-50%);transition:transform .08s ease, box-shadow .08s ease;background:var(--res)}
-    .circle-btn:active{transform:translate(-50%,-50%) scale(.98)}
+    .circle-btn{position:absolute;width:84px;height:84px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;border:none;color:#fff;cursor:pointer;transform:translate(-50%, -50%);transition:transform .08s ease, box-shadow .08s ease;background:var(--res)}
+    .circle-btn:active{transform:translate(-50%, -50%) scale(.98)}
     .active-ring{box-shadow:0 0 0 8px rgba(28,30,44,.18)}
     .label{position:absolute;transform:translate(-50%,-50%);font-size:16px;color:#444;font-weight:700;pointer-events:none}
 
@@ -85,11 +85,15 @@
     #goalSetting .sliders>div{background:#fafafa;border:1px solid #eee;border-radius:10px;padding:10px}
     #goalSetting button{display:block;margin:10px auto 0 auto;padding:10px 18px;background:var(--res);color:#fff;border:none;border-radius:10px}
     .mini{font-size:12px;color:#666;margin-top:-6px;text-align:center}
+
+    @media (prefers-reduced-motion: reduce){
+      .circle-btn,.axis-btn{transition:none}
+    }
   </style>
 </head>
 <body>
 <header>
-  <h1 aria-live="polite">Evaluación de Presentaciones – Radar por Categoría + Cuadrantes</h1>
+  <h1 aria-live="polite">Evaluación de Presentaciones – Radar + Cuadrantes + Ruido/Señal</h1>
 </header>
 
 <!-- Pantalla 1: objetivos con sliders -->
@@ -98,8 +102,8 @@
   <p>Ajusta el porcentaje para cada categoría. No es necesario llegar a 100%.</p>
   <div id="sliders" class="sliders" role="group" aria-label="Sliders de objetivos"></div>
   <p style="font-weight:bold">Total asignado: <span id="totalPercent">0%</span></p>
-  <p class="mini">Tip: Presiona las teclas 1–6 para activar la categoría y P/D para Persuasión/Disponibilización una vez iniciado el cronómetro.</p>
-  <button id="btnProceed" onclick="proceedToMain()">Siguiente</button>
+  <p class="mini">Tip: Presiona 1–6 para activar categoría, P/D para Persuasión/Disponibilización y R para Ruido.</p>
+  <button id="btnProceed" type="button">Siguiente</button>
 </div>
 
 <!-- Pantalla 2: cronómetro y resultados -->
@@ -107,10 +111,10 @@
   <div id="timer" aria-live="polite">00:00:00</div>
   <div class="controls">
     <input id="personName" type="text" placeholder="Nombre" aria-label="Nombre de la persona"/>
-    <button id="startStopButton" onclick="startStopTimer()" disabled title="Iniciar o detener">Comenzar</button>
-    <button id="pauseResumeButton" onclick="pauseResumeTimer()" disabled title="Pausar o reanudar">Pausa</button>
-    <button id="resetButton" onclick="hardReset()" disabled title="Reiniciar todo">Reiniciar</button>
-    <button id="exportButton" onclick="exportSession()" disabled title="Exportar resultados">Exportar</button>
+    <button id="startStopButton" type="button" disabled title="Iniciar o detener">Comenzar</button>
+    <button id="pauseResumeButton" type="button" disabled title="Pausar o reanudar">Pausa</button>
+    <button id="resetButton" type="button" disabled title="Reiniciar todo">Reiniciar</button>
+    <button id="exportButton" type="button" disabled title="Exportar resultados">Exportar</button>
   </div>
 
   <div class="panel" id="hotkeysPanel" style="display:none">
@@ -139,14 +143,21 @@
   <div class="charts-wrap">
     <div class="chart-box"><canvas id="radarChart"></canvas></div>
     <div class="chart-box"><canvas id="quadrantChart"></canvas></div>
+    <div class="chart-box" aria-label="Barra Ruido vs Señal" title="Ruido vs Señal">
+      <canvas id="noiseChart"></canvas>
+    </div>
   </div>
 </div>
 
 <script>
+// ====== Constantes ======
+const NOISE_KEY='__NOISE__';
+
 // ====== Categorías ======
 const categoryList=['Atención','Credibilidad','Inspiración','Aplicabilidad','Apertura','Asombro'];
 const tiempos=Object.fromEntries(categoryList.map(c=>[c,0]));
 const goals=Object.fromEntries(categoryList.map(c=>[c,0]));
+let noise_ms=0; // << nuevo acumulador de Ruido
 
 // ====== Eje vertical (Persuasión/Disponibilización) ======
 const axis={persu:0, dispo:0};
@@ -154,8 +165,9 @@ let lastAxis=null; // 'persu' | 'dispo' | null
 let lastAxisStamp=0;
 
 // ====== Estado ======
-let running=false, paused=false, startTime=0, pauseStart=0, totalElapsed=0, lastStamp=0, timerInterval, statsInterval, radarInstance, quadInstance;
-let lastCat=null;
+let running=false, paused=false, startTime=0, pauseStart=0, totalElapsed=0, lastStamp=0, timerInterval, statsInterval;
+let radarInstance=null, quadInstance=null, noiseInstance=null;
+let lastCat=null; // puede ser una categoría o NOISE_KEY
 
 // ====== UI refs ======
 const slidersEl=document.getElementById('sliders');
@@ -167,28 +179,29 @@ const resetBtn=document.getElementById('resetButton');
 const exportBtn=document.getElementById('exportButton');
 const btnPersu=document.getElementById('btnPersu');
 const btnDispo=document.getElementById('btnDispo');
+const btnProceed=document.getElementById('btnProceed');
 
-// Sliders
+// Sliders de objetivos
 categoryList.forEach(cat=>{
   const wrap=document.createElement('div');
   const label=document.createElement('label');
   label.id=`lbl-${cat}`;label.textContent=`${cat}: 0%`;
   label.style.display='block'; label.style.fontWeight='700'; label.style.marginBottom='6px';
   const input=document.createElement('input');
-  input.type='range'; input.min=0; input.max=100; input.value=0; input.step=1; input.ariaLabel=`Objetivo para ${cat}`;
+  input.type='range'; input.min=0; input.max=100; input.value=0; input.step=1; input.setAttribute('aria-label', `Objetivo para ${cat}`);
   input.oninput=e=>{goals[cat]=+e.target.value; label.textContent=`${cat}: ${goals[cat]}%`; updateTotalPercent(); saveDraft();};
   wrap.append(label,input);
   slidersEl.appendChild(wrap);
 });
 function updateTotalPercent(){ totalPercentEl.textContent=`${Object.values(goals).reduce((a,b)=>a+b,0)}%`; }
 
-// Hotkeys
+// Hotkeys panel
 const hkPanel=document.getElementById('hotkeysPanel');
 const hkBadges=document.getElementById('hotkeysBadges');
 categoryList.forEach((cat,i)=>{ const k=i+1; const b=document.createElement('span'); b.className='badge'; b.textContent=`${k} = ${cat}`; hkBadges.appendChild(b); });
-const bP=document.createElement('span'); bP.className='badge'; bP.textContent='P = Persuasión'; hkBadges.appendChild(bP);
-const bD=document.createElement('span'); bD.className='badge'; bD.textContent='D = Disponibilización'; hkBadges.appendChild(bD);
+['P = Persuasión','D = Disponibilización','R = Ruido'].forEach(t=>{ const x=document.createElement('span'); x.className='badge'; x.textContent=t; hkBadges.appendChild(x); });
 
+btnProceed.addEventListener('click', proceedToMain);
 function proceedToMain(){
   document.getElementById('goalSetting').style.display='none';
   document.getElementById('mainContainer').style.display='flex';
@@ -196,6 +209,7 @@ function proceedToMain(){
   buildRadial();
   buildSummary();
   restoreDraft();
+  initCharts();
 }
 
 nameInput.addEventListener('input',()=>{ startBtn.disabled=nameInput.value.trim()===''; });
@@ -208,15 +222,16 @@ function buildRadial(){
   const angles=[270,330,30,90,150,210];
   const rBtn=Math.min(160,size*0.31); const rLbl=Math.min(220,size*0.42);
 
+  // Botones circulares de las 6 categorías
   categoryList.forEach((cat,i)=>{
     const a=angles[i]*(Math.PI/180);
     const xB=cx+rBtn*Math.cos(a), yB=cy+rBtn*Math.sin(a);
     const btn=document.createElement('button');
     btn.className='circle-btn'; btn.style.left=`${xB}px`; btn.style.top=`${yB}px`; btn.textContent=cat.split(' ')[0];
-    btn.onclick=()=> press(cat,btn);
+    btn.addEventListener('click',()=> press(cat,btn));
     btn.title=`Activar ${cat}`;
     btn.setAttribute('aria-pressed','false');
-    btn.role='button';
+    btn.setAttribute('role','button');
     board.appendChild(btn);
 
     const xL=cx+rLbl*Math.cos(a), yL=cy+rLbl*Math.sin(a);
@@ -224,6 +239,17 @@ function buildRadial(){
     label.className='label'; label.style.left=`${xL}px`; label.style.top=`${yL}px`; label.textContent=cat;
     board.appendChild(label);
   });
+
+  // Botón central: RUIDO
+  const noiseBtn=document.createElement('button');
+  noiseBtn.className='circle-btn';
+  noiseBtn.style.left=`${cx}px`; noiseBtn.style.top=`${cy}px`;
+  noiseBtn.textContent='Ruido';
+  noiseBtn.style.background='var(--accent)';
+  noiseBtn.title='Activar Ruido';
+  noiseBtn.setAttribute('aria-pressed','false');
+  noiseBtn.addEventListener('click',()=> press(NOISE_KEY, noiseBtn));
+  board.appendChild(noiseBtn);
 }
 
 // ====== Resumen por categoría ======
@@ -233,9 +259,9 @@ function buildSummary(){
   categoryList.forEach(cat=>{
     const div=document.createElement('div');
     div.className='summary-item';
-    div.innerHTML=`<div class="row"><strong>${cat}</strong><span class="badges" id="badge-${cat}"></span></div>
-      <div class="row">Tiempo <span id="${cat}-time" class="time">00:00:00</span>
-      <span class="pct" id="${cat}-pct">(0%)</span></div>`;
+    div.innerHTML=`<div class=\"row\"><strong>${cat}</strong><span class=\"badges\" id=\"badge-${cat}\"></span></div>
+      <div class=\"row\">Tiempo <span id=\"${cat}-time\" class=\"time\">00:00:00</span>
+      <span class=\"pct\" id=\"${cat}-pct\">(0%)</span></div>`;
     grid.appendChild(div);
   });
 }
@@ -243,6 +269,11 @@ function buildSummary(){
 // ====== Cronómetro ======
 const pad=n=>n<10?`0${n}`:n;
 const fmt=ms=>{ms=Math.max(0,Math.floor(ms));const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;return `${pad(h)}:${pad(m)}:${pad(sec)}`};
+
+startBtn.addEventListener('click', startStopTimer);
+pauseBtn.addEventListener('click', pauseResumeTimer);
+resetBtn.addEventListener('click', hardReset);
+exportBtn.addEventListener('click', exportSession);
 
 function startStopTimer(){
   if(!running){
@@ -255,9 +286,7 @@ function startStopTimer(){
     startBtn.textContent='Detener';
     pauseBtn.disabled=false; resetBtn.disabled=false; exportBtn.disabled=false; nameInput.disabled=true;
     window.addEventListener('keydown',onKey);
-    // Comenzar sin eje activo hasta que el usuario elija P o D
   }else{
-    // Al detener, asienta lo pendiente
     settleSegment();
     settleAxis();
     clearInterval(timerInterval); clearInterval(statsInterval);
@@ -265,7 +294,7 @@ function startStopTimer(){
     startBtn.textContent='Comenzar';
     pauseBtn.disabled=true; nameInput.disabled=false;
     drawRadar();
-    drawQuadrant();
+    updateCharts(true); // redibujo final
     window.removeEventListener('keydown',onKey);
   }
 }
@@ -296,7 +325,10 @@ function settleSegment(){
   if(!lastCat) return;
   const now=performance.now();
   const elapsed=now-lastStamp;
-  if(elapsed>0) tiempos[lastCat]+=elapsed;
+  if(elapsed>0){
+    if(lastCat===NOISE_KEY){ noise_ms+=elapsed; }
+    else { tiempos[lastCat]+=elapsed; }
+  }
   lastStamp=now;
 }
 
@@ -309,15 +341,16 @@ function settleAxis(){
 }
 
 function softReset(){
-  paused=false; totalElapsed=0; startTime=pauseStart=0; lastStamp=0; lastCat=null;
+  paused=false; totalElapsed=0; startTime=pauseStart=0; lastStamp=0; lastCat=null; noise_ms=0;
   categoryList.forEach(c=>{tiempos[c]=0;});
   axis.persu=0; axis.dispo=0; lastAxis=null; lastAxisStamp=0;
   document.getElementById('timer').textContent='00:00:00';
   updateStats();
-  if(radarInstance) radarInstance.destroy();
-  if(quadInstance) quadInstance.destroy();
   clearActiveRings();
   setAxisActive(null);
+  if(radarInstance){radarInstance.destroy(); radarInstance=null}
+  if(quadInstance){quadInstance.destroy(); quadInstance=null}
+  if(noiseInstance){noiseInstance.destroy(); noiseInstance=null}
 }
 function hardReset(){
   if(confirm('¿Reiniciar todo? Se borrarán los tiempos actuales.')){
@@ -326,12 +359,10 @@ function hardReset(){
   }
 }
 
-function press(cat,el){
+function press(key,el){
   if(!running||paused) return;
-  // cierra segmento anterior
   settleSegment();
-  // activa nueva categoría
-  lastCat=cat; lastStamp=performance.now();
+  lastCat=key; lastStamp=performance.now();
   flash(el);
   updateStats();
 }
@@ -356,8 +387,8 @@ function setAxisActive(which){ // 'persu' | 'dispo' | null
   lastAxis=which;
   lastAxisStamp = which ? performance.now() : 0;
 }
-btnPersu.onclick=()=>{ if(!running||paused) return; settleAxis(); setAxisActive('persu'); updateStats(); };
-btnDispo.onclick=()=>{ if(!running||paused) return; settleAxis(); setAxisActive('dispo'); updateStats(); };
+btnPersu.addEventListener('click',()=>{ if(!running||paused) return; settleAxis(); setAxisActive('persu'); updateStats(); });
+btnDispo.addEventListener('click',()=>{ if(!running||paused) return; settleAxis(); setAxisActive('dispo'); updateStats(); });
 
 // ====== Stats + Totales ======
 function updateStats(){
@@ -388,7 +419,6 @@ function updateStats(){
   const empatia_ms = (tiempos['Atención']||0) + (tiempos['Apertura']||0) + (tiempos['Inspiración']||0);
   const asertividad_ms = (tiempos['Asombro']||0) + (tiempos['Credibilidad']||0) + (tiempos['Aplicabilidad']||0);
   const sumCat = empatia_ms + asertividad_ms || 1;
-
   const totalAxis = (axis.persu||0)+(axis.dispo||0) || 1;
 
   document.getElementById('empatiaTime').textContent=fmt(empatia_ms);
@@ -401,7 +431,10 @@ function updateStats(){
   document.getElementById('dispoTime').textContent=fmt(axis.dispo);
   document.getElementById('dispoPct').textContent=((axis.dispo/totalAxis*100)||0).toFixed(1)+'%';
 
-  drawQuadrant(); // actualiza en vivo
+  // Actualiza cuadrante en vivo
+  drawQuadrant(empatia_ms, asertividad_ms);
+  // Actualiza barra Ruido/Señal en vivo
+  drawNoiseBar();
   saveDraft();
 }
 
@@ -430,14 +463,14 @@ function drawRadar(){
 }
 
 // ====== Cuadrantes (Empatía/Asertividad vs Persuasión/Disponibilización) ======
-function drawQuadrant(){
+function drawQuadrant(empatia_ms, asertividad_ms){
   const canvas=document.getElementById('quadrantChart');
   if(!canvas) return;
   const ctx=canvas.getContext('2d');
 
   // Cálculo de coordenadas
-  const empatia_ms = (tiempos['Atención']||0) + (tiempos['Apertura']||0) + (tiempos['Inspiración']||0);
-  const asertividad_ms = (tiempos['Asombro']||0) + (tiempos['Credibilidad']||0) + (tiempos['Aplicabilidad']||0);
+  empatia_ms = empatia_ms ?? (tiempos['Atención']||0) + (tiempos['Apertura']||0) + (tiempos['Inspiración']||0);
+  asertividad_ms = asertividad_ms ?? (tiempos['Asombro']||0) + (tiempos['Credibilidad']||0) + (tiempos['Aplicabilidad']||0);
   const denomX = empatia_ms + asertividad_ms;
   const x = denomX ? +(100*asertividad_ms/denomX).toFixed(2) : 50;
 
@@ -448,52 +481,24 @@ function drawQuadrant(){
 
   const quadBgPlugin = {
     id:'quadBg',
-    beforeDraw(chart, args, opts){
+    beforeDraw(chart){
       const {ctx, chartArea:{left,right,top,bottom,width,height}} = chart;
-      const cx = left + width/2;
-      const cy = top + height/2;
+      const cx = left + width/2; const cy = top + height/2;
       ctx.save();
-      // cuadrantes
-      ctx.fillStyle='rgba(255,61,46,0.06)'; // superior-izq (Inspirational) leve rojo
-      ctx.fillRect(left, top, width/2, height/2);
-      ctx.fillStyle='rgba(28,30,44,0.06)'; // superior-der (Commercial) leve oscuro
-      ctx.fillRect(cx, top, width/2, height/2);
-      ctx.fillStyle='rgba(46,233,255,0.08)'; // inferior-izq (Educational) leve cian
-      ctx.fillRect(left, cy, width/2, height/2);
-      ctx.fillStyle='rgba(255,61,46,0.06)'; // inferior-der (Executive) leve rojo
-      ctx.fillRect(cx, cy, width/2, height/2);
-
-      // líneas 50%
+      ctx.fillStyle='rgba(255,61,46,0.06)'; ctx.fillRect(left, top, width/2, height/2); // sup-izq
+      ctx.fillStyle='rgba(28,30,44,0.06)'; ctx.fillRect(cx, top, width/2, height/2);   // sup-der
+      ctx.fillStyle='rgba(46,233,255,0.08)'; ctx.fillRect(left, cy, width/2, height/2); // inf-izq
+      ctx.fillStyle='rgba(255,61,46,0.06)'; ctx.fillRect(cx, cy, width/2, height/2);   // inf-der
       ctx.strokeStyle='#999'; ctx.lineWidth=1; ctx.setLineDash([6,6]);
       ctx.beginPath(); ctx.moveTo(cx, top); ctx.lineTo(cx, bottom); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(left, cy); ctx.lineTo(right, cy); ctx.stroke();
       ctx.setLineDash([]);
-
-      // etiquetas de cuadrantes
       ctx.fillStyle='#222'; ctx.font='600 14px system-ui, -apple-system, Segoe UI, Roboto, Arial';
       ctx.textAlign='center'; ctx.textBaseline='middle';
       ctx.fillText('Inspirational', left + width*0.25, top + height*0.25);
       ctx.fillText('Commercial',   left + width*0.75, top + height*0.25);
       ctx.fillText('Educational',  left + width*0.25, top + height*0.75);
       ctx.fillText('Executive',    left + width*0.75, top + height*0.75);
-
-      // rótulos de ejes
-      ctx.font='600 13px system-ui, -apple-system, Segoe UI, Roboto, Arial';
-      // izquierda / derecha
-      ctx.save();
-      ctx.translate(left-8, cy); ctx.rotate(-Math.PI/2);
-      ctx.textAlign='center'; ctx.fillText('Empatía', 0, 0);
-      ctx.restore();
-
-      ctx.save();
-      ctx.translate(right+8, cy); ctx.rotate(Math.PI/2);
-      ctx.textAlign='center'; ctx.fillText('Asertividad', 0, 0);
-      ctx.restore();
-
-      // arriba / abajo
-      ctx.textAlign='center';
-      ctx.fillText('Persuasión', (left+right)/2, top-12);
-      ctx.fillText('Disponibilización', (left+right)/2, bottom+12);
       ctx.restore();
     }
   };
@@ -501,46 +506,61 @@ function drawQuadrant(){
   if(quadInstance) quadInstance.destroy();
   quadInstance = new Chart(ctx, {
     type:'scatter',
-    data:{
-      datasets:[{
-        label:'Sesión',
-        data:[point],
-        pointRadius:6,
-        pointHoverRadius:7,
-        borderWidth:2,
-        borderColor:getComputedStyle(document.documentElement).getPropertyValue('--border').trim()||'#1c1e2c',
-        backgroundColor:'rgba(28,30,44,0.8)',
-        showLine:false
-      }]
-    },
-    options:{
-      responsive:true,
-      maintainAspectRatio:true,
-      animation:false,
-      plugins:{
-        legend:{display:false},
-        tooltip:{
-          callbacks:{
-            label:(ctx)=>`x: ${ctx.parsed.x.toFixed(1)}%, y: ${ctx.parsed.y.toFixed(1)}%`
-          }
-        }
-      },
-      layout:{ padding:{top:24,bottom:24,left:24,right:24} },
-      scales:{
-        x:{min:0,max:100,grid:{display:false},ticks:{display:false},
-           title:{display:true,text:'Empatía ⇢ Asertividad'}},
-        y:{min:0,max:100,grid:{display:false},ticks:{display:false},
-           reverse:false,  // 0 abajo, 100 arriba
-           title:{display:true,text:'Disponibilización ⇣ / Persuasión ⇡'}}
-      }
-    },
+    data:{ datasets:[{ label:'Sesión', data:[point], pointRadius:6, pointHoverRadius:7, borderWidth:2, borderColor:getComputedStyle(document.documentElement).getPropertyValue('--border').trim()||'#1c1e2c', backgroundColor:'rgba(28,30,44,0.8)', showLine:false }] },
+    options:{ responsive:true, maintainAspectRatio:true, animation:false, plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:(ctx)=>`x: ${ctx.parsed.x.toFixed(1)}%, y: ${ctx.parsed.y.toFixed(1)}%` } } }, layout:{ padding:{top:24,bottom:24,left:24,right:24} }, scales:{ x:{min:0,max:100,grid:{display:false},ticks:{display:false}, title:{display:true,text:'Empatía ⇢ Asertividad'}}, y:{min:0,max:100,grid:{display:false},ticks:{display:false}, reverse:false, title:{display:true,text:'Disponibilización ⇣ / Persuasión ⇡'}} } },
     plugins:[quadBgPlugin]
   });
 }
 
+// ====== Barra Ruido vs Señal ======
+function drawNoiseBar(){
+  const canvas=document.getElementById('noiseChart');
+  if(!canvas) return;
+  const ctx=canvas.getContext('2d');
+  const signal_ms = categoryList.reduce((a,c)=>a+(tiempos[c]||0),0);
+  const total_ms = Math.max(1, signal_ms + noise_ms);
+  const signal_pct = +(signal_ms/total_ms*100).toFixed(2);
+  const noise_pct  = +(noise_ms/total_ms*100).toFixed(2);
+
+  const data={
+    labels:['Sesión'],
+    datasets:[
+      {label:'Señal', data:[signal_pct], backgroundColor:'rgba(28,30,44,0.8)', borderColor:getComputedStyle(document.documentElement).getPropertyValue('--border').trim()||'#1c1e2c', borderWidth:1, stack:'stack0'},
+      {label:'Ruido', data:[noise_pct], backgroundColor:'rgba(255,61,46,0.6)', borderColor:'#ff3d2e', borderWidth:1, stack:'stack0'}
+    ]
+  };
+
+  const options={
+    indexAxis:'y',
+    responsive:true,
+    maintainAspectRatio:true,
+    animation:false,
+    plugins:{ legend:{position:'top'}, tooltip:{callbacks:{label:(ctx)=> `${ctx.dataset.label}: ${ctx.raw.toFixed(1)}%`}}, title:{display:true,text:'Ruido vs Señal (100% = tiempo total)'} },
+    scales:{ x:{min:0, max:100, grid:{display:false}, ticks:{ callback:(v)=>v+'%' } }, y:{grid:{display:false}} }
+  };
+
+  if(noiseInstance){
+    noiseInstance.data = data;
+    noiseInstance.update();
+  }else{
+    noiseInstance = new Chart(ctx, { type:'bar', data, options });
+  }
+}
+
+// ====== Inicialización de Charts ======
+function initCharts(){
+  drawRadar();
+  drawQuadrant();
+  drawNoiseBar();
+}
+function updateCharts(force=false){
+  if(force){ drawRadar(); }
+  drawQuadrant();
+  drawNoiseBar();
+}
+
 // ====== Exportación ======
 function exportSession(){
-  // asegura que el último tramo quede asentado
   if(running && !paused){ settleSegment(); settleAxis(); }
   const name=nameInput.value.trim()||'SinNombre';
 
@@ -548,23 +568,27 @@ function exportSession(){
   const asertividad_ms = (tiempos['Asombro']||0) + (tiempos['Credibilidad']||0) + (tiempos['Aplicabilidad']||0);
   const denomX = empatia_ms + asertividad_ms;
   const x = denomX ? +(100*asertividad_ms/denomX).toFixed(2) : 50;
-
   const denomY = (axis.persu||0) + (axis.dispo||0);
   const y = denomY ? +(100*axis.persu/denomY).toFixed(2) : 50;
 
   const porcentajes=Object.fromEntries(categoryList.map(c=>[c, totalElapsed? +(tiempos[c]/totalElapsed*100).toFixed(2):0 ]));
+  const signal_ms = categoryList.reduce((a,c)=>a+(tiempos[c]||0),0);
+
   const summary={
     nombre:name,
     fecha:new Date().toISOString(),
     total_ms:Math.round(totalElapsed),
     objetivos:{...goals},
     tiempos_ms:{...tiempos},
+    ruido_ms: Math.round(noise_ms),
+    señal_ms: Math.round(signal_ms),
     porcentajes,
     empatia_ms: Math.round(empatia_ms),
     asertividad_ms: Math.round(asertividad_ms),
     persuasion_ms: Math.round(axis.persu||0),
     disponibilizacion_ms: Math.round(axis.dispo||0),
-    coords_cuadrante: { x, y }
+    coords_cuadrante: { x, y },
+    ruido_vs_señal_pct: { ruido: +(noise_ms/Math.max(1,signal_ms+noise_ms)*100).toFixed(2), señal: +(signal_ms/Math.max(1,signal_ms+noise_ms)*100).toFixed(2) }
   };
 
   // JSON
@@ -572,19 +596,15 @@ function exportSession(){
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a'); a.href=url; a.download=`Radar_${name}_${Date.now()}.json`; a.click(); URL.revokeObjectURL(url);
 
-  // PNG de la gráfica radial si existe
-  if(radarInstance){
-    const link=document.createElement('a'); link.download=`Radar_${name}_radar.png`; link.href=radarInstance.toBase64Image(); link.click();
-  }
-  // PNG de la gráfica de cuadrantes
-  if(quadInstance){
-    const link2=document.createElement('a'); link2.download=`Radar_${name}_cuadrantes.png`; link2.href=quadInstance.toBase64Image(); link2.click();
-  }
+  // PNGs
+  if(radarInstance){ const link=document.createElement('a'); link.download=`Radar_${name}_radar.png`; link.href=radarInstance.toBase64Image(); link.click(); }
+  if(quadInstance){ const link2=document.createElement('a'); link2.download=`Radar_${name}_cuadrantes.png`; link2.href=quadInstance.toBase64Image(); link2.click(); }
+  if(noiseInstance){ const link3=document.createElement('a'); link3.download=`Radar_${name}_ruido_senal.png`; link3.href=noiseInstance.toBase64Image(); link3.click(); }
 }
 
 // ====== Persistencia local ======
 function saveDraft(){
-  const draft={goals,tiempos,name: nameInput.value, axis:{...axis}, lastAxis};
+  const draft={goals,tiempos,name: nameInput.value, axis:{...axis}, lastAxis, noise_ms};
   localStorage.setItem('radar-categorias-draft', JSON.stringify(draft));
 }
 function restoreDraft(){
@@ -594,8 +614,8 @@ function restoreDraft(){
     if(d.name){ nameInput.value=d.name; startBtn.disabled=nameInput.value.trim()===''; }
     if(d.goals){ Object.assign(goals,d.goals); categoryList.forEach(cat=>{ const v=goals[cat]||0; const lbl=document.getElementById(`lbl-${cat}`); const rng=lbl?.nextElementSibling; if(rng){ rng.value=v; lbl.textContent=`${cat}: ${v}%`; } }); updateTotalPercent(); }
     if(d.tiempos) Object.assign(tiempos,d.tiempos);
+    if(typeof d.noise_ms==='number') noise_ms=d.noise_ms; else noise_ms=0;
     if(d.axis){ axis.persu=d.axis.persu||0; axis.dispo=d.axis.dispo||0; }
-    if(d.lastAxis) setAxisActive(null); // no activamos nada al cargar para evitar confusión
     updateStats();
   }catch(e){ console.warn('No se pudo restaurar borrador',e); }
 }
@@ -607,14 +627,19 @@ function onKey(e){
   if(n>=1 && n<=6){ const cat=categoryList[n-1]; const btn=findButton(cat); press(cat, btn); return; }
   if(e.key==='p' || e.key==='P'){ settleAxis(); setAxisActive('persu'); updateStats(); return; }
   if(e.key==='d' || e.key==='D'){ settleAxis(); setAxisActive('dispo'); updateStats(); return; }
+  if(e.key==='r' || e.key==='R'){ const btn=findNoiseButton(); press(NOISE_KEY, btn); return; }
 }
 function findButton(cat){
   const board=document.querySelector('.radial-board');
   const btns=[...board.querySelectorAll('.circle-btn')];
-  return btns.find(b=> b.title.includes(cat));
+  return btns.find(b=> b.title?.includes(cat));
+}
+function findNoiseButton(){
+  const board=document.querySelector('.radial-board');
+  return [...board.querySelectorAll('.circle-btn')].find(b=> b.textContent==='Ruido');
 }
 
-// Prevenir pérdida accidental
+// Evitar pérdida accidental
 window.addEventListener('beforeunload', (e)=>{ if(running){ e.preventDefault(); e.returnValue=''; } });
 </script>
 </body>
