@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Ruleta de Audiencias</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    :root {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #f5f7ff, #d9e2ff);
+      color: #111827;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .app {
+      background: #ffffffcc;
+      backdrop-filter: blur(12px);
+      border-radius: 24px;
+      padding: 24px 24px 28px;
+      max-width: 500px;
+      width: 100%;
+      box-shadow:
+        0 20px 25px -5px rgba(15, 23, 42, 0.25),
+        0 10px 10px -5px rgba(15, 23, 42, 0.18);
+    }
+
+    .app-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .subtitle {
+      font-size: 0.8rem;
+      color: #6b7280;
+    }
+
+    .badge {
+      font-size: 0.7rem;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #eef2ff;
+      color: #4f46e5;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .slot-container {
+      margin: 10px 0 18px;
+      padding: 18px 20px;
+      border-radius: 18px;
+      border: 1px solid #e5e7eb;
+      background: linear-gradient(135deg, #f9fafb, #eef2ff);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .slot-inner {
+      height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      font-size: 1.1rem;
+      font-weight: 600;
+      padding: 0 12px;
+      line-height: 1.3;
+    }
+
+    .slot-rolling {
+      animation: roll 0.6s linear infinite;
+    }
+
+    @keyframes roll {
+      0%   { transform: translateY(0); }
+      50%  { transform: translateY(-6px); }
+      100% { transform: translateY(0); }
+    }
+
+    .slot-label {
+      position: absolute;
+      top: 8px;
+      right: 12px;
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      color: #9ca3af;
+      letter-spacing: 0.12em;
+      font-weight: 600;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    button {
+      border-radius: 999px;
+      border: none;
+      padding: 10px 16px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.12s ease, opacity 0.08s ease;
+    }
+
+    button:active {
+      transform: translateY(1px) scale(0.99);
+      box-shadow: none;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #4f46e5, #6366f1);
+      color: white;
+      box-shadow:
+        0 10px 15px -3px rgba(79, 70, 229, 0.4),
+        0 4px 6px -4px rgba(79, 70, 229, 0.3);
+    }
+
+    .btn-primary[disabled] {
+      opacity: 0.7;
+      cursor: default;
+      box-shadow: none;
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: #4b5563;
+      border: 1px solid #e5e7eb;
+    }
+
+    .btn-ghost.copied {
+      border-color: #22c55e;
+      color: #15803d;
+    }
+
+    .meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.7rem;
+      color: #9ca3af;
+      margin-top: 6px;
+    }
+
+    .meta span {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: #22c55e;
+    }
+
+    @media (max-width: 480px) {
+      .app {
+        margin: 12px;
+        padding: 18px 16px 22px;
+      }
+      .slot-inner {
+        font-size: 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="app-header">
+      <div>
+        <div class="title">Ruleta de Audiencias</div>
+        <div class="subtitle">Haz clic para obtener una audiencia al azar y disparar ideas.</div>
+      </div>
+      <div class="badge">250 opciones</div>
+    </div>
+
+    <div class="slot-container">
+      <div class="slot-label">AUDIENCIA</div>
+      <div id="slot" class="slot-inner">
+        Pulsa “Girar ruleta” para empezar.
+      </div>
+    </div>
+
+    <div class="controls">
+      <button id="spinBtn" class="btn-primary">
+        🎰 Girar ruleta
+      </button>
+      <button id="copyBtn" class="btn-ghost" disabled>
+        📋 Copiar audiencia
+      </button>
+    </div>
+
+    <div class="meta">
+      <span><span class="dot"></span> Lista neutra y aleatoria</span>
+      <span id="counterLabel">0 giros</span>
+    </div>
+  </div>
+
+  <script>
+    const audiences = [
+      "Astrónomos aficionados",
+      "Patinadores urbanos",
+      "Jugadores de ajedrez",
+      "Pescadores de río",
+      "Baristas",
+      "Cerveceros artesanales",
+      "Fanáticos del anime",
+      "Modelistas de trenes",
+      "Cazadores de tormentas",
+      "Fans del metal",
+      "Apicultores",
+      "Coleccionistas de monedas",
+      "Ilusionistas",
+      "Practicantes de parkour",
+      "Speedrunners de videojuegos",
+      "Jugadores de bridge",
+      "Origamistas",
+      "Bordadores",
+      "Historiadores amateurs",
+      "Corredores de maratón",
+      "Triatletas",
+      "Campistas solitarios",
+      "Surfistas",
+      "Escultores de madera",
+      "Jardinistas urbanos",
+      "Urbanistas activistas",
+      "Skaters de downhill",
+      "Jugadores de rol de mesa",
+      "Fanáticos del cine clásico",
+      "Cosplayers",
+      "Booktubers",
+      "Artistas de acuarela",
+      "Conductores de kart",
+      "Velocistas",
+      "Pilotos de drones",
+      "Foodies",
+      "Amantes del té",
+      "Reparadores de bicicletas",
+      "Observadores de aves",
+      "Fotógrafos callejeros",
+      "Ceramistas",
+      "Graffiteros",
+      "Recolectores de hongos",
+      "Minimalistas",
+      "Maximalistas",
+      "Fans del K-pop",
+      "Jugadores de Pokémon competitivo",
+      "Modelistas de aviones",
+      "Tatuadores",
+      "Fans de true crime",
+      "Coleccionistas de vinilos",
+      "Testeadores de gadgets",
+      "Estampadores de serigrafía",
+      "Bordadores de punto cruz",
+      "Caricaturistas",
+      "Fans de ciencia ficción",
+      "Cinéfilos de terror",
+      "Amantes del piano",
+      "Constructores de Lego",
+      "Viajeros mochileros",
+      "Fans del fútbol retro",
+      "Practicantes de taichí",
+      "Poetas urbanos",
+      "Músicos de jazz",
+      "Amantes del teatro musical",
+      "Fanáticos del rap freestyle",
+      "Chefs veganos",
+      "Chefs carnívoros",
+      "Coleccionistas de antigüedades",
+      "Restauradores de muebles",
+      "Joyeros artesanales",
+      "Jugadores de dominó",
+      "Fans de Star Wars",
+      "Fans de Star Trek",
+      "Miniaturistas",
+      "Cazadores de gangas",
+      "Exploradores de cuevas",
+      "Campers overlanding",
+      "Vloggers de viajes",
+      "Fans de la moda vintage",
+      "Reparadores de tecnología antigua",
+      "Amantes de los puzzles",
+      "Speedcubers (cubos Rubik)",
+      "Meditadores",
+      "Practicantes de yoga aéreo",
+      "Jugadores de pinball",
+      "Fans del cine independiente",
+      "Amantes de los perros",
+      "Amantes de los gatos",
+      "Criadores de plantas raras",
+      "Fans de la arqueología",
+      "Buscadores de tesoros con detector",
+      "Carpinteros aficionados",
+      "Escultores de hielo",
+      "Fanáticos del skate old school",
+      "Bikers",
+      "Corredores de autos RC",
+      "Amantes de los cómics",
+      "Fans del rock progresivo",
+      "Jugadores de Magic: The Gathering",
+      "Practicantes de kitesurf",
+      "Jugadores de airsoft",
+      "Fanáticos del motocross",
+      "Cacharreros de hardware",
+      "Filatelistas",
+      "Cineastas caseros",
+      "Astrólogos",
+      "Tarotistas",
+      "Fanáticos del misterio",
+      "Simmers (The Sims)",
+      "Jugadores de Minecraft",
+      "Jugadores de Zelda",
+      "Modelistas navales",
+      "Numismáticos",
+      "Fans del ballet",
+      "Fans de la ópera",
+      "Tejedores",
+      "Cerveceros caseros",
+      "Preparadores de café cold brew",
+      "Coleccionistas de cámaras analógicas",
+      "Defensores del slow living",
+      "Fans del minimalismo japonés",
+      "Cocineros de recetas medievales",
+      "Fans de las ferias renacentistas",
+      "Lectores de fantasía épica",
+      "Lectores de novelas románticas",
+      "Lectores de thriller",
+      "Replicadores de sables de luz",
+      "Fans del steampunk",
+      "Fans del cyberpunk",
+      "Makers",
+      "Fermentadores caseros",
+      "Fanáticos del whisky",
+      "Catadores de vino",
+      "Diseñadores de moda",
+      "Tejedores de macramé",
+      "Amantes del hiking",
+      "Montañistas",
+      "Kayakistas",
+      "Ciclistas urbanos",
+      "Ciclistas de montaña",
+      "Patinadores en hielo",
+      "Bailarines de salsa",
+      "Bailarines de tango",
+      "Amantes de la danza contemporánea",
+      "Fans de los eSports",
+      "Jugadores de League of Legends",
+      "Jugadores de Fortnite",
+      "Jugadores de Valorant",
+      "Jugadores de Counter-Strike",
+      "Fanáticos de la Fórmula 1",
+      "Fanáticos del rally",
+      "Fans del automodelismo",
+      "Metalúrgicos aficionados",
+      "Inventores caseros",
+      "VJ’s",
+      "DJs de vinilo",
+      "Amantes del ambient",
+      "Fans del techno",
+      "Fans del reggaetón viejo",
+      "Fans de la música clásica",
+      "Ilustradores digitales",
+      "Creadores 3D",
+      "Origamistas modulares",
+      "Fans del ASMR",
+      "Fans del mukbang",
+      "Coleccionistas de juguetes retro",
+      "Fans del stop motion",
+      "Diseñadores de juegos de mesa",
+      "Pintores de miniaturas",
+      "Jugadores de dardos",
+      "Fans de las cartas españolas",
+      "Culturistas naturales",
+      "Calisténicos",
+      "Crossfitters",
+      "Personas que coleccionan piedras",
+      "Exploradores urbanos",
+      "Graffiteros callados",
+      "Bailarines de breakdance",
+      "Fans de la cultura goth",
+      "Fans de la cultura punk",
+      "Fans de los 80s",
+      "Fans de los 90s",
+      "Coleccionistas de perfumes",
+      "Amantes del DIY",
+      "Fans del crochet",
+      "Fans del metal melódico",
+      "Fans de los documentales científicos",
+      "Fans de la fotografía analógica",
+      "Fans de los GIFs",
+      "Usuarios de Reddit muy activos",
+      "Amantes de las plantas carnívoras",
+      "Pintores de óleo",
+      "Amantes del arte abstracto",
+      "Fans del hip hop consciente",
+      "Patinadores artísticos",
+      "Entrenadores de perros",
+      "Criadores de gatos exóticos",
+      "Amantes del cine mudo",
+      "Fans del slapstick",
+      "Lectores de cómics indie",
+      "Fans del rock clásico",
+      "Fans del pop coreano",
+      "Amantes de la moda coreana",
+      "Coleccionistas de stickers",
+      "Jugadores de bochas",
+      "Fans de los trenes",
+      "Cronistas de viajes",
+      "Fans de la música celta",
+      "Jugadores de backgammon",
+      "Catadores de chocolate",
+      "Personas que aman organizar",
+      "Fans del bullet journal",
+      "Fans del scrapbooking",
+      "Amantes de los perros salchicha",
+      "Fans del senderismo extremo",
+      "Fanáticos del camping invernal",
+      "Gente que colecciona imanes",
+      "Fans del origami simple",
+      "Cazadores de auroras boreales",
+      "Fans del cosplay histórico",
+      "Fans del speed metal",
+      "Practicantes de escalada en roca",
+      "Bordadores de alta precisión",
+      "Amantes del cine francés",
+      "Fans de los videojuegos retro",
+      "Jugadores de juegos de ritmo",
+      "Streamers pequeños",
+      "Fanáticos del minimal techno",
+      "Fans de la música indie",
+      "Fans de la mixología",
+      "Personas que hacen compost",
+      "Fans del bonsái",
+      "Coleccionistas de figuras de acción",
+      "Fans del watercooling en PC",
+      "Mecánicos caseros",
+      "Personas que restauran autos clásicos",
+      "Amantes del picante",
+      "Fans de las salsas fermentadas",
+      "Fans del ramen",
+      "Gente que cría gallinas en casa",
+      "Fans del running nocturno",
+      "Fans del cine soviético",
+      "Usuarios de cámaras desechables",
+      "Amantes del senderismo con perros",
+      "Fans del arte naíf",
+      "Gente que escribe diarios personales",
+      "Amantes del café turco",
+      "Fans del diseño nórdico",
+      "Fans del rock alternativo"
+    ];
+
+    const slot = document.getElementById("slot");
+    const spinBtn = document.getElementById("spinBtn");
+    const copyBtn = document.getElementById("copyBtn");
+    const counterLabel = document.getElementById("counterLabel");
+
+    let currentText = "";
+    let spins = 0;
+    let rollingInterval = null;
+
+    function getRandomAudience() {
+      const index = Math.floor(Math.random() * audiences.length);
+      return audiences[index];
+    }
+
+    function startRolling() {
+      slot.classList.add("slot-rolling");
+      rollingInterval = setInterval(() => {
+        slot.textContent = getRandomAudience();
+      }, 80);
+    }
+
+    function stopRolling() {
+      if (rollingInterval) clearInterval(rollingInterval);
+      slot.classList.remove("slot-rolling");
+      const finalAudience = getRandomAudience();
+      currentText = finalAudience;
+      slot.textContent = finalAudience;
+      spins++;
+      counterLabel.textContent = spins + (spins === 1 ? " giro" : " giros");
+      copyBtn.disabled = false;
+      copyBtn.classList.remove("copied");
+      copyBtn.textContent = "📋 Copiar audiencia";
+    }
+
+    spinBtn.addEventListener("click", () => {
+      if (spinBtn.disabled) return;
+      spinBtn.disabled = true;
+      spinBtn.textContent = "Girando...";
+      startRolling();
+
+      // Duración del "giro"
+      setTimeout(() => {
+        stopRolling();
+        spinBtn.disabled = false;
+        spinBtn.textContent = "🎰 Girar ruleta";
+      }, 1000 + Math.random() * 800);
+    });
+
+    copyBtn.addEventListener("click", async () => {
+      if (!currentText) return;
+      try {
+        await navigator.clipboard.writeText(currentText);
+        copyBtn.classList.add("copied");
+        copyBtn.textContent = "✅ Copiado";
+      } catch (e) {
+        copyBtn.textContent = "✔ Copiado (si el navegador deja)";
+      }
+    });
+  </script>
+</body>
+</html>
