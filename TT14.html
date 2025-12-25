@@ -1,4 +1,3 @@
-```html
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -30,7 +29,6 @@
     #startStopButton,#pauseResumeButton,#resetButton,#exportButton{background:var(--res)}
     .controls button[disabled]{opacity:.45;cursor:default}
 
-    /* layout tablero + eje vertical + dimmers */
     .workspace{display:grid;grid-template-columns:auto 84px minmax(280px, 1fr);gap:16px;align-items:start;max-width:1200px;width:100%}
     @media (max-width:1060px){ .workspace{grid-template-columns:1fr} }
 
@@ -40,7 +38,6 @@
     .active-ring{box-shadow:0 0 0 8px rgba(28,30,44,.18)}
     .label{position:absolute;transform:translate(-50%,-50%);font-size:16px;color:#444;font-weight:700;pointer-events:none}
 
-    /* mini-panel eje vertical */
     .axis-panel{display:flex;flex-direction:column;gap:12px}
     .axis-btn{width:84px;min-height:84px;border-radius:14px;border:2px solid #ddd;background:#fff;color:#222;font-weight:800;font-size:14px;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.08);transition:box-shadow .1s ease, transform .05s ease}
     .axis-btn:active{transform:scale(.98)}
@@ -49,7 +46,6 @@
     .axis-up::before{content:"↑";display:block;font-size:18px;margin-bottom:4px}
     .axis-down::before{content:"↓";display:block;font-size:18px;margin-bottom:4px}
 
-    /* Panel de competencias (9 dimmers) */
     .competencies-panel{background:#fff;border:1px solid #e5e5e5;border-radius:12px;padding:14px;box-shadow:0 2px 6px rgba(0,0,0,.06)}
     .competencies-panel h3{margin:6px 0 12px 0}
     .competency{display:grid;grid-template-columns:1fr auto;align-items:center;gap:10px;border:1px solid #efefef;background:#fafafa;padding:8px 10px;border-radius:10px}
@@ -88,7 +84,6 @@
     .chart-box{width:100%;border:2px solid #222;padding:16px;background:#fff;border-radius:10px;box-shadow:0 2px 6px rgba(0,0,0,.08)}
     canvas{width:100%!important;height:100%!important}
 
-    /* Pantalla de objetivos */
     #goalSetting{max-width:700px;margin:24px auto;padding:20px;background:#fff;border-radius:12px;box-shadow:0 2px 6px rgba(0,0,0,.08);border:1px solid #ececec}
     #goalSetting h2{text-align:center;margin-top:6px}
     #goalSetting p{text-align:center}
@@ -107,7 +102,6 @@
   <h1 aria-live="polite">Evaluación de Presentaciones – Radar + Cuadrantes + Ruido/Señal + Competencias</h1>
 </header>
 
-<!-- Pantalla 1: objetivos con sliders -->
 <div id="goalSetting" aria-labelledby="titleGoals">
   <h2 id="titleGoals">Define tus Objetivos (Opcional)</h2>
   <p>Ajusta el porcentaje para cada categoría. No es necesario llegar a 100%.</p>
@@ -117,7 +111,6 @@
   <button id="btnProceed" type="button">Siguiente</button>
 </div>
 
-<!-- Pantalla 2: cronómetro y resultados -->
 <div class="container" id="mainContainer">
   <div id="timer" aria-live="polite">00:00:00</div>
   <div class="controls">
@@ -133,7 +126,6 @@
     <div class="badges" id="hotkeysBadges"></div>
   </div>
 
-  <!-- Tablero + eje vertical + competencias -->
   <div class="workspace">
     <div class="radial-board" aria-label="Tablero radial" role="group"></div>
     <div class="axis-panel" aria-label="Eje vertical Persuasión/Disponibilización" role="group">
@@ -175,7 +167,7 @@ const NOISE_KEY='__NOISE__';
 const categoryList=['Atención','Credibilidad','Inspiración','Aplicabilidad','Apertura','Asombro'];
 const tiempos=Object.fromEntries(categoryList.map(c=>[c,0]));
 const goals=Object.fromEntries(categoryList.map(c=>[c,0]));
-let noise_ms=0; // acumulador de Ruido
+let noise_ms=0;
 
 // ====== Competencias (9) ======
 const competenciesList=[
@@ -189,19 +181,37 @@ const competenciesList=[
   'Persuasión e Influencia',
   'Propósito y Liderazgo'
 ];
-const levelLabels=['Aspirante','Aprendiz','Competente','Experto','Maestro']; // 1..5
-const competenciesLevels=Object.fromEntries(competenciesList.map(c=>[c,3])); // default 3=Competente
+const levelLabels=['Aspirante','Aprendiz','Competente','Experto','Maestro'];
+const competenciesLevels=Object.fromEntries(competenciesList.map(c=>[c,3]));
 let competenciesRadarInstance=null;
 
-// ====== Eje vertical (Persuasión/Disponibilización) ======
+// ====== Eje vertical ======
 const axis={persu:0, dispo:0};
-let lastAxis=null; // 'persu' | 'dispo' | null
+let lastAxis=null;       // 'persu' | 'dispo' | null
 let lastAxisStamp=0;
 
 // ====== Estado ======
 let running=false, paused=false, startTime=0, pauseStart=0, totalElapsed=0, lastStamp=0, timerInterval, statsInterval;
 let radarInstance=null, quadInstance=null, noiseInstance=null;
-let lastCat=null; // puede ser una categoría o NOISE_KEY
+let lastCat=null;
+
+// ====== Trayectoria cuadrantes (registro del recorrido) ======
+let quadPath=[{x:50,y:50}];
+const QUAD_MAX_POINTS = 1200;     // tope de puntos en la trayectoria
+const QUAD_MIN_DELTA  = 0.15;     // umbral mínimo de cambio (en puntos porcentuales) para agregar a la trayectoria
+
+function resetQuadPath(){
+  quadPath = [{x:50,y:50}];
+}
+function pushQuadPoint(x,y){
+  if(!quadPath || quadPath.length===0) resetQuadPath();
+  const last = quadPath[quadPath.length-1];
+  const dx = x - last.x, dy = y - last.y;
+  const dist = Math.hypot(dx, dy);
+  if(dist < QUAD_MIN_DELTA) return; // evita ruido visual
+  quadPath.push({x,y});
+  if(quadPath.length > QUAD_MAX_POINTS) quadPath.shift();
+}
 
 // ====== UI refs ======
 const slidersEl=document.getElementById('sliders');
@@ -222,8 +232,14 @@ categoryList.forEach(cat=>{
   label.id=`lbl-${cat}`;label.textContent=`${cat}: 0%`;
   label.style.display='block'; label.style.fontWeight='700'; label.style.marginBottom='6px';
   const input=document.createElement('input');
-  input.type='range'; input.min=0; input.max=100; input.value=0; input.step=1; input.setAttribute('aria-label', `Objetivo para ${cat}`);
-  input.oninput=e=>{goals[cat]=+e.target.value; label.textContent=`${cat}: ${goals[cat]}%`; updateTotalPercent(); saveDraft();};
+  input.type='range'; input.min=0; input.max=100; input.value=0; input.step=1;
+  input.setAttribute('aria-label', `Objetivo para ${cat}`);
+  input.oninput=e=>{
+    goals[cat]=+e.target.value;
+    label.textContent=`${cat}: ${goals[cat]}%`;
+    updateTotalPercent();
+    saveDraft();
+  };
   wrap.append(label,input);
   slidersEl.appendChild(wrap);
 });
@@ -262,7 +278,9 @@ function buildRadial(){
     const a=angles[i]*(Math.PI/180);
     const xB=cx+rBtn*Math.cos(a), yB=cy+rBtn*Math.sin(a);
     const btn=document.createElement('button');
-    btn.className='circle-btn'; btn.style.left=`${xB}px`; btn.style.top=`${yB}px`; btn.textContent=cat.split(' ')[0];
+    btn.className='circle-btn';
+    btn.style.left=`${xB}px`; btn.style.top=`${yB}px`;
+    btn.textContent=cat.split(' ')[0];
     btn.addEventListener('click',()=> press(cat,btn));
     btn.title=`Activar ${cat}`;
     btn.setAttribute('aria-pressed','false');
@@ -296,7 +314,10 @@ function buildCompetenciesPanel(){
     const left=document.createElement('div'); left.textContent=comp; left.style.fontWeight='700';
     const right=document.createElement('div'); right.className='right';
     const badge=document.createElement('span'); badge.className='level-badge'; badge.textContent=levelLabels[(competenciesLevels[comp]-1)];
-    const input=document.createElement('input'); input.type='range'; input.min=1; input.max=5; input.step=1; input.value=competenciesLevels[comp]; input.className='comp-slider'; input.setAttribute('aria-label',`Nivel para ${comp}`);
+    const input=document.createElement('input');
+    input.type='range'; input.min=1; input.max=5; input.step=1; input.value=competenciesLevels[comp];
+    input.className='comp-slider';
+    input.setAttribute('aria-label',`Nivel para ${comp}`);
     input.addEventListener('input', (e)=>{
       competenciesLevels[comp]=+e.target.value;
       badge.textContent=levelLabels[competenciesLevels[comp]-1];
@@ -323,7 +344,11 @@ function buildSummary(){
 
 // ====== Cronómetro ======
 const pad=n=>n<10?`0${n}`:n;
-const fmt=ms=>{ms=Math.max(0,Math.floor(ms));const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;return `${pad(h)}:${pad(m)}:${pad(sec)}`};
+const fmt=ms=>{
+  ms=Math.max(0,Math.floor(ms));
+  const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;
+  return `${pad(h)}:${pad(m)}:${pad(sec)}`;
+};
 
 startBtn.addEventListener('click', startStopTimer);
 pauseBtn.addEventListener('click', pauseResumeTimer);
@@ -333,6 +358,8 @@ exportBtn.addEventListener('click', exportSession);
 function startStopTimer(){
   if(!running){
     softReset();
+    resetQuadPath(); // inicio en el centro del cuadrante
+
     startTime=performance.now();
     lastStamp=startTime;
     running=true; paused=false;
@@ -341,7 +368,8 @@ function startStopTimer(){
     statsInterval=setInterval(updateStats,1000);
 
     startBtn.textContent='Detener';
-    pauseBtn.disabled=false; resetBtn.disabled=false; exportBtn.disabled=false; nameInput.disabled=true;
+    pauseBtn.disabled=false; resetBtn.disabled=false; exportBtn.disabled=false;
+    nameInput.disabled=true;
     window.addEventListener('keydown',onKey);
 
     updateTimer();
@@ -358,9 +386,10 @@ function startStopTimer(){
     running=false;
 
     startBtn.textContent='Comenzar';
-    pauseBtn.disabled=true; nameInput.disabled=false;
+    pauseBtn.disabled=true;
+    nameInput.disabled=false;
 
-    updateStats();
+    updateStats(); // agrega último punto si corresponde
     window.removeEventListener('keydown',onKey);
   }
 }
@@ -410,7 +439,6 @@ function settleSegment(now = performance.now()){
   }
   lastStamp = now;
 }
-
 function settleAxis(now = performance.now()){
   if(!lastAxis) return;
   const elapsed = now - lastAxisStamp;
@@ -422,6 +450,7 @@ function softReset(){
   paused=false; totalElapsed=0; startTime=pauseStart=0; lastStamp=0; lastCat=null; noise_ms=0;
   categoryList.forEach(c=>{tiempos[c]=0;});
   axis.persu=0; axis.dispo=0; lastAxis=null; lastAxisStamp=0;
+
   document.getElementById('timer').textContent='00:00:00';
   clearActiveRings();
   setAxisActive(null);
@@ -431,12 +460,16 @@ function softReset(){
   if(noiseInstance){noiseInstance.destroy(); noiseInstance=null}
   if(competenciesRadarInstance){competenciesRadarInstance.destroy(); competenciesRadarInstance=null}
 
-  updateStats();
+  resetQuadPath();
 }
 
 function hardReset(){
   if(confirm('¿Reiniciar todo? Se borrarán los tiempos actuales (no competencias).')){
-    softReset(); nameInput.value=''; startBtn.disabled=true; exportBtn.disabled=true; pauseBtn.disabled=true; resetBtn.disabled=true; nameInput.disabled=false;
+    softReset();
+    nameInput.value='';
+    startBtn.disabled=true; exportBtn.disabled=true; pauseBtn.disabled=true; resetBtn.disabled=true;
+    nameInput.disabled=false;
+    updateStats();
   }
 }
 
@@ -461,7 +494,7 @@ function clearActiveRings(){
 }
 
 // ====== Botones eje vertical ======
-function setAxisActive(which, now = performance.now()){ // 'persu' | 'dispo' | null
+function setAxisActive(which, now = performance.now()){
   btnPersu.classList.toggle('active', which==='persu');
   btnDispo.classList.toggle('active', which==='dispo');
   btnPersu.setAttribute('aria-pressed', which==='persu'?'true':'false');
@@ -485,10 +518,9 @@ btnDispo.addEventListener('click',()=>{
   updateStats();
 });
 
-// ====== Instantánea "en vivo" ======
+// ====== Instantánea en vivo ======
 function getLiveSnapshot(){
   const now = (running && !paused) ? performance.now() : null;
-
   const elapsed = now ? (now - startTime) : totalElapsed;
 
   const tiemposLive = {};
@@ -569,12 +601,12 @@ const quadBgPlugin = {
   }
 };
 
-// ====== Plugin flecha del vector ======
+// ====== Plugin flecha (para el vector centro→punto) ======
 const vectorArrowPlugin = {
   id:'vectorArrow',
   afterDatasetsDraw(chart){
     const opts = chart.options?.plugins?.vectorArrow || {};
-    const dsIndex = opts.datasetIndex ?? 0;
+    const dsIndex = opts.datasetIndex ?? 2;
     const ds = chart.data?.datasets?.[dsIndex];
     if(!ds || !Array.isArray(ds.data) || ds.data.length < 2) return;
 
@@ -593,7 +625,7 @@ const vectorArrowPlugin = {
 
     const dx = x1 - x0, dy = y1 - y0;
     const len = Math.hypot(dx, dy);
-    if(len < (opts.minLen ?? 6)) return;
+    if(len < (opts.minLen ?? 8)) return;
 
     const angle = Math.atan2(dy, dx);
     const headLen = opts.headLen ?? 10;
@@ -614,35 +646,21 @@ const vectorArrowPlugin = {
   }
 };
 
-// ====== Cuadrantes (vector desde el centro) ======
-function drawQuadrant(empatia_ms, asertividad_ms, persu_ms, dispo_ms){
+// ====== Cuadrantes: trayectoria + punto móvil + vector centro→punto ======
+function drawQuadrantLive(x, y){
   const canvas=document.getElementById('quadrantChart');
   if(!canvas) return;
   const ctx=canvas.getContext('2d');
 
-  if(typeof empatia_ms !== 'number' || typeof asertividad_ms !== 'number'){
-    empatia_ms =
-      (tiempos['Atención']||0) + (tiempos['Apertura']||0) + (tiempos['Inspiración']||0);
-    asertividad_ms =
-      (tiempos['Asombro']||0) + (tiempos['Credibilidad']||0) + (tiempos['Aplicabilidad']||0);
-  }
-  if(typeof persu_ms !== 'number' || typeof dispo_ms !== 'number'){
-    persu_ms = axis.persu || 0;
-    dispo_ms = axis.dispo || 0;
-  }
-
-  const denomX = empatia_ms + asertividad_ms;
-  const x = denomX ? +(100*asertividad_ms/denomX).toFixed(2) : 50;
-
-  const denomY = (persu_ms||0) + (dispo_ms||0);
-  const y = denomY ? +(100*(persu_ms||0)/denomY).toFixed(2) : 50;
-
-  const start = { x: 50, y: 50 };
-  const end   = { x,  y  };
+  // dataset 0: trayectoria (polilínea)
+  // dataset 1: punto móvil
+  // dataset 2: vector centro→punto (discontinuo + flecha)
+  const border = getComputedStyle(document.documentElement).getPropertyValue('--border').trim() || '#1c1e2c';
 
   if(quadInstance){
-    quadInstance.data.datasets[0].data[0] = start;
-    quadInstance.data.datasets[0].data[1] = end;
+    quadInstance.data.datasets[0].data = quadPath;
+    quadInstance.data.datasets[1].data = [{x,y}];
+    quadInstance.data.datasets[2].data = [{x:50,y:50},{x,y}];
     quadInstance.update('none');
     return;
   }
@@ -650,17 +668,39 @@ function drawQuadrant(empatia_ms, asertividad_ms, persu_ms, dispo_ms){
   quadInstance = new Chart(ctx, {
     type:'scatter',
     data:{
-      datasets:[{
-        label:'Vector',
-        data:[start, end],
-        showLine:true,
-        borderWidth:2,
-        borderColor:getComputedStyle(document.documentElement).getPropertyValue('--border').trim()||'#1c1e2c',
-        backgroundColor:'rgba(28,30,44,0.8)',
-        pointRadius:[0, 6],
-        pointHoverRadius:[0, 7],
-        tension:0
-      }]
+      datasets:[
+        {
+          label:'Trayecto',
+          data: quadPath,
+          showLine:true,
+          tension:0,
+          borderWidth:2,
+          borderColor: border,
+          pointRadius:0,
+          pointHoverRadius:0
+        },
+        {
+          label:'Punto',
+          data:[{x,y}],
+          showLine:false,
+          pointRadius:6,
+          pointHoverRadius:7,
+          borderWidth:2,
+          borderColor: border,
+          backgroundColor:'rgba(28,30,44,0.8)'
+        },
+        {
+          label:'Vector',
+          data:[{x:50,y:50},{x,y}],
+          showLine:true,
+          tension:0,
+          borderWidth:1.5,
+          borderColor: border,
+          borderDash:[6,6],
+          pointRadius:0,
+          pointHoverRadius:0
+        }
+      ]
     },
     options:{
       responsive:true,
@@ -668,8 +708,11 @@ function drawQuadrant(empatia_ms, asertividad_ms, persu_ms, dispo_ms){
       animation:false,
       plugins:{
         legend:{display:false},
-        tooltip:{ callbacks:{ label:(ctx)=>`x: ${ctx.parsed.x.toFixed(1)}%, y: ${ctx.parsed.y.toFixed(1)}%` } },
-        vectorArrow:{ datasetIndex:0, headLen:10, minLen:6 }
+        tooltip:{
+          // solo el punto móvil tiene radio > 0; el trayecto y el vector no generan hitbox relevante
+          callbacks:{ label:(ctx)=>`x: ${ctx.parsed.x.toFixed(1)}%, y: ${ctx.parsed.y.toFixed(1)}%` }
+        },
+        vectorArrow:{ datasetIndex:2, headLen:10, minLen:8 }
       },
       layout:{ padding:{top:24,bottom:24,left:24,right:24} },
       scales:{
@@ -761,7 +804,8 @@ function drawCompetenciesRadar(){
 // ====== Inicialización de Charts ======
 function initCharts(){
   drawRadar(categoryList.map(()=>0));
-  drawQuadrant(0,0,0,0);      // vector desde centro al centro
+  resetQuadPath();
+  drawQuadrantLive(50,50);
   drawNoiseBar(0,0);
   drawCompetenciesRadar();
 }
@@ -819,12 +863,22 @@ function updateStats(){
   document.getElementById('dispoTime').textContent=fmt(snap.axisLive.dispo);
   document.getElementById('dispoPct').textContent=((snap.axisLive.dispo/totalAxis*100)||0).toFixed(1)+'%';
 
-  // Charts en vivo
-  drawQuadrant(empatia_ms, asertividad_ms, snap.axisLive.persu, snap.axisLive.dispo);
+  // Coordenadas (x,y) del punto móvil
+  const denomX = empatia_ms + asertividad_ms;
+  const x = denomX ? +(100*asertividad_ms/denomX).toFixed(2) : 50;
 
+  const denomY = (snap.axisLive.persu||0) + (snap.axisLive.dispo||0);
+  const y = denomY ? +(100*(snap.axisLive.persu||0)/denomY).toFixed(2) : 50;
+
+  // Registrar trayectoria + actualizar gráfico de cuadrantes
+  pushQuadPoint(x,y);
+  drawQuadrantLive(x,y);
+
+  // Ruido vs señal
   const signal_ms = categoryList.reduce((a,c)=>a+(snap.tiemposLive[c]||0),0);
   drawNoiseBar(signal_ms, snap.noiseLive);
 
+  // Radar categorías + radar competencias
   drawRadar(categoryList.map(c => snap.tiemposLive[c]||0));
   drawCompetenciesRadar();
 
@@ -840,12 +894,15 @@ function exportSession(){
     settleSegment(now);
     settleAxis(now);
   }
+
   const name=nameInput.value.trim()||'SinNombre';
 
   const empatia_ms = (tiempos['Atención']||0) + (tiempos['Apertura']||0) + (tiempos['Inspiración']||0);
   const asertividad_ms = (tiempos['Asombro']||0) + (tiempos['Credibilidad']||0) + (tiempos['Aplicabilidad']||0);
+
   const denomX = empatia_ms + asertividad_ms;
   const x = denomX ? +(100*asertividad_ms/denomX).toFixed(2) : 50;
+
   const denomY = (axis.persu||0) + (axis.dispo||0);
   const y = denomY ? +(100*axis.persu/denomY).toFixed(2) : 50;
 
@@ -875,6 +932,7 @@ function exportSession(){
     },
     competencias_nivel_num: comp_numeric,
     competencias_nivel_texto: comp_text
+    // Nota: si quieres exportar la trayectoria, agrega: trayectoria_cuadrante: quadPath
   };
 
   const blob=new Blob([JSON.stringify(summary,null,2)],{type:'application/json'});
@@ -898,6 +956,7 @@ function saveDraft(){
     lastAxis,
     noise_ms: (snap.now ? snap.noiseLive : noise_ms),
     competenciesLevels:{...competenciesLevels}
+    // trayectoria omitida deliberadamente para no inflar localStorage
   };
   localStorage.setItem('radar-categorias-draft', JSON.stringify(draft));
 }
@@ -935,6 +994,7 @@ function restoreDraft(){
       Object.assign(competenciesLevels, d.competenciesLevels);
       buildCompetenciesPanel();
     }
+
   }catch(e){
     console.warn('No se pudo restaurar borrador',e);
   }
@@ -986,4 +1046,3 @@ window.addEventListener('beforeunload', (e)=>{ if(running){ e.preventDefault(); 
 </script>
 </body>
 </html>
-```
