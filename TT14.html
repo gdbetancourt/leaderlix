@@ -33,15 +33,27 @@
     @media (max-width:1060px){ .workspace{grid-template-columns:1fr} }
 
     .radial-board{position:relative;width:min(520px,90vw);height:min(520px,90vw)}
-    .circle-btn{position:absolute;width:84px;height:84px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;border:none;color:#fff;cursor:pointer;transform:translate(-50%, -50%);transition:transform .08s ease, box-shadow .08s ease;background:var(--res)}
+    .circle-btn{
+      position:absolute;width:84px;height:84px;border-radius:50%;
+      display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;
+      border:none;color:#fff;cursor:pointer;transform:translate(-50%, -50%);
+      transition:transform .08s ease, box-shadow .08s ease;background:var(--res)
+    }
     .circle-btn:active{transform:translate(-50%, -50%) scale(.98)}
-    .active-ring{box-shadow:0 0 0 8px rgba(28,30,44,.18)}
+    .pulse{box-shadow:0 0 0 8px rgba(28,30,44,.18)}
     .label{position:absolute;transform:translate(-50%,-50%);font-size:16px;color:#444;font-weight:700;pointer-events:none}
 
     .axis-panel{display:flex;flex-direction:column;gap:12px}
-    .axis-btn{width:84px;min-height:84px;border-radius:14px;border:2px solid #ddd;background:#fff;color:#222;font-weight:800;font-size:14px;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.08);transition:box-shadow .1s ease, transform .05s ease}
+    .axis-btn{
+      width:84px;min-height:84px;border-radius:14px;border:2px solid #ddd;background:#fff;color:#222;
+      font-weight:800;font-size:14px;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.08);
+      transition:box-shadow .1s ease, transform .05s ease
+    }
     .axis-btn:active{transform:scale(.98)}
-    .axis-btn.active{outline:0;box-shadow:0 0 0 6px rgba(28,30,44,.18), 0 1px 4px rgba(0,0,0,.08);border-color:var(--border)}
+    .axis-btn.active{
+      outline:0;box-shadow:0 0 0 6px rgba(28,30,44,.18), 0 1px 4px rgba(0,0,0,.08);
+      border-color:var(--border)
+    }
     .axis-btn span{display:block}
     .axis-up::before{content:"↑";display:block;font-size:18px;margin-bottom:4px}
     .axis-down::before{content:"↓";display:block;font-size:18px;margin-bottom:4px}
@@ -102,23 +114,25 @@
   <h1 aria-live="polite">Evaluación de Presentaciones – Radar + Cuadrantes + Ruido/Señal + Competencias</h1>
 </header>
 
+<!-- Pantalla 1: objetivos -->
 <div id="goalSetting" aria-labelledby="titleGoals">
   <h2 id="titleGoals">Define tus Objetivos (Opcional)</h2>
   <p>Ajusta el porcentaje para cada categoría. No es necesario llegar a 100%.</p>
   <div id="sliders" class="sliders" role="group" aria-label="Sliders de objetivos"></div>
   <p style="font-weight:bold">Total asignado: <span id="totalPercent">0%</span></p>
-  <p class="mini">Tip: Presiona 1–6 para activar categoría, P/D para Persuasión/Disponibilización, R para Ruido.</p>
+  <p class="mini">Tip: Presiona 1–6 para asignar el último intervalo a una categoría. P/D activan/desactivan Persuasión/Disponibilización. R asigna el último intervalo a Ruido.</p>
   <button id="btnProceed" type="button">Siguiente</button>
 </div>
 
+<!-- Pantalla 2 -->
 <div class="container" id="mainContainer">
   <div id="timer" aria-live="polite">00:00:00</div>
   <div class="controls">
     <input id="personName" type="text" placeholder="Nombre" aria-label="Nombre de la persona"/>
-    <button id="startStopButton" type="button" disabled title="Iniciar o detener">Comenzar</button>
-    <button id="pauseResumeButton" type="button" disabled title="Pausar o reanudar">Pausa</button>
-    <button id="resetButton" type="button" disabled title="Reiniciar todo">Reiniciar</button>
-    <button id="exportButton" type="button" disabled title="Exportar resultados">Exportar</button>
+    <button id="startStopButton" type="button" disabled>Comenzar</button>
+    <button id="pauseResumeButton" type="button" disabled>Pausa</button>
+    <button id="resetButton" type="button" disabled>Reiniciar</button>
+    <button id="exportButton" type="button" disabled>Exportar</button>
   </div>
 
   <div class="panel" id="hotkeysPanel" style="display:none">
@@ -128,10 +142,12 @@
 
   <div class="workspace">
     <div class="radial-board" aria-label="Tablero radial" role="group"></div>
-    <div class="axis-panel" aria-label="Eje vertical Persuasión/Disponibilización" role="group">
-      <button id="btnPersu" class="axis-btn axis-up" aria-pressed="false" title="Activar Persuasión (P)"><span>Persuasión</span></button>
-      <button id="btnDispo" class="axis-btn axis-down" aria-pressed="false" title="Activar Disponibilización (D)"><span>Disponibilización</span></button>
+
+    <div class="axis-panel" aria-label="Eje Persuasión/Disponibilización" role="group">
+      <button id="btnPersu" class="axis-btn axis-up" aria-pressed="false" title="Toggle Persuasión (P)"><span>Persuasión</span></button>
+      <button id="btnDispo" class="axis-btn axis-down" aria-pressed="false" title="Toggle Disponibilización (D)"><span>Disponibilización</span></button>
     </div>
+
     <div class="competencies-panel" role="group" aria-label="Evaluación de Competencias">
       <h3>Competencias (9) – Nivel</h3>
       <div id="competenciesPanel"></div>
@@ -149,10 +165,15 @@
 
   <div class="charts-wrap">
     <div class="chart-box"><canvas id="radarChart"></canvas></div>
-    <div class="chart-box"><canvas id="quadrantChart"></canvas></div>
+
+    <div class="chart-box" aria-label="Persuasión vs Disponibilización (trayecto + vector)">
+      <canvas id="quadrantChart"></canvas>
+    </div>
+
     <div class="chart-box" aria-label="Barra Ruido vs Señal" title="Ruido vs Señal">
       <canvas id="noiseChart"></canvas>
     </div>
+
     <div class="chart-box" aria-label="Radar de Competencias" title="Radar de Competencias">
       <canvas id="competenciesRadar"></canvas>
     </div>
@@ -169,7 +190,7 @@ const tiempos=Object.fromEntries(categoryList.map(c=>[c,0]));
 const goals=Object.fromEntries(categoryList.map(c=>[c,0]));
 let noise_ms=0;
 
-// ====== Competencias (9) ======
+// ====== Competencias ======
 const competenciesList=[
   'Dominio del Tema',
   'Estructura y Tiempo',
@@ -185,32 +206,35 @@ const levelLabels=['Aspirante','Aprendiz','Competente','Experto','Maestro'];
 const competenciesLevels=Object.fromEntries(competenciesList.map(c=>[c,3]));
 let competenciesRadarInstance=null;
 
-// ====== Eje vertical ======
+// ====== Eje Persuasión / Disponibilización (toggles independientes) ======
 const axis={persu:0, dispo:0};
-let lastAxis=null;       // 'persu' | 'dispo' | null
-let lastAxisStamp=0;
+const axisActive={persu:false, dispo:false};
+let axisStamp=0;
 
-// ====== Estado ======
-let running=false, paused=false, startTime=0, pauseStart=0, totalElapsed=0, lastStamp=0, timerInterval, statsInterval;
+// ====== Estado general ======
+let running=false, paused=false;
+let startTime=0, pauseStart=0, totalElapsed=0;
+let timerInterval=null, statsInterval=null;
+
+// ====== Asignación retroactiva por categorías ======
+let lastEventStamp=0;
+let lastCatSelected=null;  // última tecla/click usado para asignar intervalo (cat o NOISE_KEY)
+
+// ====== Charts ======
 let radarInstance=null, quadInstance=null, noiseInstance=null;
-let lastCat=null;
 
-// ====== Trayectoria cuadrantes (registro del recorrido) ======
+// ====== Trayecto (Persu/Dispo 2D) ======
 let quadPath=[{x:50,y:50}];
-const QUAD_MAX_POINTS = 1200;     // tope de puntos en la trayectoria
-const QUAD_MIN_DELTA  = 0.15;     // umbral mínimo de cambio (en puntos porcentuales) para agregar a la trayectoria
+const QUAD_MAX_POINTS = 1200;
+const QUAD_MIN_DELTA  = 0.20;
 
-function resetQuadPath(){
-  quadPath = [{x:50,y:50}];
-}
+function resetQuadPath(){ quadPath=[{x:50,y:50}]; }
 function pushQuadPoint(x,y){
-  if(!quadPath || quadPath.length===0) resetQuadPath();
-  const last = quadPath[quadPath.length-1];
-  const dx = x - last.x, dy = y - last.y;
-  const dist = Math.hypot(dx, dy);
-  if(dist < QUAD_MIN_DELTA) return; // evita ruido visual
+  const last=quadPath[quadPath.length-1] || {x:50,y:50};
+  const dist=Math.hypot(x-last.x, y-last.y);
+  if(dist < QUAD_MIN_DELTA) return;
   quadPath.push({x,y});
-  if(quadPath.length > QUAD_MAX_POINTS) quadPath.shift();
+  if(quadPath.length>QUAD_MAX_POINTS) quadPath.shift();
 }
 
 // ====== UI refs ======
@@ -225,12 +249,21 @@ const btnPersu=document.getElementById('btnPersu');
 const btnDispo=document.getElementById('btnDispo');
 const btnProceed=document.getElementById('btnProceed');
 
-// ====== Sliders de objetivos ======
+// ====== Formato tiempo ======
+const pad=n=>n<10?`0${n}`:n;
+const fmt=ms=>{
+  ms=Math.max(0,Math.floor(ms));
+  const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;
+  return `${pad(h)}:${pad(m)}:${pad(sec)}`;
+};
+
+// ====== Objetivos (sliders) ======
 categoryList.forEach(cat=>{
   const wrap=document.createElement('div');
   const label=document.createElement('label');
   label.id=`lbl-${cat}`;label.textContent=`${cat}: 0%`;
   label.style.display='block'; label.style.fontWeight='700'; label.style.marginBottom='6px';
+
   const input=document.createElement('input');
   input.type='range'; input.min=0; input.max=100; input.value=0; input.step=1;
   input.setAttribute('aria-label', `Objetivo para ${cat}`);
@@ -238,35 +271,77 @@ categoryList.forEach(cat=>{
     goals[cat]=+e.target.value;
     label.textContent=`${cat}: ${goals[cat]}%`;
     updateTotalPercent();
-    saveDraft();
   };
+
   wrap.append(label,input);
   slidersEl.appendChild(wrap);
 });
-function updateTotalPercent(){ totalPercentEl.textContent=`${Object.values(goals).reduce((a,b)=>a+b,0)}%`; }
+
+function updateTotalPercent(){
+  totalPercentEl.textContent=`${Object.values(goals).reduce((a,b)=>a+b,0)}%`;
+}
 
 // ====== Hotkeys panel ======
 const hkPanel=document.getElementById('hotkeysPanel');
 const hkBadges=document.getElementById('hotkeysBadges');
 categoryList.forEach((cat,i)=>{ const k=i+1; const b=document.createElement('span'); b.className='badge'; b.textContent=`${k} = ${cat}`; hkBadges.appendChild(b); });
-['P = Persuasión','D = Disponibilización','R = Ruido'].forEach(t=>{ const x=document.createElement('span'); x.className='badge'; x.textContent=t; hkBadges.appendChild(x); });
+['P = Toggle Persuasión','D = Toggle Disponibilización','R = Asignar Ruido'].forEach(t=>{ const x=document.createElement('span'); x.className='badge'; x.textContent=t; hkBadges.appendChild(x); });
 
+// ====== Navegación ======
 btnProceed.addEventListener('click', proceedToMain);
 function proceedToMain(){
   document.getElementById('goalSetting').style.display='none';
   document.getElementById('mainContainer').style.display='flex';
   hkPanel.style.display='block';
+
   buildRadial();
   buildSummary();
   buildCompetenciesPanel();
-  restoreDraft();
   initCharts();
   updateStats();
 }
 
 nameInput.addEventListener('input',()=>{ startBtn.disabled=nameInput.value.trim()===''; });
 
-// ====== Radial ======
+// ====== Reset duro al abrir (sin persistencia) ======
+window.addEventListener('pageshow', ()=>{
+  // fuerza estado inicial cada vez que se abre (incluye bfcache)
+  resetGoalsUI();
+  resetToInitialScreen();
+});
+
+function resetGoalsUI(){
+  categoryList.forEach(cat=>{ goals[cat]=0; });
+  slidersEl.querySelectorAll('input[type="range"]').forEach((inp, idx)=>{
+    inp.value=0;
+    const cat=categoryList[idx];
+    const lbl=document.getElementById(`lbl-${cat}`);
+    if(lbl) lbl.textContent=`${cat}: 0%`;
+  });
+  updateTotalPercent();
+}
+
+function resetToInitialScreen(){
+  // vuelve a pantalla de objetivos
+  document.getElementById('goalSetting').style.display='block';
+  document.getElementById('mainContainer').style.display='none';
+  hkPanel.style.display='none';
+
+  // limpia nombre y controles
+  nameInput.value='';
+  startBtn.disabled=true;
+  pauseBtn.disabled=true;
+  resetBtn.disabled=true;
+  exportBtn.disabled=true;
+  pauseBtn.textContent='Pausa';
+  startBtn.textContent='Comenzar';
+  nameInput.disabled=false;
+
+  // limpia estado interno
+  hardResetStateOnly();
+}
+
+// ====== Tablero radial ======
 function buildRadial(){
   const board=document.querySelector('.radial-board');
   board.innerHTML='';
@@ -277,14 +352,14 @@ function buildRadial(){
   categoryList.forEach((cat,i)=>{
     const a=angles[i]*(Math.PI/180);
     const xB=cx+rBtn*Math.cos(a), yB=cy+rBtn*Math.sin(a);
+
     const btn=document.createElement('button');
     btn.className='circle-btn';
     btn.style.left=`${xB}px`; btn.style.top=`${yB}px`;
     btn.textContent=cat.split(' ')[0];
-    btn.addEventListener('click',()=> press(cat,btn));
-    btn.title=`Activar ${cat}`;
+    btn.title=`Asignar último intervalo a ${cat}`;
     btn.setAttribute('aria-pressed','false');
-    btn.setAttribute('role','button');
+    btn.addEventListener('click',()=> pressCategory(cat,btn));
     board.appendChild(btn);
 
     const xL=cx+rLbl*Math.cos(a), yL=cy+rLbl*Math.sin(a);
@@ -298,33 +373,50 @@ function buildRadial(){
   noiseBtn.style.left=`${cx}px`; noiseBtn.style.top=`${cy}px`;
   noiseBtn.textContent='Ruido';
   noiseBtn.style.background='var(--accent)';
-  noiseBtn.title='Activar Ruido';
+  noiseBtn.title='Asignar último intervalo a Ruido';
   noiseBtn.setAttribute('aria-pressed','false');
-  noiseBtn.addEventListener('click',()=> press(NOISE_KEY, noiseBtn));
+  noiseBtn.addEventListener('click',()=> pressCategory(NOISE_KEY, noiseBtn));
   board.appendChild(noiseBtn);
 }
 
-// ====== Panel de competencias ======
+function pulse(el){
+  if(!el) return;
+  el.classList.add('pulse');
+  setTimeout(()=>el.classList.remove('pulse'), 250);
+}
+
+// ====== Competencias ======
 function buildCompetenciesPanel(){
   const root=document.getElementById('competenciesPanel');
   root.innerHTML='';
   competenciesList.forEach((comp)=>{
     const row=document.createElement('div');
     row.className='competency';
-    const left=document.createElement('div'); left.textContent=comp; left.style.fontWeight='700';
-    const right=document.createElement('div'); right.className='right';
-    const badge=document.createElement('span'); badge.className='level-badge'; badge.textContent=levelLabels[(competenciesLevels[comp]-1)];
+
+    const left=document.createElement('div');
+    left.textContent=comp; left.style.fontWeight='700';
+
+    const right=document.createElement('div');
+    right.className='right';
+
+    const badge=document.createElement('span');
+    badge.className='level-badge';
+    badge.textContent=levelLabels[(competenciesLevels[comp]-1)];
+
     const input=document.createElement('input');
-    input.type='range'; input.min=1; input.max=5; input.step=1; input.value=competenciesLevels[comp];
+    input.type='range'; input.min=1; input.max=5; input.step=1;
+    input.value=competenciesLevels[comp];
     input.className='comp-slider';
     input.setAttribute('aria-label',`Nivel para ${comp}`);
     input.addEventListener('input', (e)=>{
       competenciesLevels[comp]=+e.target.value;
       badge.textContent=levelLabels[competenciesLevels[comp]-1];
       drawCompetenciesRadar();
-      saveDraft();
     });
-    right.append(badge,input); row.append(left,right); root.appendChild(row);
+
+    right.append(badge,input);
+    row.append(left,right);
+    root.appendChild(row);
   });
 }
 
@@ -342,55 +434,145 @@ function buildSummary(){
   });
 }
 
-// ====== Cronómetro ======
-const pad=n=>n<10?`0${n}`:n;
-const fmt=ms=>{
-  ms=Math.max(0,Math.floor(ms));
-  const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;
-  return `${pad(h)}:${pad(m)}:${pad(sec)}`;
-};
-
+// ====== Controles ======
 startBtn.addEventListener('click', startStopTimer);
 pauseBtn.addEventListener('click', pauseResumeTimer);
 resetBtn.addEventListener('click', hardReset);
 exportBtn.addEventListener('click', exportSession);
 
+// ====== Estado: reset ======
+function hardResetStateOnly(){
+  running=false; paused=false;
+  startTime=0; pauseStart=0; totalElapsed=0;
+  if(timerInterval) clearInterval(timerInterval);
+  if(statsInterval) clearInterval(statsInterval);
+  timerInterval=null; statsInterval=null;
+
+  categoryList.forEach(c=>tiempos[c]=0);
+  noise_ms=0;
+
+  axis.persu=0; axis.dispo=0;
+  axisActive.persu=false; axisActive.dispo=false;
+  axisStamp=0;
+  syncAxisButtons();
+
+  lastEventStamp=0;
+  lastCatSelected=null;
+
+  resetQuadPath();
+
+  document.getElementById('timer').textContent='00:00:00';
+
+  if(radarInstance){radarInstance.destroy(); radarInstance=null}
+  if(quadInstance){quadInstance.destroy(); quadInstance=null}
+  if(noiseInstance){noiseInstance.destroy(); noiseInstance=null}
+  if(competenciesRadarInstance){competenciesRadarInstance.destroy(); competenciesRadarInstance=null}
+}
+
+function hardReset(){
+  if(confirm('¿Reiniciar todo? Se borrarán los tiempos actuales (no competencias).')){
+    // mantiene objetivos, reinicia sesión
+    hardResetSessionKeepGoals();
+    updateStats();
+  }
+}
+
+function hardResetSessionKeepGoals(){
+  running=false; paused=false;
+  if(timerInterval) clearInterval(timerInterval);
+  if(statsInterval) clearInterval(statsInterval);
+  timerInterval=null; statsInterval=null;
+
+  categoryList.forEach(c=>tiempos[c]=0);
+  noise_ms=0;
+
+  axis.persu=0; axis.dispo=0;
+  axisActive.persu=false; axisActive.dispo=false;
+  axisStamp=0;
+  syncAxisButtons();
+
+  lastEventStamp=0;
+  lastCatSelected=null;
+
+  totalElapsed=0; startTime=0; pauseStart=0;
+  resetQuadPath();
+
+  document.getElementById('timer').textContent='00:00:00';
+
+  if(radarInstance){radarInstance.destroy(); radarInstance=null}
+  if(quadInstance){quadInstance.destroy(); quadInstance=null}
+  if(noiseInstance){noiseInstance.destroy(); noiseInstance=null}
+  if(competenciesRadarInstance){competenciesRadarInstance.destroy(); competenciesRadarInstance=null}
+
+  // controles
+  startBtn.textContent='Comenzar';
+  pauseBtn.textContent='Pausa';
+  pauseBtn.disabled=true;
+  resetBtn.disabled=true;
+  exportBtn.disabled=true;
+  nameInput.disabled=false;
+
+  // charts se reconstruyen al siguiente initCharts (si quieres mantenerlos visibles, llama initCharts aquí)
+  initCharts();
+}
+
+// ====== Timer start/stop ======
 function startStopTimer(){
   if(!running){
-    softReset();
-    resetQuadPath(); // inicio en el centro del cuadrante
-
-    startTime=performance.now();
-    lastStamp=startTime;
+    // inicio
     running=true; paused=false;
 
-    timerInterval=setInterval(()=>updateTimer(),1000);
+    // reinicia tiempos sesión (no objetivos, no competencias)
+    categoryList.forEach(c=>tiempos[c]=0);
+    noise_ms=0;
+
+    axis.persu=0; axis.dispo=0;
+    axisActive.persu=false; axisActive.dispo=false;
+    syncAxisButtons();
+
+    resetQuadPath();
+
+    startTime=performance.now();
+    lastEventStamp=startTime;
+    lastCatSelected=null;
+
+    axisStamp=startTime;
+
+    timerInterval=setInterval(updateTimer,1000);
     statsInterval=setInterval(updateStats,1000);
 
     startBtn.textContent='Detener';
-    pauseBtn.disabled=false; resetBtn.disabled=false; exportBtn.disabled=false;
+    pauseBtn.disabled=false;
+    resetBtn.disabled=false;
+    exportBtn.disabled=false;
     nameInput.disabled=true;
+
     window.addEventListener('keydown',onKey);
 
     updateTimer();
     updateStats();
   }else{
-    const now = performance.now();
-    totalElapsed = now - startTime;
-    document.getElementById('timer').textContent = fmt(totalElapsed);
+    // detener: asigna el intervalo final a la última categoría seleccionada
+    const now=performance.now();
+    totalElapsed=now-startTime;
+    document.getElementById('timer').textContent=fmt(totalElapsed);
 
-    settleSegment(now);
     settleAxis(now);
+    finalizeCategoryTailOnStop(now);
 
     clearInterval(timerInterval); clearInterval(statsInterval);
-    running=false;
+    timerInterval=null; statsInterval=null;
+
+    running=false; paused=false;
 
     startBtn.textContent='Comenzar';
     pauseBtn.disabled=true;
+    pauseBtn.textContent='Pausa';
     nameInput.disabled=false;
 
-    updateStats(); // agrega último punto si corresponde
     window.removeEventListener('keydown',onKey);
+
+    updateStats();
   }
 }
 
@@ -398,23 +580,34 @@ function pauseResumeTimer(){
   if(!running) return;
 
   if(!paused){
-    const now = performance.now();
-    totalElapsed = now - startTime;
-    document.getElementById('timer').textContent = fmt(totalElapsed);
+    // pausar: NO se asigna categoría (queda pendiente para el próximo evento), pero sí se corta eje (toggles)
+    const now=performance.now();
+    totalElapsed=now-startTime;
+    document.getElementById('timer').textContent=fmt(totalElapsed);
 
-    settleSegment(now);
     settleAxis(now);
 
     clearInterval(timerInterval); clearInterval(statsInterval);
-    pauseStart=now; paused=true; pauseBtn.textContent='Reanudar';
+    timerInterval=null; statsInterval=null;
+
+    pauseStart=now;
+    paused=true;
+    pauseBtn.textContent='Reanudar';
+
     updateStats();
   }else{
-    const delta=performance.now()-pauseStart;
-    startTime+=delta; lastStamp+=delta;
-    if(lastAxisStamp) lastAxisStamp+=delta;
+    // reanudar: desplaza stamps para excluir pausa
+    const now=performance.now();
+    const delta = now - pauseStart;
 
-    paused=false; pauseBtn.textContent='Pausa';
-    timerInterval=setInterval(()=>updateTimer(),1000);
+    startTime += delta;
+    lastEventStamp += delta;
+    axisStamp += delta;
+
+    paused=false;
+    pauseBtn.textContent='Pausa';
+
+    timerInterval=setInterval(updateTimer,1000);
     statsInterval=setInterval(updateStats,1000);
 
     updateTimer();
@@ -429,132 +622,105 @@ function updateTimer(){
   document.getElementById('timer').textContent=fmt(totalElapsed);
 }
 
-// ====== Liquidación de segmentos ======
-function settleSegment(now = performance.now()){
-  if(!lastCat) return;
-  const elapsed = now - lastStamp;
-  if(elapsed>0){
-    if(lastCat===NOISE_KEY){ noise_ms+=elapsed; }
-    else { tiempos[lastCat]+=elapsed; }
+// ====== Categorías: asignación retroactiva ======
+function pressCategory(key, el){
+  if(!running || paused) return;
+
+  const now=performance.now();
+  const delta = now - lastEventStamp;
+
+  if(delta>0){
+    if(key===NOISE_KEY) noise_ms += delta;
+    else tiempos[key] += delta;
   }
-  lastStamp = now;
-}
-function settleAxis(now = performance.now()){
-  if(!lastAxis) return;
-  const elapsed = now - lastAxisStamp;
-  if(elapsed>0) axis[lastAxis]+=elapsed;
-  lastAxisStamp = now;
-}
 
-function softReset(){
-  paused=false; totalElapsed=0; startTime=pauseStart=0; lastStamp=0; lastCat=null; noise_ms=0;
-  categoryList.forEach(c=>{tiempos[c]=0;});
-  axis.persu=0; axis.dispo=0; lastAxis=null; lastAxisStamp=0;
+  lastEventStamp = now;
+  lastCatSelected = key;
 
-  document.getElementById('timer').textContent='00:00:00';
-  clearActiveRings();
-  setAxisActive(null);
-
-  if(radarInstance){radarInstance.destroy(); radarInstance=null}
-  if(quadInstance){quadInstance.destroy(); quadInstance=null}
-  if(noiseInstance){noiseInstance.destroy(); noiseInstance=null}
-  if(competenciesRadarInstance){competenciesRadarInstance.destroy(); competenciesRadarInstance=null}
-
-  resetQuadPath();
-}
-
-function hardReset(){
-  if(confirm('¿Reiniciar todo? Se borrarán los tiempos actuales (no competencias).')){
-    softReset();
-    nameInput.value='';
-    startBtn.disabled=true; exportBtn.disabled=true; pauseBtn.disabled=true; resetBtn.disabled=true;
-    nameInput.disabled=false;
-    updateStats();
-  }
-}
-
-function press(key,el){
-  if(!running||paused) return;
-  const now = performance.now();
-  settleSegment(now);
-  lastCat=key; lastStamp=now;
-  if(el) flash(el);
+  pulse(el);
   updateStats();
 }
 
-function flash(el){
-  clearActiveRings();
-  el.classList.add('active-ring');
-  document.querySelectorAll('.radial-board .circle-btn').forEach(b=>{
-    b.setAttribute('aria-pressed', b===el ? 'true' : 'false');
-  });
-}
-function clearActiveRings(){
-  document.querySelectorAll('.circle-btn').forEach(b=>b.classList.remove('active-ring'));
-}
-
-// ====== Botones eje vertical ======
-function setAxisActive(which, now = performance.now()){
-  btnPersu.classList.toggle('active', which==='persu');
-  btnDispo.classList.toggle('active', which==='dispo');
-  btnPersu.setAttribute('aria-pressed', which==='persu'?'true':'false');
-  btnDispo.setAttribute('aria-pressed', which==='dispo'?'true':'false');
-  lastAxis=which;
-  lastAxisStamp = which ? now : 0;
+function finalizeCategoryTailOnStop(now){
+  if(!lastCatSelected) { lastEventStamp = now; return; }
+  const delta = now - lastEventStamp;
+  if(delta>0){
+    if(lastCatSelected===NOISE_KEY) noise_ms += delta;
+    else tiempos[lastCatSelected] += delta;
+  }
+  lastEventStamp = now;
 }
 
-btnPersu.addEventListener('click',()=>{
-  if(!running||paused) return;
-  const now = performance.now();
+// ====== Eje Persu/Dispo (toggles + solape) ======
+function settleAxis(now){
+  if(!axisStamp) axisStamp=now;
+  const delta = now - axisStamp;
+  if(delta>0){
+    if(axisActive.persu) axis.persu += delta;
+    if(axisActive.dispo) axis.dispo += delta;
+  }
+  axisStamp = now;
+}
+
+function syncAxisButtons(){
+  btnPersu.classList.toggle('active', axisActive.persu);
+  btnDispo.classList.toggle('active', axisActive.dispo);
+  btnPersu.setAttribute('aria-pressed', axisActive.persu?'true':'false');
+  btnDispo.setAttribute('aria-pressed', axisActive.dispo?'true':'false');
+}
+
+btnPersu.addEventListener('click', ()=>{
+  if(!running || paused) return;
+  const now=performance.now();
   settleAxis(now);
-  setAxisActive('persu', now);
-  updateStats();
-});
-btnDispo.addEventListener('click',()=>{
-  if(!running||paused) return;
-  const now = performance.now();
-  settleAxis(now);
-  setAxisActive('dispo', now);
+  axisActive.persu = !axisActive.persu;
+  syncAxisButtons();
   updateStats();
 });
 
-// ====== Instantánea en vivo ======
-function getLiveSnapshot(){
-  const now = (running && !paused) ? performance.now() : null;
-  const elapsed = now ? (now - startTime) : totalElapsed;
+btnDispo.addEventListener('click', ()=>{
+  if(!running || paused) return;
+  const now=performance.now();
+  settleAxis(now);
+  axisActive.dispo = !axisActive.dispo;
+  syncAxisButtons();
+  updateStats();
+});
 
-  const tiemposLive = {};
-  for(const c of categoryList){
-    let v = tiempos[c] || 0;
-    if(now && lastCat === c) v += (now - lastStamp);
-    tiemposLive[c] = v;
+// ====== Live snapshot (solo para visualización; no muta estado) ======
+function getLiveAxisAndElapsed(){
+  if(!(running && !paused)) return { elapsed: totalElapsed, persu: axis.persu, dispo: axis.dispo };
+
+  const now=performance.now();
+  const elapsed = now - startTime;
+
+  let persu = axis.persu;
+  let dispo = axis.dispo;
+
+  const delta = now - axisStamp;
+  if(delta>0){
+    if(axisActive.persu) persu += delta;
+    if(axisActive.dispo) dispo += delta;
   }
 
-  let noiseLive = noise_ms || 0;
-  if(now && lastCat === NOISE_KEY) noiseLive += (now - lastStamp);
-
-  const axisLive = { persu: axis.persu || 0, dispo: axis.dispo || 0 };
-  if(now && lastAxis === 'persu') axisLive.persu += (now - lastAxisStamp);
-  if(now && lastAxis === 'dispo') axisLive.dispo += (now - lastAxisStamp);
-
-  return { now, elapsed, tiemposLive, noiseLive, axisLive };
+  return { elapsed, persu, dispo };
 }
 
 // ====== Radar (Objetivos vs Resultados) ======
-function drawRadar(resRawOverride){
+function drawRadar(){
   const canvas=document.getElementById('radarChart');
   if(!canvas) return;
   const ctx=canvas.getContext('2d');
 
-  const resRaw = resRawOverride ?? categoryList.map(c=>tiempos[c]);
-  const objRaw = categoryList.map(c=>goals[c]);
+  const resRaw=categoryList.map(c=>tiempos[c]);
+  const objRaw=categoryList.map(c=>goals[c]);
 
   const nrm=(arr)=>{ const mx=Math.max(1,...arr); return arr.map(v=>+(v/mx*100).toFixed(2)); };
   const resData=nrm(resRaw), objData=nrm(objRaw);
 
   if(radarInstance){
-    radarInstance.data.datasets[0].data = objData;
-    radarInstance.data.datasets[1].data = resData;
+    radarInstance.data.datasets[0].data=objData;
+    radarInstance.data.datasets[1].data=resData;
     radarInstance.update('none');
     return;
   }
@@ -574,7 +740,7 @@ function drawRadar(resRawOverride){
   });
 }
 
-// ====== Plugin fondo cuadrantes ======
+// ====== Fondo cuadrantes (Persu/Dispo 2D) ======
 const quadBgPlugin = {
   id:'quadBg',
   beforeDraw(chart){
@@ -582,26 +748,31 @@ const quadBgPlugin = {
     if(!chartArea) return;
     const {left,right,top,bottom,width,height} = chartArea;
     const cx = left + width/2; const cy = top + height/2;
+
     ctx.save();
-    ctx.fillStyle='rgba(255,61,46,0.06)'; ctx.fillRect(left, top, width/2, height/2);
-    ctx.fillStyle='rgba(28,30,44,0.06)'; ctx.fillRect(cx, top, width/2, height/2);
-    ctx.fillStyle='rgba(46,233,255,0.08)'; ctx.fillRect(left, cy, width/2, height/2);
-    ctx.fillStyle='rgba(255,61,46,0.06)'; ctx.fillRect(cx, cy, width/2, height/2);
+    ctx.fillStyle='rgba(28,30,44,0.05)'; ctx.fillRect(left, top, width/2, height/2);
+    ctx.fillStyle='rgba(46,233,255,0.06)'; ctx.fillRect(cx, top, width/2, height/2);
+    ctx.fillStyle='rgba(255,61,46,0.06)'; ctx.fillRect(left, cy, width/2, height/2);
+    ctx.fillStyle='rgba(28,30,44,0.05)'; ctx.fillRect(cx, cy, width/2, height/2);
+
     ctx.strokeStyle='#999'; ctx.lineWidth=1; ctx.setLineDash([6,6]);
     ctx.beginPath(); ctx.moveTo(cx, top); ctx.lineTo(cx, bottom); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(left, cy); ctx.lineTo(right, cy); ctx.stroke();
     ctx.setLineDash([]);
-    ctx.fillStyle='#222'; ctx.font='600 14px system-ui, -apple-system, Segoe UI, Roboto, Arial';
+
+    ctx.fillStyle='#222'; ctx.font='600 12px system-ui, -apple-system, Segoe UI, Roboto, Arial';
     ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillText('Inspirational', left + width*0.25, top + height*0.25);
-    ctx.fillText('Promotional',   left + width*0.75, top + height*0.25);
-    ctx.fillText('Educational',  left + width*0.25, top + height*0.75);
-    ctx.fillText('Executive',    left + width*0.75, top + height*0.75);
+
+    ctx.fillText('Alta Persuasión • Baja Disponibilización', left + width*0.25, top + height*0.25);
+    ctx.fillText('Alta Persuasión • Alta Disponibilización', left + width*0.75, top + height*0.25);
+    ctx.fillText('Baja Persuasión • Baja Disponibilización', left + width*0.25, top + height*0.75);
+    ctx.fillText('Baja Persuasión • Alta Disponibilización', left + width*0.75, top + height*0.75);
+
     ctx.restore();
   }
 };
 
-// ====== Plugin flecha (para el vector centro→punto) ======
+// ====== Flecha vector centro→punto ======
 const vectorArrowPlugin = {
   id:'vectorArrow',
   afterDatasetsDraw(chart){
@@ -646,21 +817,17 @@ const vectorArrowPlugin = {
   }
 };
 
-// ====== Cuadrantes: trayectoria + punto móvil + vector centro→punto ======
-function drawQuadrantLive(x, y){
+// ====== Persu/Dispo: trayectoria + punto + vector ======
+function drawPersuDispo2D(x, y){
   const canvas=document.getElementById('quadrantChart');
   if(!canvas) return;
   const ctx=canvas.getContext('2d');
-
-  // dataset 0: trayectoria (polilínea)
-  // dataset 1: punto móvil
-  // dataset 2: vector centro→punto (discontinuo + flecha)
-  const border = getComputedStyle(document.documentElement).getPropertyValue('--border').trim() || '#1c1e2c';
+  const border = getComputedStyle(document.documentElement).getPropertyValue('--border').trim()||'#1c1e2c';
 
   if(quadInstance){
-    quadInstance.data.datasets[0].data = quadPath;
-    quadInstance.data.datasets[1].data = [{x,y}];
-    quadInstance.data.datasets[2].data = [{x:50,y:50},{x,y}];
+    quadInstance.data.datasets[0].data = quadPath;             // trayecto
+    quadInstance.data.datasets[1].data = [{x,y}];              // punto móvil
+    quadInstance.data.datasets[2].data = [{x:50,y:50},{x,y}];  // vector
     quadInstance.update('none');
     return;
   }
@@ -671,11 +838,11 @@ function drawQuadrantLive(x, y){
       datasets:[
         {
           label:'Trayecto',
-          data: quadPath,
+          data:quadPath,
           showLine:true,
           tension:0,
           borderWidth:2,
-          borderColor: border,
+          borderColor:border,
           pointRadius:0,
           pointHoverRadius:0
         },
@@ -686,7 +853,7 @@ function drawQuadrantLive(x, y){
           pointRadius:6,
           pointHoverRadius:7,
           borderWidth:2,
-          borderColor: border,
+          borderColor:border,
           backgroundColor:'rgba(28,30,44,0.8)'
         },
         {
@@ -695,7 +862,7 @@ function drawQuadrantLive(x, y){
           showLine:true,
           tension:0,
           borderWidth:1.5,
-          borderColor: border,
+          borderColor:border,
           borderDash:[6,6],
           pointRadius:0,
           pointHoverRadius:0
@@ -708,39 +875,30 @@ function drawQuadrantLive(x, y){
       animation:false,
       plugins:{
         legend:{display:false},
-        tooltip:{
-          // solo el punto móvil tiene radio > 0; el trayecto y el vector no generan hitbox relevante
-          callbacks:{ label:(ctx)=>`x: ${ctx.parsed.x.toFixed(1)}%, y: ${ctx.parsed.y.toFixed(1)}%` }
-        },
+        tooltip:{ callbacks:{ label:(ctx)=>`x: ${ctx.parsed.x.toFixed(1)}%, y: ${ctx.parsed.y.toFixed(1)}%` } },
         vectorArrow:{ datasetIndex:2, headLen:10, minLen:8 }
       },
       layout:{ padding:{top:24,bottom:24,left:24,right:24} },
       scales:{
-        x:{min:0,max:100,grid:{display:false},ticks:{display:false}, title:{display:true,text:'Empatía ⇢ Asertividad'}},
-        y:{min:0,max:100,grid:{display:false},ticks:{display:false}, title:{display:true,text:'Disponibilización ⇣ / Persuasión ⇡'}}
+        x:{min:0,max:100,grid:{display:false},ticks:{display:false}, title:{display:true,text:'Disponibilización (%)'}},
+        y:{min:0,max:100,grid:{display:false},ticks:{display:false}, title:{display:true,text:'Persuasión (%)'}}
       }
     },
     plugins:[quadBgPlugin, vectorArrowPlugin]
   });
 }
 
-// ====== Barra Ruido vs Señal ======
-function drawNoiseBar(signal_ms_override, noise_ms_override){
+// ====== Ruido vs Señal ======
+function drawNoiseBar(){
   const canvas=document.getElementById('noiseChart');
   if(!canvas) return;
   const ctx=canvas.getContext('2d');
 
-  const signal_ms = (typeof signal_ms_override === 'number')
-    ? signal_ms_override
-    : categoryList.reduce((a,c)=>a+(tiempos[c]||0),0);
+  const signal_ms = categoryList.reduce((a,c)=>a+(tiempos[c]||0),0);
+  const total_ms = Math.max(1, signal_ms + noise_ms);
 
-  const noise_local = (typeof noise_ms_override === 'number')
-    ? noise_ms_override
-    : noise_ms;
-
-  const total_ms = Math.max(1, signal_ms + noise_local);
   const signal_pct = +(signal_ms/total_ms*100).toFixed(2);
-  const noise_pct  = +(noise_local/total_ms*100).toFixed(2);
+  const noise_pct  = +(noise_ms/total_ms*100).toFixed(2);
 
   const data={
     labels:['Sesión'],
@@ -758,7 +916,7 @@ function drawNoiseBar(signal_ms_override, noise_ms_override){
     plugins:{
       legend:{position:'top'},
       tooltip:{callbacks:{label:(ctx)=> `${ctx.dataset.label}: ${ctx.raw.toFixed(1)}%`}},
-      title:{display:true,text:'Ruido vs Señal (100% = tiempo total)'}
+      title:{display:true,text:'Ruido vs Señal (base = tiempo ya asignado)'}
     },
     scales:{
       x:{min:0, max:100, grid:{display:false}, ticks:{ callback:(v)=>v+'%' } },
@@ -767,22 +925,23 @@ function drawNoiseBar(signal_ms_override, noise_ms_override){
   };
 
   if(noiseInstance){
-    noiseInstance.data = data;
+    noiseInstance.data=data;
     noiseInstance.update('none');
   }else{
-    noiseInstance = new Chart(ctx, { type:'bar', data, options });
+    noiseInstance=new Chart(ctx,{type:'bar',data,options});
   }
 }
 
-// ====== Radar de Competencias ======
+// ====== Radar Competencias ======
 function drawCompetenciesRadar(){
   const canvas=document.getElementById('competenciesRadar');
   if(!canvas) return;
   const ctx=canvas.getContext('2d');
+
   const dataValues=competenciesList.map(c=>competenciesLevels[c]||1);
 
   if(competenciesRadarInstance){
-    competenciesRadarInstance.data.datasets[0].data = dataValues;
+    competenciesRadarInstance.data.datasets[0].data=dataValues;
     competenciesRadarInstance.update('none');
     return;
   }
@@ -795,36 +954,32 @@ function drawCompetenciesRadar(){
     options:{
       responsive:true, maintainAspectRatio:true,
       animation:false,
-      scales:{ r:{ beginAtZero:true, min:0, max:5, ticks:{stepSize:1, callback:(v)=>v}, grid:{color:'#ddd'}, pointLabels:{ font:{size:12}, color:'#333' } } },
+      scales:{ r:{ beginAtZero:true, min:0, max:5, ticks:{stepSize:1}, grid:{color:'#ddd'}, pointLabels:{ font:{size:12}, color:'#333' } } },
       plugins:{ legend:{display:true, position:'top'}, tooltip:{callbacks:{label:(ctx)=> levelLabels[(ctx.raw||1)-1]+' ('+ctx.raw+')'}} }
     }
   });
 }
 
-// ====== Inicialización de Charts ======
+// ====== Init charts ======
 function initCharts(){
-  drawRadar(categoryList.map(()=>0));
+  drawRadar();
+  drawNoiseBar();
   resetQuadPath();
-  drawQuadrantLive(50,50);
-  drawNoiseBar(0,0);
+  drawPersuDispo2D(50,50);
   drawCompetenciesRadar();
 }
 
-// ====== Stats + Totales ======
+// ====== Stats (UI + charts) ======
 function updateStats(){
-  if(document.getElementById('mainContainer').style.display !== 'flex'){
-    saveDraft();
-    return;
-  }
+  // si no estás en pantalla principal, no intentes pintar métricas
+  if(document.getElementById('mainContainer').style.display !== 'flex') return;
 
-  const snap = getLiveSnapshot();
-  if(snap.now) totalElapsed = snap.elapsed;
-
-  const t = Math.max(1, snap.elapsed);
+  // categorías (tiempos asignados)
+  const t = Math.max(1, totalElapsed);
 
   categoryList.forEach(c=>{
-    const v = snap.tiemposLive[c] || 0;
-    const pct = (v/t*100) || 0;
+    const v=tiempos[c]||0;
+    const pct=(v/t*100)||0;
 
     const elT=document.getElementById(`${c}-time`);
     const elP=document.getElementById(`${c}-pct`);
@@ -845,70 +1000,68 @@ function updateStats(){
     }
   });
 
-  const empatia_ms =
-    (snap.tiemposLive['Atención']||0) + (snap.tiemposLive['Apertura']||0) + (snap.tiemposLive['Inspiración']||0);
-  const asertividad_ms =
-    (snap.tiemposLive['Asombro']||0) + (snap.tiemposLive['Credibilidad']||0) + (snap.tiemposLive['Aplicabilidad']||0);
-
+  // empatía / asertividad (con lo ya asignado)
+  const empatia_ms = (tiempos['Atención']||0) + (tiempos['Apertura']||0) + (tiempos['Inspiración']||0);
+  const asertividad_ms = (tiempos['Asombro']||0) + (tiempos['Credibilidad']||0) + (tiempos['Aplicabilidad']||0);
   const sumCat = empatia_ms + asertividad_ms || 1;
-  const totalAxis = (snap.axisLive.persu||0) + (snap.axisLive.dispo||0) || 1;
 
   document.getElementById('empatiaTime').textContent=fmt(empatia_ms);
   document.getElementById('empatiaPct').textContent=((empatia_ms/sumCat*100)||0).toFixed(1)+'%';
   document.getElementById('asertTime').textContent=fmt(asertividad_ms);
   document.getElementById('asertPct').textContent=((asertividad_ms/sumCat*100)||0).toFixed(1)+'%';
 
-  document.getElementById('persuTime').textContent=fmt(snap.axisLive.persu);
-  document.getElementById('persuPct').textContent=((snap.axisLive.persu/totalAxis*100)||0).toFixed(1)+'%';
-  document.getElementById('dispoTime').textContent=fmt(snap.axisLive.dispo);
-  document.getElementById('dispoPct').textContent=((snap.axisLive.dispo/totalAxis*100)||0).toFixed(1)+'%';
+  // eje Persu/Dispo (en vivo)
+  const live = getLiveAxisAndElapsed();
+  const totalMs = Math.max(1, live.elapsed);
 
-  // Coordenadas (x,y) del punto móvil
-  const denomX = empatia_ms + asertividad_ms;
-  const x = denomX ? +(100*asertividad_ms/denomX).toFixed(2) : 50;
+  document.getElementById('persuTime').textContent=fmt(live.persu);
+  document.getElementById('dispoTime').textContent=fmt(live.dispo);
 
-  const denomY = (snap.axisLive.persu||0) + (snap.axisLive.dispo||0);
-  const y = denomY ? +(100*(snap.axisLive.persu||0)/denomY).toFixed(2) : 50;
+  // porcentajes sobre tiempo total de presentación
+  const persuPct = (live.persu/totalMs*100)||0;
+  const dispoPct = (live.dispo/totalMs*100)||0;
 
-  // Registrar trayectoria + actualizar gráfico de cuadrantes
-  pushQuadPoint(x,y);
-  drawQuadrantLive(x,y);
+  document.getElementById('persuPct').textContent=persuPct.toFixed(1)+'%';
+  document.getElementById('dispoPct').textContent=dispoPct.toFixed(1)+'%';
 
-  // Ruido vs señal
-  const signal_ms = categoryList.reduce((a,c)=>a+(snap.tiemposLive[c]||0),0);
-  drawNoiseBar(signal_ms, snap.noiseLive);
+  // coordenadas: si ambos están en 0, permanece en el centro (neutral)
+  const x = (live.persu<=0 && live.dispo<=0) ? 50 : Math.max(0, Math.min(100, dispoPct));
+  const y = (live.persu<=0 && live.dispo<=0) ? 50 : Math.max(0, Math.min(100, persuPct));
 
-  // Radar categorías + radar competencias
-  drawRadar(categoryList.map(c => snap.tiemposLive[c]||0));
+  pushQuadPoint(+x.toFixed(2), +y.toFixed(2));
+  drawPersuDispo2D(+x.toFixed(2), +y.toFixed(2));
+
+  // charts
+  drawRadar();
+  drawNoiseBar();
   drawCompetenciesRadar();
-
-  saveDraft();
 }
 
-// ====== Exportación ======
+// ====== Export ======
 function exportSession(){
+  // si está corriendo, corta eje y cierra el último intervalo de categoría con la convención "última seleccionada"
   if(running && !paused){
-    const now = performance.now();
-    totalElapsed = now - startTime;
-    document.getElementById('timer').textContent = fmt(totalElapsed);
-    settleSegment(now);
+    const now=performance.now();
+    totalElapsed=now-startTime;
+    document.getElementById('timer').textContent=fmt(totalElapsed);
+
     settleAxis(now);
+    finalizeCategoryTailOnStop(now);
   }
 
   const name=nameInput.value.trim()||'SinNombre';
 
-  const empatia_ms = (tiempos['Atención']||0) + (tiempos['Apertura']||0) + (tiempos['Inspiración']||0);
-  const asertividad_ms = (tiempos['Asombro']||0) + (tiempos['Credibilidad']||0) + (tiempos['Aplicabilidad']||0);
-
-  const denomX = empatia_ms + asertividad_ms;
-  const x = denomX ? +(100*asertividad_ms/denomX).toFixed(2) : 50;
-
-  const denomY = (axis.persu||0) + (axis.dispo||0);
-  const y = denomY ? +(100*axis.persu/denomY).toFixed(2) : 50;
-
-  const porcentajes=Object.fromEntries(categoryList.map(c=>[c, totalElapsed? +(tiempos[c]/totalElapsed*100).toFixed(2):0 ]));
   const signal_ms = categoryList.reduce((a,c)=>a+(tiempos[c]||0),0);
+  const total_ms = Math.max(1, totalElapsed);
 
+  const liveAxis = {persu: axis.persu, dispo: axis.dispo};
+  const persuPct = (liveAxis.persu/total_ms*100)||0;
+  const dispoPct = (liveAxis.dispo/total_ms*100)||0;
+
+  const x = (liveAxis.persu<=0 && liveAxis.dispo<=0) ? 50 : Math.max(0, Math.min(100, dispoPct));
+  const y = (liveAxis.persu<=0 && liveAxis.dispo<=0) ? 50 : Math.max(0, Math.min(100, persuPct));
+
+  const porcentajes=Object.fromEntries(categoryList.map(c=>[c, +( (tiempos[c]/total_ms)*100 ).toFixed(2) ]));
   const comp_numeric=Object.fromEntries(competenciesList.map(c=>[c, competenciesLevels[c]||1]));
   const comp_text=Object.fromEntries(competenciesList.map(c=>[c, levelLabels[(competenciesLevels[c]||1)-1]]));
 
@@ -916,23 +1069,30 @@ function exportSession(){
     nombre:name,
     fecha:new Date().toISOString(),
     total_ms:Math.round(totalElapsed),
+
     objetivos:{...goals},
     tiempos_ms:{...tiempos},
+
     ruido_ms: Math.round(noise_ms),
     señal_ms: Math.round(signal_ms),
+
     porcentajes,
-    empatia_ms: Math.round(empatia_ms),
-    asertividad_ms: Math.round(asertividad_ms),
+
     persuasion_ms: Math.round(axis.persu||0),
     disponibilizacion_ms: Math.round(axis.dispo||0),
-    coords_cuadrante: { x, y },
+
+    coords_persu_dispo: { x:+x.toFixed(2), y:+y.toFixed(2) },
+
     ruido_vs_señal_pct: {
       ruido: +(noise_ms/Math.max(1,signal_ms+noise_ms)*100).toFixed(2),
       señal: +(signal_ms/Math.max(1,signal_ms+noise_ms)*100).toFixed(2)
     },
+
     competencias_nivel_num: comp_numeric,
     competencias_nivel_texto: comp_text
-    // Nota: si quieres exportar la trayectoria, agrega: trayectoria_cuadrante: quadPath
+
+    // si quieres exportar trayectoria:
+    // trayectoria_persu_dispo: quadPath
   };
 
   const blob=new Blob([JSON.stringify(summary,null,2)],{type:'application/json'});
@@ -940,93 +1100,41 @@ function exportSession(){
   const a=document.createElement('a'); a.href=url; a.download=`Radar_${name}_${Date.now()}.json`; a.click(); URL.revokeObjectURL(url);
 
   if(radarInstance){ const link=document.createElement('a'); link.download=`Radar_${name}_radar.png`; link.href=radarInstance.toBase64Image(); link.click(); }
-  if(quadInstance){ const link2=document.createElement('a'); link2.download=`Radar_${name}_cuadrantes.png`; link2.href=quadInstance.toBase64Image(); link2.click(); }
+  if(quadInstance){ const link2=document.createElement('a'); link2.download=`Radar_${name}_persu_dispo.png`; link2.href=quadInstance.toBase64Image(); link2.click(); }
   if(noiseInstance){ const link3=document.createElement('a'); link3.download=`Radar_${name}_ruido_senal.png`; link3.href=noiseInstance.toBase64Image(); link3.click(); }
   if(competenciesRadarInstance){ const link4=document.createElement('a'); link4.download=`Radar_${name}_competencias.png`; link4.href=competenciesRadarInstance.toBase64Image(); link4.click(); }
 }
 
-// ====== Persistencia local ======
-function saveDraft(){
-  const snap = getLiveSnapshot();
-  const draft={
-    goals:{...goals},
-    tiempos:{...(snap.now ? snap.tiemposLive : tiempos)},
-    name: nameInput.value,
-    axis:{...(snap.now ? snap.axisLive : axis)},
-    lastAxis,
-    noise_ms: (snap.now ? snap.noiseLive : noise_ms),
-    competenciesLevels:{...competenciesLevels}
-    // trayectoria omitida deliberadamente para no inflar localStorage
-  };
-  localStorage.setItem('radar-categorias-draft', JSON.stringify(draft));
-}
-
-function restoreDraft(){
-  try{
-    const raw=localStorage.getItem('radar-categorias-draft'); if(!raw) return;
-    const d=JSON.parse(raw);
-
-    if(d.name){
-      nameInput.value=d.name;
-      startBtn.disabled=nameInput.value.trim()==='';
-    }
-
-    if(d.goals){
-      Object.assign(goals,d.goals);
-      categoryList.forEach(cat=>{
-        const v=goals[cat]||0;
-        const lbl=document.getElementById(`lbl-${cat}`);
-        const rng=lbl?.nextElementSibling;
-        if(rng){ rng.value=v; lbl.textContent=`${cat}: ${v}%`; }
-      });
-      updateTotalPercent();
-    }
-
-    if(d.tiempos) Object.assign(tiempos,d.tiempos);
-    if(typeof d.noise_ms==='number') noise_ms=d.noise_ms; else noise_ms=0;
-
-    if(d.axis){
-      axis.persu=d.axis.persu||0;
-      axis.dispo=d.axis.dispo||0;
-    }
-
-    if(d.competenciesLevels){
-      Object.assign(competenciesLevels, d.competenciesLevels);
-      buildCompetenciesPanel();
-    }
-
-  }catch(e){
-    console.warn('No se pudo restaurar borrador',e);
-  }
-}
-
-// ====== Atajos de teclado ======
+// ====== Teclado ======
 function onKey(e){
-  if(!running||paused) return;
+  if(!running || paused) return;
+
   const n=parseInt(e.key,10);
   if(n>=1 && n<=6){
     const cat=categoryList[n-1];
     const btn=findButton(cat);
-    press(cat, btn);
-    return;
-  }
-  if(e.key==='p' || e.key==='P'){
-    const now = performance.now();
-    settleAxis(now);
-    setAxisActive('persu', now);
-    updateStats();
-    return;
-  }
-  if(e.key==='d' || e.key==='D'){
-    const now = performance.now();
-    settleAxis(now);
-    setAxisActive('dispo', now);
-    updateStats();
+    pressCategory(cat, btn);
     return;
   }
   if(e.key==='r' || e.key==='R'){
     const btn=findNoiseButton();
-    press(NOISE_KEY, btn);
+    pressCategory(NOISE_KEY, btn);
+    return;
+  }
+  if(e.key==='p' || e.key==='P'){
+    const now=performance.now();
+    settleAxis(now);
+    axisActive.persu=!axisActive.persu;
+    syncAxisButtons();
+    updateStats();
+    return;
+  }
+  if(e.key==='d' || e.key==='D'){
+    const now=performance.now();
+    settleAxis(now);
+    axisActive.dispo=!axisActive.dispo;
+    syncAxisButtons();
+    updateStats();
     return;
   }
 }
