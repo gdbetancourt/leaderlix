@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Evaluación de Presentaciones – Radar + Cuadrantes + Ruido/Señal + Competencias</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root{
+      --res:#1c1e2c;   /* Resultados */
+      --obj:#00FFFF;   /* Objetivos */
+      --ok:#18a957;
+      --warn:#f0ad4e;
+      --border:#1c1e2c;
+      --accent:#ff3d2e;   /* rojo */
+      --cyan:#2ee9ff;     /* cian */
+    }
+    *{box-sizing:border-box}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:0;background:#fafafa;color:#222}
+    header{padding:16px 24px;background:#fff;border-bottom:1px solid #e9e9e9;position:sticky;top:0;z-index:5}
+    header h1{margin:0;font-size:20px}
+
+    .container{display:none;flex-direction:column;align-items:center;gap:20px;padding:20px}
+
+    #timer{font-variant-numeric:tabular-nums;font-size:44px;font-weight:800;text-align:right;width:100%;max-width:1200px}
+    .controls{display:grid;grid-template-columns:1fr auto auto auto auto;gap:10px;width:100%;max-width:1200px}
+    .controls input{padding:10px;font-size:16px;border:1px solid #ccc;border-radius:8px}
+    .controls button{padding:10px 14px;font-size:16px;border:none;border-radius:8px;color:#fff;cursor:pointer}
+    #startStopButton,#pauseResumeButton,#resetButton,#exportButton{background:var(--res)}
+    .controls button[disabled]{opacity:.45;cursor:default}
+
+    /* layout tablero + eje vertical + dimmers */
+    .workspace{display:grid;grid-template-columns:auto 84px minmax(280px, 1fr);gap:16px;align-items:start;max-width:1200px;width:100%}
+    @media (max-width:1060px){ .workspace{grid-template-columns:1fr} }
+
+    .radial-board{position:relative;width:min(520px,90vw);height:min(520px,90vw)}
+    .circle-btn{position:absolute;width:84px;height:84px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;border:none;color:#fff;cursor:pointer;transform:translate(-50%, -50%);transition:transform .08s ease, box-shadow .08s ease;background:var(--res)}
+    .circle-btn:active{transform:translate(-50%, -50%) scale(.98)}
+    .active-ring{box-shadow:0 0 0 8px rgba(28,30,44,.18)}
+    .label{position:absolute;transform:translate(-50%,-50%);font-size:16px;color:#444;font-weight:700;pointer-events:none}
+
+    /* mini-panel eje vertical */
+    .axis-panel{display:flex;flex-direction:column;gap:12px}
+    .axis-btn{width:84px;min-height:84px;border-radius:14px;border:2px solid #ddd;background:#fff;color:#222;font-weight:800;font-size:14px;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.08);transition:box-shadow .1s ease, transform .05s ease}
+    .axis-btn:active{transform:scale(.98)}
+    .axis-btn.active{outline:0;box-shadow:0 0 0 6px rgba(28,30,44,.18), 0 1px 4px rgba(0,0,0,.08);border-color:var(--border)}
+    .axis-btn span{display:block}
+    .axis-up::before{content:"↑";display:block;font-size:18px;margin-bottom:4px}
+    .axis-down::before{content:"↓";display:block;font-size:18px;margin-bottom:4px}
+
+    /* Panel de competencias (9 dimmers) */
+    .competencies-panel{background:#fff;border:1px solid #e5e5e5;border-radius:12px;padding:14px;box-shadow:0 2px 6px rgba(0,0,0,.06)}
+    .competencies-panel h3{margin:6px 0 12px 0}
+    .competency{display:grid;grid-template-columns:1fr auto;align-items:center;gap:10px;border:1px solid #efefef;background:#fafafa;padding:8px 10px;border-radius:10px}
+    .competency .right{display:flex;align-items:center;gap:8px}
+    .competency .level-badge{min-width:96px;text-align:center;font-weight:700;font-size:12px;border:1px solid #ddd;border-radius:999px;padding:4px 8px;background:#f7f7f7}
+    .competency + .competency{margin-top:8px}
+    .comp-slider{appearance:none;width:140px;height:6px;border-radius:6px;background:#e0e0e0;outline:none}
+    .comp-slider::-webkit-slider-thumb{appearance:none;width:18px;height:18px;border-radius:50%;background:var(--res);cursor:pointer}
+
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;max-width:1200px;width:100%}
+    @media (max-width:900px){.grid{grid-template-columns:1fr 1fr}}
+    @media (max-width:640px){.grid{grid-template-columns:1fr}}
+
+    .summary-item{background:#fff;border:1px solid #e1e1e1;border-radius:10px;padding:10px;font-size:15px;line-height:1.35;display:flex;flex-direction:column;gap:6px}
+    .summary-item .row{display:flex;justify-content:space-between;gap:10px}
+    .summary-item .time{font-weight:800;font-variant-numeric:tabular-nums}
+    .summary-item .pct{color:#777}
+
+    .totals{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;max-width:1200px;width:100%}
+    @media (max-width:900px){.totals{grid-template-columns:1fr 1fr}}
+    .total-chip{background:#fff;border:1px solid #e5e5e5;border-radius:12px;padding:10px}
+    .total-chip h4{margin:0 0 6px 0}
+    .total-chip .k{font-variant-numeric:tabular-nums;font-weight:800}
+
+    .badges{display:flex;gap:8px;flex-wrap:wrap}
+    .badge{font-size:12px;border-radius:999px;padding:4px 8px;border:1px solid #ddd;background:#f7f7f7}
+    .badge.ok{border-color:var(--ok);background:color-mix(in srgb, var(--ok) 12%, white);color:#0f6b39}
+    .badge.warn{border-color:var(--warn);background:color-mix(in srgb, var(--warn) 14%, white);color:#7a560a}
+    @supports not (background: color-mix(in srgb, red 10%, white)){ .badge.ok{background:#e7f6ec}.badge.warn{background:#fbf1dc} }
+
+    .panel{width:min(1200px,94vw);background:#fff;border:1px solid #e5e5e5;border-radius:12px;box-shadow:0 2px 6px rgba(0,0,0,.06);padding:16px}
+    .panel h3{margin:6px 0 12px 0}
+
+    .charts-wrap{display:grid;grid-template-columns:1fr 1fr;gap:16px;width:min(1200px,94vw)}
+    @media (max-width:900px){.charts-wrap{grid-template-columns:1fr}}
+    .chart-box{width:100%;border:2px solid #222;padding:16px;background:#fff;border-radius:10px;box-shadow:0 2px 6px rgba(0,0,0,.08)}
+    canvas{width:100%!important;height:100%!important}
+
+    /* Pantalla de objetivos */
+    #goalSetting{max-width:700px;margin:24px auto;padding:20px;background:#fff;border-radius:12px;box-shadow:0 2px 6px rgba(0,0,0,.08);border:1px solid #ececec}
+    #goalSetting h2{text-align:center;margin-top:6px}
+    #goalSetting p{text-align:center}
+    #goalSetting .sliders{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    #goalSetting .sliders>div{background:#fafafa;border:1px solid #eee;border-radius:10px;padding:10px}
+    #goalSetting button{display:block;margin:10px auto 0 auto;padding:10px 18px;background:var(--res);color:#fff;border:none;border-radius:10px}
+    .mini{font-size:12px;color:#666;margin-top:-6px;text-align:center}
+
+    @media (prefers-reduced-motion: reduce){
+      .circle-btn,.axis-btn{transition:none}
+    }
+  </style>
+</head>
+<body>
+<header>
+  <h1 aria-live="polite">Evaluación de Presentaciones – Radar + Cuadrantes + Ruido/Señal + Competencias</h1>
+</header>
+
+<!-- Pantalla 1: objetivos con sliders -->
+<div id="goalSetting" aria-labelledby="titleGoals">
+  <h2 id="titleGoals">Define tus Objetivos (Opcional)</h2>
+  <p>Ajusta el porcentaje para cada categoría. No es necesario llegar a 100%.</p>
+  <div id="sliders" class="sliders" role="group" aria-label="Sliders de objetivos"></div>
+  <p style="font-weight:bold">Total asignado: <span id="totalPercent">0%</span></p>
+  <p class="mini">Tip: Presiona 1–6 para activar categoría, P/D para Persuasión/Disponibilización, R para Ruido.</p>
+  <button id="btnProceed" type="button">Siguiente</button>
+</div>
+
+<!-- Pantalla 2: cronómetro y resultados -->
+<div class="container" id="mainContainer">
+  <div id="timer" aria-live="polite">00:00:00</div>
+  <div class="controls">
+    <input id="personName" type="text" placeholder="Nombre" aria-label="Nombre de la persona"/>
+    <button id="startStopButton" type="button" disabled title="Iniciar o detener">Comenzar</button>
+    <button id="pauseResumeButton" type="button" disabled title="Pausar o reanudar">Pausa</button>
+    <button id="resetButton" type="button" disabled title="Reiniciar todo">Reiniciar</button>
+    <button id="exportButton" type="button" disabled title="Exportar resultados">Exportar</button>
+  </div>
+
+  <div class="panel" id="hotkeysPanel" style="display:none">
+    <h3>Atajos de teclado</h3>
+    <div class="badges" id="hotkeysBadges"></div>
+  </div>
+
+  <!-- Tablero + eje vertical + competencias -->
+  <div class="workspace">
+    <div class="radial-board" aria-label="Tablero radial" role="group"></div>
+    <div class="axis-panel" aria-label="Eje vertical Persuasión/Disponibilización" role="group">
+      <button id="btnPersu" class="axis-btn axis-up" aria-pressed="false" title="Activar Persuasión (P)"><span>Persuasión</span></button>
+      <button id="btnDispo" class="axis-btn axis-down" aria-pressed="false" title="Activar Disponibilización (D)"><span>Disponibilización</span></button>
+    </div>
+    <div class="competencies-panel" role="group" aria-label="Evaluación de Competencias">
+      <h3>Competencias (9) – Nivel</h3>
+      <div id="competenciesPanel"></div>
+    </div>
+  </div>
+
+  <div class="grid" id="summaryGrid" aria-live="polite"></div>
+
+  <div class="totals" id="totalsGrid" aria-live="polite">
+    <div class="total-chip"><h4>Empatía</h4><div class="k"><span id="empatiaTime">00:00:00</span> • <span id="empatiaPct">0%</span></div></div>
+    <div class="total-chip"><h4>Asertividad</h4><div class="k"><span id="asertTime">00:00:00</span> • <span id="asertPct">0%</span></div></div>
+    <div class="total-chip"><h4>Persuasión</h4><div class="k"><span id="persuTime">00:00:00</span> • <span id="persuPct">0%</span></div></div>
+    <div class="total-chip"><h4>Disponibilización</h4><div class="k"><span id="dispoTime">00:00:00</span> • <span id="dispoPct">0%</span></div></div>
+  </div>
+
+  <div class="charts-wrap">
+    <div class="chart-box"><canvas id="radarChart"></canvas></div>
+    <div class="chart-box"><canvas id="quadrantChart"></canvas></div>
+    <div class="chart-box" aria-label="Barra Ruido vs Señal" title="Ruido vs Señal">
+      <canvas id="noiseChart"></canvas>
+    </div>
+    <div class="chart-box" aria-label="Radar de Competencias" title="Radar de Competencias">
+      <canvas id="competenciesRadar"></canvas>
+    </div>
+  </div>
+</div>
+
+<script>
+// ====== Constantes ======
+const NOISE_KEY='__NOISE__';
+
+// ====== Categorías ======
+const categoryList=['Atención','Credibilidad','Inspiración','Aplicabilidad','Apertura','Asombro'];
+const tiempos=Object.fromEntries(categoryList.map(c=>[c,0]));
+const goals=Object.fromEntries(categoryList.map(c=>[c,0]));
+let noise_ms=0; // acumulador de Ruido
+
+// ====== Competencias (9) ======
+const competenciesList=[
+  'Dominio del Tema',
+  'Estructura y Tiempo',
+  'Evidencia y Argumentación',
+  'Lenguaje y Articulación',
+  'Imagen Vocal',
+  'Lenguaje no Verbal',
+  'Conexión con la Audiencia',
+  'Persuasión e Influencia',
+  'Propósito y Liderazgo'
+];
+const levelLabels=['Aspirante','Aprendiz','Competente','Experto','Maestro']; // 1..5
+const competenciesLevels=Object.fromEntries(competenciesList.map(c=>[c,3])); // default 3=Competente
+let competenciesRadarInstance=null;
+
+// ====== Eje vertical (Persuasión/Disponibilización) ======
+const axis={persu:0, dispo:0};
+let lastAxis=null; // 'persu' | 'dispo' | null
+let lastAxisStamp=0;
+
+// ====== Estado ======
+let running=false, paused=false, startTime=0, pauseStart=0, totalElapsed=0, lastStamp=0, timerInterval, statsInterval;
+let radarInstance=null, quadInstance=null, noiseInstance=null;
+let lastCat=null; // puede ser una categoría o NOISE_KEY
+
+// ====== UI refs ======
+const slidersEl=document.getElementById('sliders');
+const totalPercentEl=document.getElementById('totalPercent');
+const nameInput=document.getElementById('personName');
+const startBtn=document.getElementById('startStopButton');
+const pauseBtn=document.getElementById('pauseResumeButton');
+const resetBtn=document.getElementById('resetButton');
+const exportBtn=document.getElementById('exportButton');
+const btnPersu=document.getElementById('btnPersu');
+const btnDispo=document.getElementById('btnDispo');
+const btnProceed=document.getElementById('btnProceed');
+
+// ====== Sliders de objetivos ======
+categoryList.forEach(cat=>{
+  const wrap=document.createElement('div');
+  const label=document.createElement('label');
+  label.id=`lbl-${cat}`;label.textContent=`${cat}: 0%`;
+  label.style.display='block'; label.style.fontWeight='700'; label.style.marginBottom='6px';
+  const input=document.createElement('input');
+  input.type='range'; input.min=0; input.max=100; input.value=0; input.step=1; input.setAttribute('aria-label', `Objetivo para ${cat}`);
+  input.oninput=e=>{goals[cat]=+e.target.value; label.textContent=`${cat}: ${goals[cat]}%`; updateTotalPercent(); saveDraft();};
+  wrap.append(label,input);
+  slidersEl.appendChild(wrap);
+});
+function updateTotalPercent(){ totalPercentEl.textContent=`${Object.values(goals).reduce((a,b)=>a+b,0)}%`; }
+
+// ====== Hotkeys panel ======
+const hkPanel=document.getElementById('hotkeysPanel');
+const hkBadges=document.getElementById('hotkeysBadges');
+categoryList.forEach((cat,i)=>{ const k=i+1; const b=document.createElement('span'); b.className='badge'; b.textContent=`${k} = ${cat}`; hkBadges.appendChild(b); });
+['P = Persuasión','D = Disponibilización','R = Ruido'].forEach(t=>{ const x=document.createElement('span'); x.className='badge'; x.textContent=t; hkBadges.appendChild(x); });
+
+btnProceed.addEventListener('click', proceedToMain);
+function proceedToMain(){
+  document.getElementById('goalSetting').style.display='none';
+  document.getElementById('mainContainer').style.display='flex';
+  hkPanel.style.display='block';
+  buildRadial();
+  buildSummary();
+  buildCompetenciesPanel();
+  restoreDraft();
+  initCharts();
+  updateStats(); // asegura render inicial
+}
+
+nameInput.addEventListener('input',()=>{ startBtn.disabled=nameInput.value.trim()===''; });
+
+// ====== Radial ======
+function buildRadial(){
+  const board=document.querySelector('.radial-board');
+  board.innerHTML='';
+  const size=board.clientWidth; const cx=size/2; const cy=size/2;
+  const angles=[270,330,30,90,150,210];
+  const rBtn=Math.min(160,size*0.31); const rLbl=Math.min(220,size*0.42);
+
+  // Botones circulares de las 6 categorías
+  categoryList.forEach((cat,i)=>{
+    const a=angles[i]*(Math.PI/180);
+    const xB=cx+rBtn*Math.cos(a), yB=cy+rBtn*Math.sin(a);
+    const btn=document.createElement('button');
+    btn.className='circle-btn'; btn.style.left=`${xB}px`; btn.style.top=`${yB}px`; btn.textContent=cat.split(' ')[0];
+    btn.addEventListener('click',()=> press(cat,btn));
+    btn.title=`Activar ${cat}`;
+    btn.setAttribute('aria-pressed','false');
+    btn.setAttribute('role','button');
+    board.appendChild(btn);
+
+    const xL=cx+rLbl*Math.cos(a), yL=cy+rLbl*Math.sin(a);
+    const label=document.createElement('span');
+    label.className='label'; label.style.left=`${xL}px`; label.style.top=`${yL}px`; label.textContent=cat;
+    board.appendChild(label);
+  });
+
+  // Botón central: RUIDO
+  const noiseBtn=document.createElement('button');
+  noiseBtn.className='circle-btn';
+  noiseBtn.style.left=`${cx}px`; noiseBtn.style.top=`${cy}px`;
+  noiseBtn.textContent='Ruido';
+  noiseBtn.style.background='var(--accent)';
+  noiseBtn.title='Activar Ruido';
+  noiseBtn.setAttribute('aria-pressed','false');
+  noiseBtn.addEventListener('click',()=> press(NOISE_KEY, noiseBtn));
+  board.appendChild(noiseBtn);
+}
+
+// ====== Panel de competencias (9 dimmers) ======
+function buildCompetenciesPanel(){
+  const root=document.getElementById('competenciesPanel');
+  root.innerHTML='';
+  competenciesList.forEach((comp)=>{
+    const row=document.createElement('div');
+    row.className='competency';
+    const left=document.createElement('div'); left.textContent=comp; left.style.fontWeight='700';
+    const right=document.createElement('div'); right.className='right';
+    const badge=document.createElement('span'); badge.className='level-badge'; badge.textContent=levelLabels[(competenciesLevels[comp]-1)];
+    const input=document.createElement('input'); input.type='range'; input.min=1; input.max=5; input.step=1; input.value=competenciesLevels[comp]; input.className='comp-slider'; input.setAttribute('aria-label',`Nivel para ${comp}`);
+    input.addEventListener('input', (e)=>{
+      competenciesLevels[comp]=+e.target.value;
+      badge.textContent=levelLabels[competenciesLevels[comp]-1];
+      drawCompetenciesRadar();
+      saveDraft();
+    });
+    right.append(badge,input); row.append(left,right); root.appendChild(row);
+  });
+}
+
+// ====== Resumen por categoría ======
+function buildSummary(){
+  const grid=document.getElementById('summaryGrid');
+  grid.innerHTML='';
+  categoryList.forEach(cat=>{
+    const div=document.createElement('div');
+    div.className='summary-item';
+    div.innerHTML=`<div class="row"><strong>${cat}</strong><span class="badges" id="badge-${cat}"></span></div>
+      <div class="row">Tiempo <span id="${cat}-time" class="time">00:00:00</span>
+      <span class="pct" id="${cat}-pct">(0%)</span></div>`;
+    grid.appendChild(div);
+  });
+}
+
+// ====== Cronómetro ======
+const pad=n=>n<10?`0${n}`:n;
+const fmt=ms=>{ms=Math.max(0,Math.floor(ms));const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;return `${pad(h)}:${pad(m)}:${pad(sec)}`};
+
+startBtn.addEventListener('click', startStopTimer);
+pauseBtn.addEventListener('click', pauseResumeTimer);
+resetBtn.addEventListener('click', hardReset);
+exportBtn.addEventListener('click', exportSession);
+
+function startStopTimer(){
+  if(!running){
+    softReset();
+    startTime=performance.now();
+    lastStamp=startTime;
+    running=true; paused=false;
+
+    timerInterval=setInterval(()=>updateTimer(),1000);
+    statsInterval=setInterval(updateStats,1000);
+
+    startBtn.textContent='Detener';
+    pauseBtn.disabled=false; resetBtn.disabled=false; exportBtn.disabled=false; nameInput.disabled=true;
+    window.addEventListener('keydown',onKey);
+
+    updateTimer();
+    updateStats();
+  }else{
+    const now = performance.now();
+    totalElapsed = now - startTime;
+    document.getElementById('timer').textContent = fmt(totalElapsed);
+
+    settleSegment(now);
+    settleAxis(now);
+
+    clearInterval(timerInterval); clearInterval(statsInterval);
+    running=false;
+
+    startBtn.textContent='Comenzar';
+    pauseBtn.disabled=true; nameInput.disabled=false;
+
+    updateStats();
+    window.removeEventListener('keydown',onKey);
+  }
+}
+
+function pauseResumeTimer(){
+  if(!running) return;
+
+  if(!paused){
+    const now = performance.now();
+    totalElapsed = now - startTime;
+    document.getElementById('timer').textContent = fmt(totalElapsed);
+
+    settleSegment(now);
+    settleAxis(now);
+
+    clearInterval(timerInterval); clearInterval(statsInterval);
+    pauseStart=now; paused=true; pauseBtn.textContent='Reanudar';
+    updateStats();
+  }else{
+    const delta=performance.now()-pauseStart;
+    startTime+=delta; lastStamp+=delta;
+    if(lastAxisStamp) lastAxisStamp+=delta;
+
+    paused=false; pauseBtn.textContent='Pausa';
+    timerInterval=setInterval(()=>updateTimer(),1000);
+    statsInterval=setInterval(updateStats,1000);
+
+    updateTimer();
+    updateStats();
+  }
+}
+
+function updateTimer(){
+  if(!running || paused) return;
+  const now=performance.now();
+  totalElapsed=now-startTime;
+  document.getElementById('timer').textContent=fmt(totalElapsed);
+}
+
+// ====== Liquidación de segmentos (ahora admite now) ======
+function settleSegment(now = performance.now()){
+  if(!lastCat) return;
+  const elapsed = now - lastStamp;
+  if(elapsed>0){
+    if(lastCat===NOISE_KEY){ noise_ms+=elapsed; }
+    else { tiempos[lastCat]+=elapsed; }
+  }
+  lastStamp = now;
+}
+
+function settleAxis(now = performance.now()){
+  if(!lastAxis) return;
+  const elapsed = now - lastAxisStamp;
+  if(elapsed>0) axis[lastAxis]+=elapsed;
+  lastAxisStamp = now;
+}
+
+function softReset(){
+  paused=false; totalElapsed=0; startTime=pauseStart=0; lastStamp=0; lastCat=null; noise_ms=0;
+  categoryList.forEach(c=>{tiempos[c]=0;});
+  axis.persu=0; axis.dispo=0; lastAxis=null; lastAxisStamp=0;
+  document.getElementById('timer').textContent='00:00:00';
+  clearActiveRings();
+  setAxisActive(null);
+
+  if(radarInstance){radarInstance.destroy(); radarInstance=null}
+  if(quadInstance){quadInstance.destroy(); quadInstance=null}
+  if(noiseInstance){noiseInstance.destroy(); noiseInstance=null}
+  if(competenciesRadarInstance){competenciesRadarInstance.destroy(); competenciesRadarInstance=null}
+
+  // reconstruye charts en el siguiente updateStats()/initCharts()
+  updateStats();
+}
+
+function hardReset(){
+  if(confirm('¿Reiniciar todo? Se borrarán los tiempos actuales (no competencias).')){
+    softReset(); nameInput.value=''; startBtn.disabled=true; exportBtn.disabled=true; pauseBtn.disabled=true; resetBtn.disabled=true; nameInput.disabled=false;
+  }
+}
+
+function press(key,el){
+  if(!running||paused) return;
+  const now = performance.now();
+  settleSegment(now);
+  lastCat=key; lastStamp=now;
+  if(el) flash(el);
+  updateStats();
+}
+
+function flash(el){
+  clearActiveRings();
+  el.classList.add('active-ring');
+  document.querySelectorAll('.radial-board .circle-btn').forEach(b=>{
+    b.setAttribute('aria-pressed', b===el ? 'true' : 'false');
+  });
+}
+function clearActiveRings(){
+  document.querySelectorAll('.circle-btn').forEach(b=>b.classList.remove('active-ring'));
+}
+
+// ====== Botones eje vertical ======
+function setAxisActive(which, now = performance.now()){ // 'persu' | 'dispo' | null
+  btnPersu.classList.toggle('active', which==='persu');
+  btnDispo.classList.toggle('active', which==='dispo');
+  btnPersu.setAttribute('aria-pressed', which==='persu'?'true':'false');
+  btnDispo.setAttribute('aria-pressed', which==='dispo'?'true':'false');
+  lastAxis=which;
+  lastAxisStamp = which ? now : 0;
+}
+
+btnPersu.addEventListener('click',()=>{
+  if(!running||paused) return;
+  const now = performance.now();
+  settleAxis(now);
+  setAxisActive('persu', now);
+  updateStats();
+});
+btnDispo.addEventListener('click',()=>{
+  if(!running||paused) return;
+  const now = performance.now();
+  settleAxis(now);
+  setAxisActive('dispo', now);
+  updateStats();
+});
+
+// ====== Instantánea "en vivo" para actualización continua ======
+function getLiveSnapshot(){
+  const now = (running && !paused) ? performance.now() : null;
+
+  const elapsed = now ? (now - startTime) : totalElapsed;
+
+  const tiemposLive = {};
+  for(const c of categoryList){
+    let v = tiempos[c] || 0;
+    if(now && lastCat === c) v += (now - lastStamp);
+    tiemposLive[c] = v;
+  }
+
+  let noiseLive = noise_ms || 0;
+  if(now && lastCat === NOISE_KEY) noiseLive += (now - lastStamp);
+
+  const axisLive = { persu: axis.persu || 0, dispo: axis.dispo || 0 };
+  if(now && lastAxis === 'persu') axisLive.persu += (now - lastAxisStamp);
+  if(now && lastAxis === 'dispo') axisLive.dispo += (now - lastAxisStamp);
+
+  return { now, elapsed, tiemposLive, noiseLive, axisLive };
+}
+
+// ====== Stats + Totales (usa la instantánea en vivo) ======
+function updateStats(){
+  // si aún no estás en pantalla principal, evita fallos por canvases inexistentes
+  if(document.getElementById('mainContainer').style.display !== 'flex'){
+    saveDraft();
+    return;
+  }
+
+  const snap = getLiveSnapshot();
+  if(snap.now) totalElapsed = snap.elapsed;
+
+  const t = Math.max(1, snap.elapsed);
+
+  categoryList.forEach(c=>{
+    const v = snap.tiemposLive[c] || 0;
+    const pct = (v/t*100) || 0;
+
+    const elT=document.getElementById(`${c}-time`);
+    const elP=document.getElementById(`${c}-pct`);
+    if(elT) elT.textContent=fmt(v);
+    if(elP) elP.textContent=`(${pct.toFixed(1)}%)`;
+
+    const target=goals[c];
+    const cont=document.getElementById(`badge-${c}`);
+    if(cont){
+      cont.innerHTML='';
+      if(target>0){
+        const diff=pct-target;
+        const b=document.createElement('span');
+        b.className='badge ' + (Math.abs(diff)<=7? 'ok':'warn');
+        b.textContent=`${diff>=0?'+':''}${diff.toFixed(1)} pts vs obj.`;
+        cont.appendChild(b);
+      }
+    }
+  });
+
+  const empatia_ms = (snap.tiemposLive['Atención']||0) + (snap.tiemposLive['Apertura']||0) + (snap.tiemposLive['Inspiración']||0);
+  const asertividad_ms = (snap.tiemposLive['Asombro']||0) + (snap.tiemposLive['Credibilidad']||0) + (snap.tiemposLive['Aplicabilidad']||0);
+  const sumCat = empatia_ms + asertividad_ms || 1;
+
+  const totalAxis = (snap.axisLive.persu||0) + (snap.axisLive.dispo||0) || 1;
+
+  document.getElementById('empatiaTime').textContent=fmt(empatia_ms);
+  document.getElementById('empatiaPct').textContent=((empatia_ms/sumCat*100)||0).toFixed(1)+'%';
+  document.getElementById('asertTime').textContent=fmt(asertividad_ms);
+  document.getElementById('asertPct').textContent=((asertividad_ms/sumCat*100)||0).toFixed(1)+'%';
+
+  document.getElementById('persuTime').textContent=fmt(snap.axisLive.persu);
+  document.getElementById('persuPct').textContent=((snap.axisLive.persu/totalAxis*100)||0).toFixed(1)+'%';
+  document.getElementById('dispoTime').textContent=fmt(snap.axisLive.dispo);
+  document.getElementById('dispoPct').textContent=((snap.axisLive.dispo/totalAxis*100)||0).toFixed(1)+'%';
+
+  // Charts en vivo
+  drawQuadrant(empatia_ms, asertividad_ms, snap.axisLive.persu, snap.axisLive.dispo);
+
+  const signal_ms = categoryList.reduce((a,c)=>a+(snap.tiemposLive[c]||0),0);
+  drawNoiseBar(signal_ms, snap.noiseLive);
+
+  drawRadar(categoryList.map(c => snap.tiemposLive[c]||0));
+  drawCompetenciesRadar();
+
+  saveDraft();
+}
+
+// ====== Radar (Objetivos vs Resultados) - crea una vez y actualiza ======
+function drawRadar(resRawOverride){
+  const canvas=document.getElementById('radarChart');
+  if(!canvas) return;
+  const ctx=canvas.getContext('2d');
+
+  const resRaw = resRawOverride ?? categoryList.map(c=>tiempos[c]);
+  const objRaw = categoryList.map(c=>goals[c]);
+
+  const nrm=(arr)=>{ const mx=Math.max(1,...arr); return arr.map(v=>+(v/mx*100).toFixed(2)); };
+  const resData=nrm(resRaw), objData=nrm(objRaw);
+
+  if(radarInstance){
+    radarInstance.data.datasets[0].data = objData;
+    radarInstance.data.datasets[1].data = resData;
+    radarInstance.update('none');
+    return;
+  }
+
+  radarInstance=new Chart(ctx,{
+    type:'radar',
+    data:{labels:categoryList,datasets:[
+      {label:'Objetivos',data:objData,backgroundColor:'rgba(0,255,255,0.25)',borderColor:'#00FFFF',borderWidth:2,tension:.25},
+      {label:'Resultados',data:resData,backgroundColor:'rgba(28,30,44,0.25)',borderColor:getComputedStyle(document.documentElement).getPropertyValue('--res').trim()||'#1c1e2c',borderWidth:2,tension:.25}
+    ]},
+    options:{
+      responsive:true, maintainAspectRatio:true,
+      animation:false,
+      scales:{ r:{ beginAtZero:true, max:100, ticks:{display:false}, grid:{color:'#ddd'}, pointLabels:{ font:{size:13}, color:'#333' } } },
+      plugins:{ legend:{ position:'top' } }
+    }
+  });
+}
+
+// ====== Plugin de fondo de cuadrantes (definido una sola vez) ======
+const quadBgPlugin = {
+  id:'quadBg',
+  beforeDraw(chart){
+    const {ctx, chartArea} = chart;
+    if(!chartArea) return;
+    const {left,right,top,bottom,width,height} = chartArea;
+    const cx = left + width/2; const cy = top + height/2;
+    ctx.save();
+    ctx.fillStyle='rgba(255,61,46,0.06)'; ctx.fillRect(left, top, width/2, height/2);
+    ctx.fillStyle='rgba(28,30,44,0.06)'; ctx.fillRect(cx, top, width/2, height/2);
+    ctx.fillStyle='rgba(46,233,255,0.08)'; ctx.fillRect(left, cy, width/2, height/2);
+    ctx.fillStyle='rgba(255,61,46,0.06)'; ctx.fillRect(cx, cy, width/2, height/2);
+    ctx.strokeStyle='#999'; ctx.lineWidth=1; ctx.setLineDash([6,6]);
+    ctx.beginPath(); ctx.moveTo(cx, top); ctx.lineTo(cx, bottom); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(left, cy); ctx.lineTo(right, cy); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle='#222'; ctx.font='600 14px system-ui, -apple-system, Segoe UI, Roboto, Arial';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('Inspirational', left + width*0.25, top + height*0.25);
+    ctx.fillText('Promotional',   left + width*0.75, top + height*0.25);
+    ctx.fillText('Educational',  left + width*0.25, top + height*0.75);
+    ctx.fillText('Executive',    left + width*0.75, top + height*0.75);
+    ctx.restore();
+  }
+};
+
+// ====== Cuadrantes (actualiza punto en vivo) ======
+function drawQuadrant(empatia_ms, asertividad_ms, persu_ms, dispo_ms){
+  const canvas=document.getElementById('quadrantChart');
+  if(!canvas) return;
+  const ctx=canvas.getContext('2d');
+
+  // fallback (si se llama sin parámetros)
+  if(typeof empatia_ms !== 'number' || typeof asertividad_ms !== 'number'){
+    empatia_ms = (tiempos['Atención']||0) + (tiempos['Apertura']||0) + (tiempos['Inspiración']||0);
+    asertividad_ms = (tiempos['Asombro']||0) + (tiempos['Credibilidad']||0) + (tiempos['Aplicabilidad']||0);
+  }
+  if(typeof persu_ms !== 'number' || typeof dispo_ms !== 'number'){
+    persu_ms = axis.persu || 0;
+    dispo_ms = axis.dispo || 0;
+  }
+
+  const denomX = empatia_ms + asertividad_ms;
+  const x = denomX ? +(100*asertividad_ms/denomX).toFixed(2) : 50;
+  const denomY = (persu_ms||0) + (dispo_ms||0);
+  const y = denomY ? +(100*(persu_ms||0)/denomY).toFixed(2) : 50;
+
+  const point = {x,y};
+
+  if(quadInstance){
+    quadInstance.data.datasets[0].data[0] = point;
+    quadInstance.update('none');
+    return;
+  }
+
+  quadInstance = new Chart(ctx, {
+    type:'scatter',
+    data:{
+      datasets:[{
+        label:'Sesión',
+        data:[point],
+        pointRadius:6,
+        pointHoverRadius:7,
+        borderWidth:2,
+        borderColor:getComputedStyle(document.documentElement).getPropertyValue('--border').trim()||'#1c1e2c',
+        backgroundColor:'rgba(28,30,44,0.8)',
+        showLine:false
+      }]
+    },
+    options:{
+      responsive:true,
+      maintainAspectRatio:true,
+      animation:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{ callbacks:{ label:(ctx)=>`x: ${ctx.parsed.x.toFixed(1)}%, y: ${ctx.parsed.y.toFixed(1)}%` } }
+      },
+      layout:{ padding:{top:24,bottom:24,left:24,right:24} },
+      scales:{
+        x:{min:0,max:100,grid:{display:false},ticks:{display:false}, title:{display:true,text:'Empatía ⇢ Asertividad'}},
+        y:{min:0,max:100,grid:{display:false},ticks:{display:false}, reverse:false, title:{display:true,text:'Disponibilización ⇣ / Persuasión ⇡'}}
+      }
+    },
+    plugins:[quadBgPlugin]
+  });
+}
+
+// ====== Barra Ruido vs Señal (actualiza en vivo) ======
+function drawNoiseBar(signal_ms_override, noise_ms_override){
+  const canvas=document.getElementById('noiseChart');
+  if(!canvas) return;
+  const ctx=canvas.getContext('2d');
+
+  const signal_ms = (typeof signal_ms_override === 'number')
+    ? signal_ms_override
+    : categoryList.reduce((a,c)=>a+(tiempos[c]||0),0);
+
+  const noise_local = (typeof noise_ms_override === 'number')
+    ? noise_ms_override
+    : noise_ms;
+
+  const total_ms = Math.max(1, signal_ms + noise_local);
+  const signal_pct = +(signal_ms/total_ms*100).toFixed(2);
+  const noise_pct  = +(noise_local/total_ms*100).toFixed(2);
+
+  const data={
+    labels:['Sesión'],
+    datasets:[
+      {label:'Señal', data:[signal_pct], backgroundColor:'rgba(28,30,44,0.8)', borderColor:getComputedStyle(document.documentElement).getPropertyValue('--border').trim()||'#1c1e2c', borderWidth:1, stack:'stack0'},
+      {label:'Ruido', data:[noise_pct], backgroundColor:'rgba(255,61,46,0.6)', borderColor:'#ff3d2e', borderWidth:1, stack:'stack0'}
+    ]
+  };
+
+  const options={
+    indexAxis:'y',
+    responsive:true,
+    maintainAspectRatio:true,
+    animation:false,
+    plugins:{
+      legend:{position:'top'},
+      tooltip:{callbacks:{label:(ctx)=> `${ctx.dataset.label}: ${ctx.raw.toFixed(1)}%`}},
+      title:{display:true,text:'Ruido vs Señal (100% = tiempo total)'}
+    },
+    scales:{
+      x:{min:0, max:100, grid:{display:false}, ticks:{ callback:(v)=>v+'%' } },
+      y:{grid:{display:false}}
+    }
+  };
+
+  if(noiseInstance){
+    noiseInstance.data = data;
+    noiseInstance.update('none');
+  }else{
+    noiseInstance = new Chart(ctx, { type:'bar', data, options });
+  }
+}
+
+// ====== Radar de Competencias (1..5) - crea una vez y actualiza ======
+function drawCompetenciesRadar(){
+  const canvas=document.getElementById('competenciesRadar');
+  if(!canvas) return;
+  const ctx=canvas.getContext('2d');
+  const dataValues=competenciesList.map(c=>competenciesLevels[c]||1);
+
+  if(competenciesRadarInstance){
+    competenciesRadarInstance.data.datasets[0].data = dataValues;
+    competenciesRadarInstance.update('none');
+    return;
+  }
+
+  competenciesRadarInstance=new Chart(ctx,{
+    type:'radar',
+    data:{labels:competenciesList,datasets:[
+      {label:'Nivel (1=Aspirante … 5=Maestro)', data:dataValues, backgroundColor:'rgba(46,233,255,0.20)', borderColor:'#2ee9ff', borderWidth:2, pointRadius:3, tension:.2}
+    ]},
+    options:{
+      responsive:true, maintainAspectRatio:true,
+      animation:false,
+      scales:{ r:{ beginAtZero:true, min:0, max:5, ticks:{stepSize:1, callback:(v)=>v}, grid:{color:'#ddd'}, pointLabels:{ font:{size:12}, color:'#333' } } },
+      plugins:{ legend:{display:true, position:'top'}, tooltip:{callbacks:{label:(ctx)=> levelLabels[(ctx.raw||1)-1]+' ('+ctx.raw+')'}} }
+    }
+  });
+}
+
+// ====== Inicialización de Charts ======
+function initCharts(){
+  drawRadar(categoryList.map(()=>0));
+  drawQuadrant();
+  drawNoiseBar(0,0);
+  drawCompetenciesRadar();
+}
+
+// ====== Exportación ======
+function exportSession(){
+  if(running && !paused){
+    const now = performance.now();
+    totalElapsed = now - startTime;
+    document.getElementById('timer').textContent = fmt(totalElapsed);
+    settleSegment(now);
+    settleAxis(now);
+  }
+
+  const name=nameInput.value.trim()||'SinNombre';
+
+  const empatia_ms = (tiempos['Atención']||0) + (tiempos['Apertura']||0) + (tiempos['Inspiración']||0);
+  const asertividad_ms = (tiempos['Asombro']||0) + (tiempos['Credibilidad']||0) + (tiempos['Aplicabilidad']||0);
+  const denomX = empatia_ms + asertividad_ms;
+  const x = denomX ? +(100*asertividad_ms/denomX).toFixed(2) : 50;
+  const denomY = (axis.persu||0) + (axis.dispo||0);
+  const y = denomY ? +(100*axis.persu/denomY).toFixed(2) : 50;
+
+  const porcentajes=Object.fromEntries(categoryList.map(c=>[c, totalElapsed? +(tiempos[c]/totalElapsed*100).toFixed(2):0 ]));
+  const signal_ms = categoryList.reduce((a,c)=>a+(tiempos[c]||0),0);
+
+  const comp_numeric=Object.fromEntries(competenciesList.map(c=>[c, competenciesLevels[c]||1]));
+  const comp_text=Object.fromEntries(competenciesList.map(c=>[c, levelLabels[(competenciesLevels[c]||1)-1]]));
+
+  const summary={
+    nombre:name,
+    fecha:new Date().toISOString(),
+    total_ms:Math.round(totalElapsed),
+    objetivos:{...goals},
+    tiempos_ms:{...tiempos},
+    ruido_ms: Math.round(noise_ms),
+    señal_ms: Math.round(signal_ms),
+    porcentajes,
+    empatia_ms: Math.round(empatia_ms),
+    asertividad_ms: Math.round(asertividad_ms),
+    persuasion_ms: Math.round(axis.persu||0),
+    disponibilizacion_ms: Math.round(axis.dispo||0),
+    coords_cuadrante: { x, y },
+    ruido_vs_señal_pct: { ruido: +(noise_ms/Math.max(1,signal_ms+noise_ms)*100).toFixed(2), señal: +(signal_ms/Math.max(1,signal_ms+noise_ms)*100).toFixed(2) },
+    competencias_nivel_num: comp_numeric,
+    competencias_nivel_texto: comp_text
+  };
+
+  // JSON
+  const blob=new Blob([JSON.stringify(summary,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download=`Radar_${name}_${Date.now()}.json`; a.click(); URL.revokeObjectURL(url);
+
+  // PNGs
+  if(radarInstance){ const link=document.createElement('a'); link.download=`Radar_${name}_radar.png`; link.href=radarInstance.toBase64Image(); link.click(); }
+  if(quadInstance){ const link2=document.createElement('a'); link2.download=`Radar_${name}_cuadrantes.png`; link2.href=quadInstance.toBase64Image(); link2.click(); }
+  if(noiseInstance){ const link3=document.createElement('a'); link3.download=`Radar_${name}_ruido_senal.png`; link3.href=noiseInstance.toBase64Image(); link3.click(); }
+  if(competenciesRadarInstance){ const link4=document.createElement('a'); link4.download=`Radar_${name}_competencias.png`; link4.href=competenciesRadarInstance.toBase64Image(); link4.click(); }
+}
+
+// ====== Persistencia local (guarda valores en vivo si corresponde) ======
+function saveDraft(){
+  const snap = getLiveSnapshot();
+  const draft={
+    goals:{...goals},
+    tiempos:{...(snap.now ? snap.tiemposLive : tiempos)},
+    name: nameInput.value,
+    axis:{...(snap.now ? snap.axisLive : axis)},
+    lastAxis,
+    noise_ms: (snap.now ? snap.noiseLive : noise_ms),
+    competenciesLevels:{...competenciesLevels}
+  };
+  localStorage.setItem('radar-categorias-draft', JSON.stringify(draft));
+}
+
+function restoreDraft(){
+  try{
+    const raw=localStorage.getItem('radar-categorias-draft'); if(!raw) return;
+    const d=JSON.parse(raw);
+
+    if(d.name){
+      nameInput.value=d.name;
+      startBtn.disabled=nameInput.value.trim()==='';
+    }
+
+    if(d.goals){
+      Object.assign(goals,d.goals);
+      categoryList.forEach(cat=>{
+        const v=goals[cat]||0;
+        const lbl=document.getElementById(`lbl-${cat}`);
+        const rng=lbl?.nextElementSibling;
+        if(rng){ rng.value=v; lbl.textContent=`${cat}: ${v}%`; }
+      });
+      updateTotalPercent();
+    }
+
+    if(d.tiempos) Object.assign(tiempos,d.tiempos);
+    if(typeof d.noise_ms==='number') noise_ms=d.noise_ms; else noise_ms=0;
+
+    if(d.axis){
+      axis.persu=d.axis.persu||0;
+      axis.dispo=d.axis.dispo||0;
+    }
+
+    if(d.competenciesLevels){
+      Object.assign(competenciesLevels, d.competenciesLevels);
+      buildCompetenciesPanel();
+    }
+
+  }catch(e){
+    console.warn('No se pudo restaurar borrador',e);
+  }
+}
+
+// ====== Atajos de teclado ======
+function onKey(e){
+  if(!running||paused) return;
+  const n=parseInt(e.key,10);
+  if(n>=1 && n<=6){
+    const cat=categoryList[n-1];
+    const btn=findButton(cat);
+    press(cat, btn);
+    return;
+  }
+  if(e.key==='p' || e.key==='P'){
+    const now = performance.now();
+    settleAxis(now);
+    setAxisActive('persu', now);
+    updateStats();
+    return;
+  }
+  if(e.key==='d' || e.key==='D'){
+    const now = performance.now();
+    settleAxis(now);
+    setAxisActive('dispo', now);
+    updateStats();
+    return;
+  }
+  if(e.key==='r' || e.key==='R'){
+    const btn=findNoiseButton();
+    press(NOISE_KEY, btn);
+    return;
+  }
+}
+
+function findButton(cat){
+  const board=document.querySelector('.radial-board');
+  const btns=[...board.querySelectorAll('.circle-btn')];
+  return btns.find(b=> b.title?.includes(cat));
+}
+function findNoiseButton(){
+  const board=document.querySelector('.radial-board');
+  return [...board.querySelectorAll('.circle-btn')].find(b=> b.textContent==='Ruido');
+}
+
+// Evitar pérdida accidental
+window.addEventListener('beforeunload', (e)=>{ if(running){ e.preventDefault(); e.returnValue=''; } });
+</script>
+</body>
+</html>
