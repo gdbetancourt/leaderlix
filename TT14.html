@@ -7,13 +7,13 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root{
-      --res:#1c1e2c;   /* Resultados */
-      --obj:#00FFFF;   /* Objetivos */
+      --res:#1c1e2c;
+      --obj:#00FFFF;
       --ok:#18a957;
       --warn:#f0ad4e;
       --border:#1c1e2c;
-      --accent:#ff3d2e;   /* rojo */
-      --cyan:#2ee9ff;     /* cian */
+      --accent:#ff3d2e;
+      --cyan:#2ee9ff;
     }
     *{box-sizing:border-box}
     body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:0;background:#fafafa;color:#222}
@@ -114,17 +114,15 @@
   <h1 aria-live="polite">Evaluación de Presentaciones – Radar + Cuadrantes + Ruido/Señal + Competencias</h1>
 </header>
 
-<!-- Pantalla 1: objetivos -->
 <div id="goalSetting" aria-labelledby="titleGoals">
   <h2 id="titleGoals">Define tus Objetivos (Opcional)</h2>
   <p>Ajusta el porcentaje para cada categoría. No es necesario llegar a 100%.</p>
   <div id="sliders" class="sliders" role="group" aria-label="Sliders de objetivos"></div>
   <p style="font-weight:bold">Total asignado: <span id="totalPercent">0%</span></p>
-  <p class="mini">Tip: Presiona 1–6 para asignar el último intervalo a una categoría. P/D activan/desactivan Persuasión/Disponibilización. R asigna el último intervalo a Ruido.</p>
+  <p class="mini">Tip: 1–6 asigna el último intervalo a una categoría. P/D toggles Persuasión/Disponibilización (pueden estar ambos). R asigna el último intervalo a Ruido.</p>
   <button id="btnProceed" type="button">Siguiente</button>
 </div>
 
-<!-- Pantalla 2 -->
 <div class="container" id="mainContainer">
   <div id="timer" aria-live="polite">00:00:00</div>
   <div class="controls">
@@ -166,7 +164,7 @@
   <div class="charts-wrap">
     <div class="chart-box"><canvas id="radarChart"></canvas></div>
 
-    <div class="chart-box" aria-label="Persuasión vs Disponibilización (trayecto + vector)">
+    <div class="chart-box" aria-label="Persuasión vs Disponibilización (tiempo acumulado)">
       <canvas id="quadrantChart"></canvas>
     </div>
 
@@ -181,63 +179,64 @@
 </div>
 
 <script>
-// ====== Constantes ======
+// ================== Constantes ==================
 const NOISE_KEY='__NOISE__';
 
-// ====== Categorías ======
+// ================== Categorías ==================
 const categoryList=['Atención','Credibilidad','Inspiración','Aplicabilidad','Apertura','Asombro'];
 const tiempos=Object.fromEntries(categoryList.map(c=>[c,0]));
 const goals=Object.fromEntries(categoryList.map(c=>[c,0]));
 let noise_ms=0;
 
-// ====== Competencias ======
+// ================== Competencias ==================
 const competenciesList=[
-  'Dominio del Tema',
-  'Estructura y Tiempo',
-  'Evidencia y Argumentación',
-  'Lenguaje y Articulación',
-  'Imagen Vocal',
-  'Lenguaje no Verbal',
-  'Conexión con la Audiencia',
-  'Persuasión e Influencia',
-  'Propósito y Liderazgo'
+  'Dominio del Tema','Estructura y Tiempo','Evidencia y Argumentación','Lenguaje y Articulación',
+  'Imagen Vocal','Lenguaje no Verbal','Conexión con la Audiencia','Persuasión e Influencia','Propósito y Liderazgo'
 ];
 const levelLabels=['Aspirante','Aprendiz','Competente','Experto','Maestro'];
 const competenciesLevels=Object.fromEntries(competenciesList.map(c=>[c,3]));
 let competenciesRadarInstance=null;
 
-// ====== Eje Persuasión / Disponibilización (toggles independientes) ======
+// ================== Eje Persu/Dispo (toggles solapables) ==================
 const axis={persu:0, dispo:0};
 const axisActive={persu:false, dispo:false};
 let axisStamp=0;
 
-// ====== Estado general ======
+// ================== Estado general ==================
 let running=false, paused=false;
 let startTime=0, pauseStart=0, totalElapsed=0;
 let timerInterval=null, statsInterval=null;
 
-// ====== Asignación retroactiva por categorías ======
+// ================== Asignación retroactiva categorías ==================
 let lastEventStamp=0;
-let lastCatSelected=null;  // última tecla/click usado para asignar intervalo (cat o NOISE_KEY)
+let lastCatSelected=null;
 
-// ====== Charts ======
+// ================== Charts ==================
 let radarInstance=null, quadInstance=null, noiseInstance=null;
 
-// ====== Trayecto (Persu/Dispo 2D) ======
-let quadPath=[{x:50,y:50}];
-const QUAD_MAX_POINTS = 1200;
-const QUAD_MIN_DELTA  = 0.20;
+// ================== Trayecto Persu/Dispo ==================
+// Usamos minutos (pueden crecer), con ejes simétricos [-M,+M] para tener (0,0) en el centro
+let quadPath=[{x:0,y:0}];
+let quadScaleMax=1;                 // minutos; solo crece
+const QUAD_MAX_POINTS=2000;
+const QUAD_MIN_DELTA=0.02;          // minutos ~ 1.2s
 
-function resetQuadPath(){ quadPath=[{x:50,y:50}]; }
-function pushQuadPoint(x,y){
-  const last=quadPath[quadPath.length-1] || {x:50,y:50};
-  const dist=Math.hypot(x-last.x, y-last.y);
+function resetQuadPath(){
+  quadPath=[{x:0,y:0}];
+  quadScaleMax=1;
+}
+function pushQuadPoint(xMin,yMin){
+  const last=quadPath[quadPath.length-1] || {x:0,y:0};
+  const dist=Math.hypot(xMin-last.x, yMin-last.y);
   if(dist < QUAD_MIN_DELTA) return;
-  quadPath.push({x,y});
+  quadPath.push({x:xMin,y:yMin});
   if(quadPath.length>QUAD_MAX_POINTS) quadPath.shift();
+
+  const need = Math.max(Math.abs(xMin), Math.abs(yMin), 1);
+  if(need > quadScaleMax) quadScaleMax = Math.ceil(need * 1.1);
 }
 
-// ====== UI refs ======
+// ================== UI refs ==================
 const slidersEl=document.getElementById('sliders');
 const totalPercentEl=document.getElementById('totalPercent');
 const nameInput=document.getElementById('personName');
@@ -249,7 +248,7 @@ const btnPersu=document.getElementById('btnPersu');
 const btnDispo=document.getElementById('btnDispo');
 const btnProceed=document.getElementById('btnProceed');
 
-// ====== Formato tiempo ======
+// ================== Formato tiempo ==================
 const pad=n=>n<10?`0${n}`:n;
 const fmt=ms=>{
   ms=Math.max(0,Math.floor(ms));
@@ -257,11 +256,11 @@ const fmt=ms=>{
   return `${pad(h)}:${pad(m)}:${pad(sec)}`;
 };
 
-// ====== Objetivos (sliders) ======
+// ================== Objetivos (sliders) ==================
 categoryList.forEach(cat=>{
   const wrap=document.createElement('div');
   const label=document.createElement('label');
-  label.id=`lbl-${cat}`;label.textContent=`${cat}: 0%`;
+  label.id=`lbl-${cat}`; label.textContent=`${cat}: 0%`;
   label.style.display='block'; label.style.fontWeight='700'; label.style.marginBottom='6px';
 
   const input=document.createElement('input');
@@ -281,31 +280,14 @@ function updateTotalPercent(){
   totalPercentEl.textContent=`${Object.values(goals).reduce((a,b)=>a+b,0)}%`;
 }
 
-// ====== Hotkeys panel ======
+// ================== Hotkeys panel ==================
 const hkPanel=document.getElementById('hotkeysPanel');
 const hkBadges=document.getElementById('hotkeysBadges');
 categoryList.forEach((cat,i)=>{ const k=i+1; const b=document.createElement('span'); b.className='badge'; b.textContent=`${k} = ${cat}`; hkBadges.appendChild(b); });
 ['P = Toggle Persuasión','D = Toggle Disponibilización','R = Asignar Ruido'].forEach(t=>{ const x=document.createElement('span'); x.className='badge'; x.textContent=t; hkBadges.appendChild(x); });
 
-// ====== Navegación ======
-btnProceed.addEventListener('click', proceedToMain);
-function proceedToMain(){
-  document.getElementById('goalSetting').style.display='none';
-  document.getElementById('mainContainer').style.display='flex';
-  hkPanel.style.display='block';
-
-  buildRadial();
-  buildSummary();
-  buildCompetenciesPanel();
-  initCharts();
-  updateStats();
-}
-
-nameInput.addEventListener('input',()=>{ startBtn.disabled=nameInput.value.trim()===''; });
-
-// ====== Reset duro al abrir (sin persistencia) ======
+// ================== Reset al abrir (sin persistencia) ==================
 window.addEventListener('pageshow', ()=>{
-  // fuerza estado inicial cada vez que se abre (incluye bfcache)
   resetGoalsUI();
   resetToInitialScreen();
 });
@@ -322,12 +304,10 @@ function resetGoalsUI(){
 }
 
 function resetToInitialScreen(){
-  // vuelve a pantalla de objetivos
   document.getElementById('goalSetting').style.display='block';
   document.getElementById('mainContainer').style.display='none';
   hkPanel.style.display='none';
 
-  // limpia nombre y controles
   nameInput.value='';
   startBtn.disabled=true;
   pauseBtn.disabled=true;
@@ -337,11 +317,26 @@ function resetToInitialScreen(){
   startBtn.textContent='Comenzar';
   nameInput.disabled=false;
 
-  // limpia estado interno
   hardResetStateOnly();
 }
 
-// ====== Tablero radial ======
+nameInput.addEventListener('input',()=>{ startBtn.disabled=nameInput.value.trim()===''; });
+
+// ================== Navegación ==================
+btnProceed.addEventListener('click', proceedToMain);
+function proceedToMain(){
+  document.getElementById('goalSetting').style.display='none';
+  document.getElementById('mainContainer').style.display='flex';
+  hkPanel.style.display='block';
+
+  buildRadial();
+  buildSummary();
+  buildCompetenciesPanel();
+  initCharts();
+  updateStats();
+}
+
+// ================== Tablero radial ==================
 function buildRadial(){
   const board=document.querySelector('.radial-board');
   board.innerHTML='';
@@ -385,7 +380,7 @@ function pulse(el){
   setTimeout(()=>el.classList.remove('pulse'), 250);
 }
 
-// ====== Competencias ======
+// ================== Competencias ==================
 function buildCompetenciesPanel(){
   const root=document.getElementById('competenciesPanel');
   root.innerHTML='';
@@ -420,7 +415,7 @@ function buildCompetenciesPanel(){
   });
 }
 
-// ====== Resumen por categoría ======
+// ================== Resumen por categoría ==================
 function buildSummary(){
   const grid=document.getElementById('summaryGrid');
   grid.innerHTML='';
@@ -434,15 +429,16 @@ function buildSummary(){
   });
 }
 
-// ====== Controles ======
+// ================== Controles ==================
 startBtn.addEventListener('click', startStopTimer);
 pauseBtn.addEventListener('click', pauseResumeTimer);
 resetBtn.addEventListener('click', hardReset);
 exportBtn.addEventListener('click', exportSession);
 
-// ====== Estado: reset ======
+// ================== Reset interno ==================
 function hardResetStateOnly(){
   running=false; paused=false;
+
   startTime=0; pauseStart=0; totalElapsed=0;
   if(timerInterval) clearInterval(timerInterval);
   if(statsInterval) clearInterval(statsInterval);
@@ -471,7 +467,6 @@ function hardResetStateOnly(){
 
 function hardReset(){
   if(confirm('¿Reiniciar todo? Se borrarán los tiempos actuales (no competencias).')){
-    // mantiene objetivos, reinicia sesión
     hardResetSessionKeepGoals();
     updateStats();
   }
@@ -479,6 +474,7 @@ function hardReset(){
 
 function hardResetSessionKeepGoals(){
   running=false; paused=false;
+
   if(timerInterval) clearInterval(timerInterval);
   if(statsInterval) clearInterval(statsInterval);
   timerInterval=null; statsInterval=null;
@@ -504,7 +500,6 @@ function hardResetSessionKeepGoals(){
   if(noiseInstance){noiseInstance.destroy(); noiseInstance=null}
   if(competenciesRadarInstance){competenciesRadarInstance.destroy(); competenciesRadarInstance=null}
 
-  // controles
   startBtn.textContent='Comenzar';
   pauseBtn.textContent='Pausa';
   pauseBtn.disabled=true;
@@ -512,17 +507,14 @@ function hardResetSessionKeepGoals(){
   exportBtn.disabled=true;
   nameInput.disabled=false;
 
-  // charts se reconstruyen al siguiente initCharts (si quieres mantenerlos visibles, llama initCharts aquí)
   initCharts();
 }
 
-// ====== Timer start/stop ======
+// ================== Timer start/stop ==================
 function startStopTimer(){
   if(!running){
-    // inicio
     running=true; paused=false;
 
-    // reinicia tiempos sesión (no objetivos, no competencias)
     categoryList.forEach(c=>tiempos[c]=0);
     noise_ms=0;
 
@@ -533,13 +525,15 @@ function startStopTimer(){
     resetQuadPath();
 
     startTime=performance.now();
+    totalElapsed=0;
+
     lastEventStamp=startTime;
     lastCatSelected=null;
 
     axisStamp=startTime;
 
     timerInterval=setInterval(updateTimer,1000);
-    statsInterval=setInterval(updateStats,1000);
+    statsInterval=setInterval(updateStats,250); // mayor frecuencia para movimiento más evidente
 
     startBtn.textContent='Detener';
     pauseBtn.disabled=false;
@@ -552,7 +546,6 @@ function startStopTimer(){
     updateTimer();
     updateStats();
   }else{
-    // detener: asigna el intervalo final a la última categoría seleccionada
     const now=performance.now();
     totalElapsed=now-startTime;
     document.getElementById('timer').textContent=fmt(totalElapsed);
@@ -580,7 +573,6 @@ function pauseResumeTimer(){
   if(!running) return;
 
   if(!paused){
-    // pausar: NO se asigna categoría (queda pendiente para el próximo evento), pero sí se corta eje (toggles)
     const now=performance.now();
     totalElapsed=now-startTime;
     document.getElementById('timer').textContent=fmt(totalElapsed);
@@ -596,7 +588,6 @@ function pauseResumeTimer(){
 
     updateStats();
   }else{
-    // reanudar: desplaza stamps para excluir pausa
     const now=performance.now();
     const delta = now - pauseStart;
 
@@ -608,7 +599,7 @@ function pauseResumeTimer(){
     pauseBtn.textContent='Pausa';
 
     timerInterval=setInterval(updateTimer,1000);
-    statsInterval=setInterval(updateStats,1000);
+    statsInterval=setInterval(updateStats,250);
 
     updateTimer();
     updateStats();
@@ -622,7 +613,7 @@ function updateTimer(){
   document.getElementById('timer').textContent=fmt(totalElapsed);
 }
 
-// ====== Categorías: asignación retroactiva ======
+// ================== Categorías: asignación retroactiva ==================
 function pressCategory(key, el){
   if(!running || paused) return;
 
@@ -651,7 +642,7 @@ function finalizeCategoryTailOnStop(now){
   lastEventStamp = now;
 }
 
-// ====== Eje Persu/Dispo (toggles + solape) ======
+// ================== Eje Persu/Dispo: acumulación continua ==================
 function settleAxis(now){
   if(!axisStamp) axisStamp=now;
   const delta = now - axisStamp;
@@ -687,26 +678,21 @@ btnDispo.addEventListener('click', ()=>{
   updateStats();
 });
 
-// ====== Live snapshot (solo para visualización; no muta estado) ======
-function getLiveAxisAndElapsed(){
-  if(!(running && !paused)) return { elapsed: totalElapsed, persu: axis.persu, dispo: axis.dispo };
-
+// Snapshot de eje en vivo (no muta)
+function getLiveAxis(){
+  if(!(running && !paused)) return {persu: axis.persu, dispo: axis.dispo};
   const now=performance.now();
-  const elapsed = now - startTime;
-
   let persu = axis.persu;
   let dispo = axis.dispo;
-
   const delta = now - axisStamp;
   if(delta>0){
     if(axisActive.persu) persu += delta;
     if(axisActive.dispo) dispo += delta;
   }
-
-  return { elapsed, persu, dispo };
+  return {persu, dispo};
 }
 
-// ====== Radar (Objetivos vs Resultados) ======
+// ================== Radar (Objetivos vs Resultados) ==================
 function drawRadar(){
   const canvas=document.getElementById('radarChart');
   if(!canvas) return;
@@ -740,7 +726,7 @@ function drawRadar(){
   });
 }
 
-// ====== Fondo cuadrantes (Persu/Dispo 2D) ======
+// ================== Fondo cuadrantes (simétrico) ==================
 const quadBgPlugin = {
   id:'quadBg',
   beforeDraw(chart){
@@ -762,17 +748,14 @@ const quadBgPlugin = {
 
     ctx.fillStyle='#222'; ctx.font='600 12px system-ui, -apple-system, Segoe UI, Roboto, Arial';
     ctx.textAlign='center'; ctx.textBaseline='middle';
-
-    ctx.fillText('Alta Persuasión • Baja Disponibilización', left + width*0.25, top + height*0.25);
-    ctx.fillText('Alta Persuasión • Alta Disponibilización', left + width*0.75, top + height*0.25);
-    ctx.fillText('Baja Persuasión • Baja Disponibilización', left + width*0.25, top + height*0.75);
-    ctx.fillText('Baja Persuasión • Alta Disponibilización', left + width*0.75, top + height*0.75);
+    ctx.fillText('+Y Persuasión',  left + width*0.25, top + height*0.25);
+    ctx.fillText('+X Dispo',      left + width*0.75, top + height*0.75);
 
     ctx.restore();
   }
 };
 
-// ====== Flecha vector centro→punto ======
+// ================== Flecha vector (0,0) -> punto ==================
 const vectorArrowPlugin = {
   id:'vectorArrow',
   afterDatasetsDraw(chart){
@@ -817,17 +800,25 @@ const vectorArrowPlugin = {
   }
 };
 
-// ====== Persu/Dispo: trayectoria + punto + vector ======
-function drawPersuDispo2D(x, y){
+// ================== Persu/Dispo: tiempo acumulado en minutos ==================
+function drawPersuDispoTime2D(xMin, yMin){
   const canvas=document.getElementById('quadrantChart');
   if(!canvas) return;
   const ctx=canvas.getContext('2d');
   const border = getComputedStyle(document.documentElement).getPropertyValue('--border').trim()||'#1c1e2c';
 
+  const M = Math.max(quadScaleMax, 1);
+
   if(quadInstance){
-    quadInstance.data.datasets[0].data = quadPath;             // trayecto
-    quadInstance.data.datasets[1].data = [{x,y}];              // punto móvil
-    quadInstance.data.datasets[2].data = [{x:50,y:50},{x,y}];  // vector
+    quadInstance.data.datasets[0].data = quadPath;
+    quadInstance.data.datasets[1].data = [{x:xMin,y:yMin}];
+    quadInstance.data.datasets[2].data = [{x:0,y:0},{x:xMin,y:yMin}];
+
+    quadInstance.options.scales.x.min = -M;
+    quadInstance.options.scales.x.max =  M;
+    quadInstance.options.scales.y.min = -M;
+    quadInstance.options.scales.y.max =  M;
+
     quadInstance.update('none');
     return;
   }
@@ -848,7 +839,7 @@ function drawPersuDispo2D(x, y){
         },
         {
           label:'Punto',
-          data:[{x,y}],
+          data:[{x:xMin,y:yMin}],
           showLine:false,
           pointRadius:6,
           pointHoverRadius:7,
@@ -858,7 +849,7 @@ function drawPersuDispo2D(x, y){
         },
         {
           label:'Vector',
-          data:[{x:50,y:50},{x,y}],
+          data:[{x:0,y:0},{x:xMin,y:yMin}],
           showLine:true,
           tension:0,
           borderWidth:1.5,
@@ -875,20 +866,20 @@ function drawPersuDispo2D(x, y){
       animation:false,
       plugins:{
         legend:{display:false},
-        tooltip:{ callbacks:{ label:(ctx)=>`x: ${ctx.parsed.x.toFixed(1)}%, y: ${ctx.parsed.y.toFixed(1)}%` } },
+        tooltip:{ callbacks:{ label:(c)=>`x: ${c.parsed.x.toFixed(2)} min, y: ${c.parsed.y.toFixed(2)} min` } },
         vectorArrow:{ datasetIndex:2, headLen:10, minLen:8 }
       },
       layout:{ padding:{top:24,bottom:24,left:24,right:24} },
       scales:{
-        x:{min:0,max:100,grid:{display:false},ticks:{display:false}, title:{display:true,text:'Disponibilización (%)'}},
-        y:{min:0,max:100,grid:{display:false},ticks:{display:false}, title:{display:true,text:'Persuasión (%)'}}
+        x:{min:-M,max:M,grid:{display:false},ticks:{display:true}, title:{display:true,text:'Disponibilización (min, centro=0)'}},
+        y:{min:-M,max:M,grid:{display:false},ticks:{display:true}, title:{display:true,text:'Persuasión (min, centro=0)'}}
       }
     },
     plugins:[quadBgPlugin, vectorArrowPlugin]
   });
 }
 
-// ====== Ruido vs Señal ======
+// ================== Ruido vs Señal ==================
 function drawNoiseBar(){
   const canvas=document.getElementById('noiseChart');
   if(!canvas) return;
@@ -932,7 +923,7 @@ function drawNoiseBar(){
   }
 }
 
-// ====== Radar Competencias ======
+// ================== Radar competencias ==================
 function drawCompetenciesRadar(){
   const canvas=document.getElementById('competenciesRadar');
   if(!canvas) return;
@@ -960,23 +951,27 @@ function drawCompetenciesRadar(){
   });
 }
 
-// ====== Init charts ======
+// ================== Init charts ==================
 function initCharts(){
   drawRadar();
   drawNoiseBar();
   resetQuadPath();
-  drawPersuDispo2D(50,50);
+  drawPersuDispoTime2D(0,0);
   drawCompetenciesRadar();
 }
 
-// ====== Stats (UI + charts) ======
+// ================== Stats ==================
 function updateStats(){
-  // si no estás en pantalla principal, no intentes pintar métricas
   if(document.getElementById('mainContainer').style.display !== 'flex') return;
 
-  // categorías (tiempos asignados)
+  // Garantiza totalElapsed en vivo (no depende solo del timer)
+  if(running && !paused){
+    totalElapsed = performance.now() - startTime;
+  }
+
   const t = Math.max(1, totalElapsed);
 
+  // categorías
   categoryList.forEach(c=>{
     const v=tiempos[c]||0;
     const pct=(v/t*100)||0;
@@ -1010,36 +1005,31 @@ function updateStats(){
   document.getElementById('asertTime').textContent=fmt(asertividad_ms);
   document.getElementById('asertPct').textContent=((asertividad_ms/sumCat*100)||0).toFixed(1)+'%';
 
-  // eje Persu/Dispo (en vivo)
-  const live = getLiveAxisAndElapsed();
-  const totalMs = Math.max(1, live.elapsed);
+  // Persu/Dispo en vivo
+  const liveAxis = getLiveAxis();
+  const totalMs = Math.max(1, totalElapsed);
 
-  document.getElementById('persuTime').textContent=fmt(live.persu);
-  document.getElementById('dispoTime').textContent=fmt(live.dispo);
+  document.getElementById('persuTime').textContent=fmt(liveAxis.persu);
+  document.getElementById('dispoTime').textContent=fmt(liveAxis.dispo);
 
-  // porcentajes sobre tiempo total de presentación
-  const persuPct = (live.persu/totalMs*100)||0;
-  const dispoPct = (live.dispo/totalMs*100)||0;
+  document.getElementById('persuPct').textContent=((liveAxis.persu/totalMs*100)||0).toFixed(1)+'%';
+  document.getElementById('dispoPct').textContent=((liveAxis.dispo/totalMs*100)||0).toFixed(1)+'%';
 
-  document.getElementById('persuPct').textContent=persuPct.toFixed(1)+'%';
-  document.getElementById('dispoPct').textContent=dispoPct.toFixed(1)+'%';
+  // Coordenadas en minutos acumulados (centro = 0)
+  const xMin = +(liveAxis.dispo / 60000).toFixed(3);
+  const yMin = +(liveAxis.persu / 60000).toFixed(3);
 
-  // coordenadas: si ambos están en 0, permanece en el centro (neutral)
-  const x = (live.persu<=0 && live.dispo<=0) ? 50 : Math.max(0, Math.min(100, dispoPct));
-  const y = (live.persu<=0 && live.dispo<=0) ? 50 : Math.max(0, Math.min(100, persuPct));
+  pushQuadPoint(xMin, yMin);
+  drawPersuDispoTime2D(xMin, yMin);
 
-  pushQuadPoint(+x.toFixed(2), +y.toFixed(2));
-  drawPersuDispo2D(+x.toFixed(2), +y.toFixed(2));
-
-  // charts
+  // charts restantes
   drawRadar();
   drawNoiseBar();
   drawCompetenciesRadar();
 }
 
-// ====== Export ======
+// ================== Export ==================
 function exportSession(){
-  // si está corriendo, corta eje y cierra el último intervalo de categoría con la convención "última seleccionada"
   if(running && !paused){
     const now=performance.now();
     totalElapsed=now-startTime;
@@ -1054,14 +1044,10 @@ function exportSession(){
   const signal_ms = categoryList.reduce((a,c)=>a+(tiempos[c]||0),0);
   const total_ms = Math.max(1, totalElapsed);
 
-  const liveAxis = {persu: axis.persu, dispo: axis.dispo};
-  const persuPct = (liveAxis.persu/total_ms*100)||0;
-  const dispoPct = (liveAxis.dispo/total_ms*100)||0;
+  const xMin = +(axis.dispo / 60000).toFixed(3);
+  const yMin = +(axis.persu / 60000).toFixed(3);
 
-  const x = (liveAxis.persu<=0 && liveAxis.dispo<=0) ? 50 : Math.max(0, Math.min(100, dispoPct));
-  const y = (liveAxis.persu<=0 && liveAxis.dispo<=0) ? 50 : Math.max(0, Math.min(100, persuPct));
-
-  const porcentajes=Object.fromEntries(categoryList.map(c=>[c, +( (tiempos[c]/total_ms)*100 ).toFixed(2) ]));
+  const porcentajes=Object.fromEntries(categoryList.map(c=>[c, +((tiempos[c]/total_ms)*100).toFixed(2) ]));
   const comp_numeric=Object.fromEntries(competenciesList.map(c=>[c, competenciesLevels[c]||1]));
   const comp_text=Object.fromEntries(competenciesList.map(c=>[c, levelLabels[(competenciesLevels[c]||1)-1]]));
 
@@ -1081,7 +1067,7 @@ function exportSession(){
     persuasion_ms: Math.round(axis.persu||0),
     disponibilizacion_ms: Math.round(axis.dispo||0),
 
-    coords_persu_dispo: { x:+x.toFixed(2), y:+y.toFixed(2) },
+    coords_persu_dispo_min: { x:xMin, y:yMin },
 
     ruido_vs_señal_pct: {
       ruido: +(noise_ms/Math.max(1,signal_ms+noise_ms)*100).toFixed(2),
@@ -1091,8 +1077,7 @@ function exportSession(){
     competencias_nivel_num: comp_numeric,
     competencias_nivel_texto: comp_text
 
-    // si quieres exportar trayectoria:
-    // trayectoria_persu_dispo: quadPath
+    // trayectoria_persu_dispo_min: quadPath
   };
 
   const blob=new Blob([JSON.stringify(summary,null,2)],{type:'application/json'});
@@ -1105,7 +1090,7 @@ function exportSession(){
   if(competenciesRadarInstance){ const link4=document.createElement('a'); link4.download=`Radar_${name}_competencias.png`; link4.href=competenciesRadarInstance.toBase64Image(); link4.click(); }
 }
 
-// ====== Teclado ======
+// ================== Teclado ==================
 function onKey(e){
   if(!running || paused) return;
 
